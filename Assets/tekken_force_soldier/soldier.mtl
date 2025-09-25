@@ -1,0 +1,57 @@
+# Blender 4.5.2 LTS MTL File: 'soldier.blend'
+# www.blender.org
+
+newmtl MI_CH_zak_bdf_tf0_helmet
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd C:/MI_CH_zak_bdf_tf0_helmet_baseColor.png
+map_Bump -bm 1.000000 C:/MI_CH_zak_bdf_tf0_helmet_normal.png
+
+newmtl MI_CH_zak_bdf_tf0_lowerbody
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd C:/MI_CH_zak_bdf_tf0_lowerbody_baseColor.png
+map_Bump -bm 1.000000 C:/MI_CH_zak_bdf_tf0_lowerbody_normal.png
+
+newmtl MI_CH_zak_bdf_tf0_metal_part
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd C:/MI_CH_zak_bdf_tf0_metal_part_baseColor.png
+map_Bump -bm 1.000000 C:/MI_CH_zak_bdf_tf0_metal_part_normal.png
+
+newmtl MI_CH_zak_bdf_tf0_shoes
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd C:/MI_CH_zak_bdf_tf0_shoes_baseColor.png
+map_Bump -bm 1.000000 C:/MI_CH_zak_bdf_tf0_shoes_normal.png
+
+newmtl MI_CH_zak_bdf_tf0_upperbody
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd C:/MI_CH_zak_bdf_tf0_upperbody_baseColor.png
+map_Bump -bm 1.000000 C:/MI_CH_zak_bdf_tf0_upperbody_normal.png
