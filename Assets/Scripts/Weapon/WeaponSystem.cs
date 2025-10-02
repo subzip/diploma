@@ -143,13 +143,18 @@ public class WeaponSystem : MonoBehaviour
             // ДОБАВЛЕНО: Логирование в консоль при попадании
             Debug.Log($"🎯 ПОПАДАНИЕ! Объект: {hit.collider.gameObject.name} | Дистанция: {hit.distance:F2} м");
             Debug.Log($"📍 Позиция попадания: X:{hit.point.x:F2}, Y:{hit.point.y:F2}, Z:{hit.point.z:F2}");
-            
+
             // Обработка урона
             if (hit.collider.TryGetComponent<IDamageable>(out IDamageable damageable))
             {
                 damageable.TakeDamage(damage, hit.point);
                 // ДОБАВЛЕНО: Логирование урона
                 Debug.Log($"💥 Нанесено {damage} урона объекту {hit.collider.gameObject.name}");
+                
+                if (damageable is Enemy enemy && enemy.IsDead())
+                {
+                    Debug.Log($"☠️ Враг [{hit.collider.gameObject.name}] уничтожен с одного выстрела!");
+                }
             }
             else
             {
