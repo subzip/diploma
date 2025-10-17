@@ -13,7 +13,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float crouchSpeed = 2f;
     [SerializeField] private float standHeight = 2f;      // Высота в обычном состоянии
     [SerializeField] private float crouchHeight = 1f;     // Высота в приседе
-    [SerializeField] private float crouchSmoothTime = 0.1f; // Плавность изменения высоты
+    [SerializeField] private float crouchSmoothTime = 0.22f; // Плавность изменения высоты
 
     private bool isCrouching = false;
     private float currentHeight;
@@ -21,6 +21,11 @@ public class PlayerController : MonoBehaviour
 
     
     public Animator animator;
+
+    [SerializeField] private Camera playerCamera; 
+    [SerializeField] private float standCameraHeight = 1.65f;   // Высота камеры в стойке
+    [SerializeField] private float crouchCameraHeight = 1.0f;    // Высота камеры в приседе
+    private float cameraHeightVelocity = 0f; // Для плавности камеры
 
     [Header("Look")]
     [SerializeField] private float lookSensitivity = 2f;
@@ -72,12 +77,29 @@ public class PlayerController : MonoBehaviour
     private void Update()
     {
         isGrounded = controller.isGrounded;
-    
+        
+        // Обработка ввода и движения
         Move();
         Look();
-        HandleCrouching(); // <-- добавьте эту строку
+        HandleCrouching(); // ← но БЕЗ движения камеры!
         
         UpdateAnimation();
+    }
+
+    private void LateUpdate()
+    {
+        // Только позиционирование КАМЕРЫ
+        if (playerCamera != null)
+        {
+            float targetCameraHeight = isCrouching ? crouchCameraHeight : standCameraHeight;
+            float currentCamHeight = Mathf.SmoothDamp(
+                playerCamera.transform.localPosition.y,
+                targetCameraHeight,
+                ref cameraHeightVelocity,
+                crouchSmoothTime
+            );
+            playerCamera.transform.localPosition = new Vector3(0f, currentCamHeight, 0f);
+        }
     }
 
     private void Move()
@@ -131,25 +153,25 @@ public class PlayerController : MonoBehaviour
     }
 
     private void HandleCrouching()
-{
-    float targetHeight = isCrouching ? crouchHeight : standHeight;
-    
-    // Плавно меняем высоту
-    currentHeight = Mathf.SmoothDamp(currentHeight, targetHeight, ref heightVelocity, crouchSmoothTime);
-    controller.height = currentHeight;
-    
-    // Центр всегда в середине высоты
-    Vector3 newCenter = Vector3.up * (currentHeight / 2);
-    controller.center = newCenter;
-    
-    // 🔥 КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: корректируем позицию, чтобы ноги не отрывались от земли
-    if (isGrounded)
-    {
-        float heightDiff = targetHeight - currentHeight;
-        // Сдвигаем персонажа ВНИЗ на половину разницы
-        transform.position -= Vector3.up * (heightDiff / 2f);
-    }
-}
+        {
+            float targetHeight = isCrouching ? crouchHeight : standHeight;
+            float targetCenterY = targetHeight / 2f;
+
+            // 🔥 КЛЮЧЕВОЙ МОМЕНТ: сначала сдвинуть ПОЗИЦИЮ, потом менять height/center
+            if (isGrounded)
+            {
+                float currentBottom = transform.position.y - controller.center.y + controller.height / 2f;
+                float newBottom = transform.position.y - targetCenterY + targetHeight / 2f;
+                float heightDiff = currentBottom - newBottom; // на сколько "поднялись ноги"
+
+                // Опускаем персонажа ВНИЗ, чтобы ноги остались на земле
+                transform.position -= Vector3.up * heightDiff;
+            }
+
+            // Теперь безопасно меняем параметры контроллера
+            controller.height = targetHeight;
+            controller.center = Vector3.up * targetCenterY;
+        }
 
     
 
