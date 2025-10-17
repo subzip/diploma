@@ -9,7 +9,15 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float jumpHeight = 2f;
     [SerializeField] private float gravity = -9.81f;
+
     [SerializeField] private float crouchSpeed = 2f;
+    [SerializeField] private float standHeight = 2f;      // Высота в обычном состоянии
+    [SerializeField] private float crouchHeight = 1f;     // Высота в приседе
+    [SerializeField] private float crouchSmoothTime = 0.1f; // Плавность изменения высоты
+
+    private bool isCrouching = false;
+    private float currentHeight;
+    private float heightVelocity = 0f;
 
     
     public Animator animator;
@@ -27,7 +35,6 @@ public class PlayerController : MonoBehaviour
     private Vector2 lookInput;
 
     private float yVelocity = 0f;
-    private bool isCrouching = false;
     private bool isGrounded;
 
     private float xRotation = 0f;
@@ -37,6 +44,10 @@ public class PlayerController : MonoBehaviour
         inputActions = new PlayerInputActions();
         controller = GetComponent<CharacterController>();
         animator = GetComponent<Animator>();
+
+        currentHeight = standHeight;
+        controller.height = standHeight;
+        controller.center = Vector3.up * (standHeight / 2);
     }
 
     private void OnEnable()
@@ -61,30 +72,27 @@ public class PlayerController : MonoBehaviour
     private void Update()
     {
         isGrounded = controller.isGrounded;
-
+    
         Move();
         Look();
-
-        // Обновляем параметр аниматора на основе фактического движения
+        HandleCrouching(); // <-- добавьте эту строку
+        
         UpdateAnimation();
     }
 
     private void Move()
     {
-        // 1. Горизонтальное движение (по земле)
+            /// Горизонтальное движение
         Vector3 moveDirection = transform.right * moveInput.x + transform.forward * moveInput.y;
         float currentSpeed = isCrouching ? crouchSpeed : moveSpeed;
         Vector3 movement = moveDirection * currentSpeed * Time.deltaTime;
 
-        // 2. Прыжок и гравитация
+        // Прыжок и гравитация
         if (isGrounded)
         {
-            if (yVelocity < 0)
-            {
-                yVelocity = -1f;
-            }
+            if (yVelocity < 0) yVelocity = -1f;
 
-            if (inputActions.Player.Jump.IsPressed())
+            if (inputActions.Player.Jump.IsPressed() && !isCrouching) // Прыгать можно только стоя
             {
                 yVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
             }
@@ -94,10 +102,10 @@ public class PlayerController : MonoBehaviour
             yVelocity += gravity * Time.deltaTime;
         }
 
-        // 3. Добавляем вертикальное движение к общему перемещению
+        // Вертикальное движение от гравитации
         movement.y = yVelocity * Time.deltaTime;
 
-        // 4. Единый вызов Move() — всё движение за один кадр
+        // Применяем движение
         controller.Move(movement);
     }
 
@@ -113,24 +121,47 @@ public class PlayerController : MonoBehaviour
         // Можно оставить пустым
     }
 
-    private void ToggleCrouch()
+   private void ToggleCrouch()
     {
         isCrouching = !isCrouching;
-        // Дополнительно: можно добавить анимацию приседания
-        // animator.SetBool("IsCrouching", isCrouching);
+        
+        // Обновляем параметр аниматора (если используете)
+        if (animator != null)
+            animator.SetBool("IsCrouching", isCrouching);
     }
+
+    private void HandleCrouching()
+{
+    float targetHeight = isCrouching ? crouchHeight : standHeight;
+    
+    // Плавно меняем высоту
+    currentHeight = Mathf.SmoothDamp(currentHeight, targetHeight, ref heightVelocity, crouchSmoothTime);
+    controller.height = currentHeight;
+    
+    // Центр всегда в середине высоты
+    Vector3 newCenter = Vector3.up * (currentHeight / 2);
+    controller.center = newCenter;
+    
+    // 🔥 КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: корректируем позицию, чтобы ноги не отрывались от земли
+    if (isGrounded)
+    {
+        float heightDiff = targetHeight - currentHeight;
+        // Сдвигаем персонажа ВНИЗ на половину разницы
+        transform.position -= Vector3.up * (heightDiff / 2f);
+    }
+}
 
     
 
-private void Look()
-{
-    // Поворот тела
-    float yRotation = lookInput.x * lookSensitivity;
-    transform.Rotate(Vector3.up * yRotation);
+    private void Look()
+    {
+        // Поворот тела
+        float yRotation = lookInput.x * lookSensitivity;
+        transform.Rotate(Vector3.up * yRotation);
 
-    // Поворот камеры вверх-вниз
-    xRotation -= lookInput.y * lookSensitivity;
-    xRotation = Mathf.Clamp(xRotation, -maxLookDown, maxLookUp); // min → max
-    Camera.main.transform.localRotation = Quaternion.Euler(xRotation, 0, 0);
-}
+        // Поворот камеры вверх-вниз
+        xRotation -= lookInput.y * lookSensitivity;
+        xRotation = Mathf.Clamp(xRotation, -maxLookDown, maxLookUp); // min → max
+        Camera.main.transform.localRotation = Quaternion.Euler(xRotation, 0, 0);
+    }
 }
