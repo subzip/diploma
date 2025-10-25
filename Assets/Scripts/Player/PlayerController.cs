@@ -19,6 +19,23 @@ public class PlayerController : MonoBehaviour
     private float currentHeight;
     private float heightVelocity = 0f;
 
+
+    [SerializeField] private AudioClip[] footstepSounds;     // Массив шагов
+    [SerializeField] private AudioClip breathIdle;           // Дыхание в покое
+    [SerializeField] private AudioClip breathRun;            // Дыхание при беге
+    [SerializeField] private AudioClip sighSound;            // Вздох
+
+    private AudioSource audioSource;
+    private float lastFootstepTime = 0f;
+    private float footstepInterval = 0.5f; // Интервал между шагами при беге
+    private float lastSighTime = 0f;
+    private float sighInterval = 20f;
+
+    private bool isBreathing = false;
+    private float lastBreathTime = 0f;
+    private float breathIntervalMin = 2f;   // Минимальный интервал между вдохами
+    private float breathIntervalMax = 4f;  
+
     
     public Animator animator;
 
@@ -53,6 +70,15 @@ public class PlayerController : MonoBehaviour
         currentHeight = standHeight;
         controller.height = standHeight;
         controller.center = Vector3.up * (standHeight / 2);
+
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+            audioSource.spatialBlend = 1f;
+            audioSource.rolloffMode = AudioRolloffMode.Logarithmic;
+            audioSource.maxDistance = 15f;
+        }
     }
 
     private void OnEnable()
@@ -78,12 +104,15 @@ public class PlayerController : MonoBehaviour
     {
         isGrounded = controller.isGrounded;
         
-        // Обработка ввода и движения
         Move();
         Look();
-        HandleCrouching(); // ← но БЕЗ движения камеры!
-        
+        HandleCrouching();
         UpdateAnimation();
+        
+        // --- УПРАВЛЕНИЕ ЗВУКАМИ ---
+        HandleFootsteps();
+        HandleBreathing();
+        HandleSigh();
     }
 
     private void LateUpdate()
@@ -100,6 +129,78 @@ public class PlayerController : MonoBehaviour
             );
             playerCamera.transform.localPosition = new Vector3(0f, currentCamHeight, 0f);
         }
+    }
+
+    private void HandleFootsteps()
+    {
+        if (isGrounded && moveInput.magnitude > 0.1f)
+        {
+            float currentSpeed = isCrouching ? crouchSpeed : moveSpeed;
+            float currentInterval = footstepInterval * (moveSpeed / currentSpeed);
+
+            if (Time.time - lastFootstepTime > currentInterval)
+            {
+                if (footstepSounds.Length > 0)
+                {
+                    AudioClip clip = footstepSounds[Random.Range(0, footstepSounds.Length)];
+                    audioSource.PlayOneShot(clip, 0.7f); // немного тише
+                }
+                lastFootstepTime = Time.time;
+                
+                // После шага — НЕЛЬЗЯ сразу дышать (пауза 0.3 сек)
+                isBreathing = false;
+                lastBreathTime = Time.time - breathIntervalMin + 0.3f;
+            }
+        }
+    }
+
+// --- НОВЫЙ МЕТОД: ДЫХАНИЕ ---
+    private void HandleBreathing()
+    {
+        if (!isGrounded) return;
+
+        // Если игрок НЕ движется — тихое дыхание
+        if (moveInput.magnitude <= 0.1f)
+        {
+            if (!isBreathing && Time.time - lastBreathTime > Random.Range(3f, 6f))
+            {
+                audioSource.PlayOneShot(breathIdle, 0.3f); // очень тихо
+                isBreathing = true;
+                lastBreathTime = Time.time;
+                Invoke("ResetBreathingFlag", 1.5f); // через 1.5 сек можно снова дышать
+            }
+        }
+        // Если игрок ДВИЖЕТСЯ — дыхание почти не слышно и редкое
+        else
+        {
+            if (!isBreathing && Time.time - lastBreathTime > Random.Range(breathIntervalMin, breathIntervalMax))
+            {
+                // Дыхание при беге — очень тихое и короткое
+                audioSource.PlayOneShot(breathRun, 0.2f); // громкость 0.2 вместо 0.5!
+                isBreathing = true;
+                lastBreathTime = Time.time;
+                Invoke("ResetBreathingFlag", 1.0f);
+            }
+        }
+    }
+
+// --- НОВЫЙ МЕТОД: ВЗДОХ ---
+    private void HandleSigh()
+    {
+        if (isGrounded && Time.time - lastSighTime > sighInterval)
+        {
+            if (Random.value < 0.2f) // реже — 20% шанс
+            {
+                audioSource.PlayOneShot(sighSound, 0.5f);
+                lastSighTime = Time.time;
+            }
+        }
+    }
+
+    // --- ВСПОМОГАТЕЛЬНЫЙ МЕТОД ---
+    private void ResetBreathingFlag()
+    {
+        isBreathing = false;
     }
 
     private void Move()
@@ -129,6 +230,22 @@ public class PlayerController : MonoBehaviour
 
         // Применяем движение
         controller.Move(movement);
+
+        if (isGrounded && moveInput.magnitude > 0.1f)
+        {
+            currentSpeed = isCrouching ? crouchSpeed : moveSpeed;
+            float currentInterval = footstepInterval * (moveSpeed / currentSpeed); // Быстрее шаги при беге
+
+            if (Time.time - lastFootstepTime > currentInterval)
+            {
+                if (footstepSounds.Length > 0)
+                {
+                    AudioClip clip = footstepSounds[Random.Range(0, footstepSounds.Length)];
+                    audioSource.PlayOneShot(clip, 0.8f);
+                }
+                lastFootstepTime = Time.time;
+            }
+        }
     }
 
     private void UpdateAnimation()
