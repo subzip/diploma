@@ -1,6 +1,6 @@
-using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Animations.Rigging;
 
 public class PlayerController : MonoBehaviour
 {
@@ -20,16 +20,28 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float staminaRegenRate = 15f;
     [SerializeField] private float staminaRegenDelay = 2f;
 
+    [Header("IK & Weapon")]
+    [SerializeField] private TwoBoneIKConstraint leftHandIK;
+    [SerializeField] private Transform rightHandGripPoint;
+
     [Header("Audio")]
-    [SerializeField] private AudioClip[] footstepSounds;  // 0.3–0.5 сек
-    [SerializeField] private AudioClip breathIdle;         // 0.8–1.2 сек
-    [SerializeField] private AudioClip sighSound;          // 1.0–1.5 сек
+    [SerializeField] private AudioClip[] footstepSounds;
+    [SerializeField] private AudioClip breathIdle;
+    [SerializeField] private AudioClip sighSound;
+
+    [Header("Camera")]
+    [SerializeField] private Transform cameraPivot;
+    [SerializeField] private float standCameraHeight = 1.65f;
+    [SerializeField] private float crouchCameraHeight = 1.0f;
+    [SerializeField] private float cameraSmoothTime = 0.2f;
+
+    [Header("Look")]
+    [SerializeField] private float lookSensitivity = 2f;
+    [SerializeField] private float maxLookUp = 80f;
+    [SerializeField] private float maxLookDown = 45f;
 
     private bool isCrouching = false;
-    private float currentHeight;
-    private float heightVelocity = 0f;
-
-    private float currentStamina;
+    private float currentStamina = 0f;
     private bool isSprinting = false;
     private bool canRegenStamina = false;
     private float lastSprintTime = 0f;
@@ -39,19 +51,9 @@ public class PlayerController : MonoBehaviour
     private float footstepInterval = 0.5f;
     private float lastSighTime = 0f;
     private float sighInterval = 20f;
-    private bool wasMoving = false; // Ключевой флаг для дыхания
+    private bool wasMoving = false;
 
     public Animator animator;
-    [SerializeField] private Camera playerCamera;
-    [SerializeField] private float standCameraHeight = 1.65f;
-    [SerializeField] private float crouchCameraHeight = 1.0f;
-    private float cameraHeightVelocity = 0f;
-
-    [Header("Look")]
-    [SerializeField] private float lookSensitivity = 2f;
-    [SerializeField] private float maxLookUp = 80f;
-    [SerializeField] private float maxLookDown = 45f;
-
     private PlayerInputActions inputActions;
     private CharacterController controller;
     private Vector2 moveInput;
@@ -59,25 +61,23 @@ public class PlayerController : MonoBehaviour
     private float yVelocity = 0f;
     private bool isGrounded;
     private float xRotation = 0f;
+    private float cameraHeightVelocity = 0f;
 
     private void Awake()
     {
         inputActions = new PlayerInputActions();
         controller = GetComponent<CharacterController>();
         animator = GetComponent<Animator>();
-        audioSource = GetComponent<AudioSource>();
+        audioSource = GetComponent<AudioSource>() ?? gameObject.AddComponent<AudioSource>();
 
-        if (audioSource == null)
-        {
-            audioSource = gameObject.AddComponent<AudioSource>();
-            audioSource.spatialBlend = 1f;
-            audioSource.rolloffMode = AudioRolloffMode.Logarithmic;
-            audioSource.maxDistance = 15f;
-        }
+        // Настройка AudioSource
+        audioSource.spatialBlend = 1f;
+        audioSource.rolloffMode = AudioRolloffMode.Logarithmic;
+        audioSource.maxDistance = 15f;
 
-        currentHeight = standHeight;
+        // Инициализация высоты
         controller.height = standHeight;
-        controller.center = Vector3.up * (standHeight / 2);
+        controller.center = Vector3.up * (standHeight / 2f);
     }
 
     private void OnEnable()
@@ -91,6 +91,7 @@ public class PlayerController : MonoBehaviour
         inputActions.Player.Crouch.performed += _ => ToggleCrouch();
         inputActions.Player.Sprint.performed += _ => isSprinting = true;
         inputActions.Player.Sprint.canceled += _ => isSprinting = false;
+        inputActions.Player.PickUp.performed += _ => TryPickUpWeapon();
     }
 
     private void OnDisable() => inputActions.Player.Disable();
@@ -102,56 +103,50 @@ public class PlayerController : MonoBehaviour
         Look();
         HandleCrouching();
         UpdateAnimation();
-        HandleAudio(); // Единая точка управления звуком
+        HandleAudio();
     }
 
     private void LateUpdate()
     {
-        if (playerCamera != null)
-        {
-            float targetCameraHeight = isCrouching ? crouchCameraHeight : standCameraHeight;
-            float currentCamHeight = Mathf.SmoothDamp(
-                playerCamera.transform.localPosition.y,
-                targetCameraHeight,
-                ref cameraHeightVelocity,
-                crouchSmoothTime
-            );
-            playerCamera.transform.localPosition = new Vector3(0f, currentCamHeight, 0f);
-        }
+        // Плавное изменение высоты камеры
+        float targetHeight = isCrouching ? crouchCameraHeight : standCameraHeight;
+        float currentHeight = Mathf.SmoothDamp(
+            cameraPivot.localPosition.y,
+            targetHeight,
+            ref cameraHeightVelocity,
+            cameraSmoothTime
+        );
+        cameraPivot.localPosition = new Vector3(0f, currentHeight, cameraPivot.localPosition.z);
     }
 
-    // === ЕДИНЫЙ МЕТОД ЗВУКОВ ===
     private void HandleAudio()
     {
         if (!isGrounded) return;
 
         bool isMoving = moveInput.magnitude > 0.1f;
 
-        // --- ШАГИ ---
+        // Шаги
         if (isMoving)
         {
-            float currentSpeed = isCrouching ? crouchSpeed : (isSprinting && currentStamina > 0 ? sprintSpeed : moveSpeed);
-            float interval = footstepInterval * (moveSpeed / currentSpeed);
+            float speed = isCrouching ? crouchSpeed : (isSprinting && currentStamina > 0 ? sprintSpeed : moveSpeed);
+            float interval = footstepInterval * (moveSpeed / speed);
 
-            if (Time.time - lastFootstepTime > interval)
+            if (Time.time - lastFootstepTime > interval && footstepSounds.Length > 0)
             {
-                if (footstepSounds.Length > 0)
-                {
-                    AudioClip clip = footstepSounds[Random.Range(0, footstepSounds.Length)];
-                    audioSource.PlayOneShot(clip, 0.7f);
-                }
+                AudioClip clip = footstepSounds[Random.Range(0, footstepSounds.Length)];
+                audioSource.PlayOneShot(clip, 0.7f);
                 lastFootstepTime = Time.time;
             }
             wasMoving = true;
         }
-        // --- ДЫХАНИЕ: ТОЛЬКО ПОСЛЕ ОСТАНОВКИ ---
+        // Дыхание после остановки
         else if (wasMoving)
         {
             audioSource.PlayOneShot(breathIdle, 0.3f);
             wasMoving = false;
         }
 
-        // --- ВЗДОХИ (редко) ---
+        // Вздохи
         if (Time.time - lastSighTime > sighInterval && Random.value < 0.15f)
         {
             audioSource.PlayOneShot(sighSound, 0.5f);
@@ -163,13 +158,14 @@ public class PlayerController : MonoBehaviour
     {
         UpdateStamina();
 
-        float currentSpeed = moveSpeed;
-        if (isCrouching) currentSpeed = crouchSpeed;
-        else if (isSprinting && currentStamina > 0) currentSpeed = sprintSpeed;
+        float speed = moveSpeed;
+        if (isCrouching) speed = crouchSpeed;
+        else if (isSprinting && currentStamina > 0) speed = sprintSpeed;
 
-        Vector3 moveDir = transform.right * moveInput.x + transform.forward * moveInput.y;
-        Vector3 movement = moveDir * currentSpeed * Time.deltaTime;
+        Vector3 direction = transform.right * moveInput.x + transform.forward * moveInput.y;
+        Vector3 movement = direction * speed * Time.deltaTime;
 
+        // Гравитация и прыжок
         if (isGrounded)
         {
             if (yVelocity < 0) yVelocity = -1f;
@@ -213,6 +209,7 @@ public class PlayerController : MonoBehaviour
 
         animator.SetBool("IsRunning", isMoving);
         animator.SetBool("IsSprinting", isSprintingNow);
+        animator.SetBool("IsCrouching", isCrouching);
     }
 
     private void Jump() { }
@@ -220,7 +217,6 @@ public class PlayerController : MonoBehaviour
     private void ToggleCrouch()
     {
         isCrouching = !isCrouching;
-        if (animator != null) animator.SetBool("IsCrouching", isCrouching);
     }
 
     private void HandleCrouching()
@@ -230,6 +226,7 @@ public class PlayerController : MonoBehaviour
 
         if (isGrounded)
         {
+            // Коррекция позиции, чтобы ноги не отрывались от земли
             float currentBottom = transform.position.y - controller.center.y + controller.height / 2f;
             float newBottom = transform.position.y - targetCenterY + targetHeight / 2f;
             float heightDiff = currentBottom - newBottom;
@@ -242,11 +239,51 @@ public class PlayerController : MonoBehaviour
 
     private void Look()
     {
+        // Поворот тела
         float yRotation = lookInput.x * lookSensitivity;
         transform.Rotate(Vector3.up * yRotation);
 
+        // Поворот камеры вверх-вниз
         xRotation -= lookInput.y * lookSensitivity;
         xRotation = Mathf.Clamp(xRotation, -maxLookDown, maxLookUp);
-        Camera.main.transform.localRotation = Quaternion.Euler(xRotation, 0, 0);
+        cameraPivot.localRotation = Quaternion.Euler(xRotation, 0, 0);
+    }
+
+    // === ОРУЖИЕ ===
+    private void TryPickUpWeapon()
+    {
+        if (Physics.Raycast(cameraPivot.position, cameraPivot.forward, out RaycastHit hit, 3f))
+        {
+            if (hit.collider.TryGetComponent<WeaponPickup>(out var pickup))
+            {
+                pickup.gameObject.SetActive(false);
+                PickUpWeapon(pickup.weaponPrefab);
+                Destroy(pickup.gameObject);
+            }
+        }
+    }
+
+    public void PickUpWeapon(GameObject weaponPrefab)
+    {
+        // Удаление старого оружия
+        if (transform.childCount > 0)
+        {
+            foreach (Transform child in transform)
+            {
+                if (child.CompareTag("Weapon")) Destroy(child.gameObject);
+            }
+        }
+
+        // Создание нового оружия
+        GameObject weapon = Instantiate(weaponPrefab, rightHandGripPoint.position, rightHandGripPoint.rotation);
+        weapon.transform.SetParent(transform);
+        weapon.tag = "Weapon";
+
+        // Привязка IK
+        if (leftHandIK != null)
+        {
+            Transform leftGrip = weapon.transform.Find("LeftHandP");
+            if (leftGrip != null) leftHandIK.data.target = leftGrip;
+        }
     }
 }
