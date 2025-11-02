@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Animations.Rigging;
+using UnityEngine.UI;
 
 public class PlayerController : MonoBehaviour
 {
@@ -40,6 +41,10 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float maxLookUp = 80f;
     [SerializeField] private float maxLookDown = 45f;
 
+    [SerializeField] private RigBuilder rigBuilder;
+
+    [SerializeField] private Slider staminaSlider; // Ссылка на UI-слайдер
+
     private bool isCrouching = false;
     private float currentStamina = 0f;
     private bool isSprinting = false;
@@ -78,6 +83,13 @@ public class PlayerController : MonoBehaviour
         // Инициализация высоты
         controller.height = standHeight;
         controller.center = Vector3.up * (standHeight / 2f);
+    }
+
+    private void Start()
+    {
+        // Другие инициализации...
+        if (rigBuilder != null)
+            rigBuilder.enabled = true;
     }
 
     private void OnEnable()
@@ -199,6 +211,12 @@ public class PlayerController : MonoBehaviour
                 currentStamina += staminaRegenRate * Time.deltaTime;
                 currentStamina = Mathf.Clamp(currentStamina, 0, staminaMax);
             }
+        }
+
+        // ➕ ОБНОВЛЕНИЕ СЛАЙДЕРА
+        if (staminaSlider != null)
+        {
+            staminaSlider.value = currentStamina / staminaMax; // Нормализуем от 0 до 1
         }
     }
 
