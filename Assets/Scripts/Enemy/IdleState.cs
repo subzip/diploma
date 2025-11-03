@@ -10,8 +10,11 @@ public class IdleState : EnemyStateBase
     public override void OnEnter()
     {
         idleTime = 0f;
-        enemy.animator.SetBool("IsMoving", false);
-        // Можно добавить анимацию "осматривается"
+        if (enemy.animator != null)
+            enemy.animator.SetBool("IsMoving", false);
+
+        if (enemy.agent != null)
+            enemy.agent.isStopped = true;
     }
 
     public override void OnUpdate()
@@ -21,16 +24,17 @@ public class IdleState : EnemyStateBase
         // Случайно может начать патрулировать
         if (idleTime >= maxIdleTime)
         {
-            enemy.SwitchState(EnemyState.Patrol);
+            enemy.SwitchState(new PatrolState(enemy));
             return;
         }
 
         // Также может перейти в Alerted, если услышал звук
-        // Но это обрабатывается в UpdateHearing() в EnemyBase
+        // Это обрабатывается в UpdateHearing() в EnemyBase
     }
 
     public override void OnExit()
     {
-        // Очистка, если нужно
+        if (enemy.agent != null)
+            enemy.agent.isStopped = false;
     }
 }

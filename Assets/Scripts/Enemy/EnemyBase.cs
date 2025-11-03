@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.AI;
+using System.Linq;
 
 public abstract class EnemyBase : MonoBehaviour
 {
@@ -7,26 +8,26 @@ public abstract class EnemyBase : MonoBehaviour
     public float hearingRadius = 15f;
     public float visionRange = 20f;
     public float fov = 90f;
-    public float attackRange = 10f;
-    public float chaseSpeed = 3.5f;
+    public float attackRange = 3f;
     public float patrolSpeed = 2f;
+    public float chaseSpeed = 3.5f;
 
     [Header("Ссылки")]
     public Transform player;
     public NavMeshAgent agent;
     public Animator animator;
 
-    // Текущее состояние
-    protected EnemyState currentState = EnemyState.Idle;
+    
+    protected EnemyStateBase currentState;
     protected EnemyState previousState = EnemyState.Idle;
+    protected EnemyState previousStateEnum = EnemyState.Idle;
 
-    // Временные переменные
-    protected float stateStartTime;
-    protected Vector3 lastKnownPlayerPosition;
-    protected Vector3 investigatePosition;
+      protected float stateStartTime;
+    public Vector3 lastKnownPlayerPosition;
+    public Vector3 investigatePosition;
     protected float hearingCooldown = 0f;
 
-    // События
+  
     public System.Action OnDie;
     public System.Action OnSpotPlayer;
 
@@ -36,53 +37,50 @@ public abstract class EnemyBase : MonoBehaviour
         animator = GetComponent<Animator>();
         if (player == null)
             player = GameObject.FindGameObjectWithTag("Player")?.transform;
+
+        
+        if (agent != null)
+        {
+            agent.speed = patrolSpeed;
+        }
     }
 
     protected virtual void Start()
     {
-        SwitchState(EnemyState.Idle);
+     
+        SwitchState(new IdleState(this));
     }
 
     protected virtual void Update()
     {
-        UpdateHearing();
+     
+        currentState?.OnUpdate();
+
         UpdateVision();
-        UpdateCurrentState();
     }
 
-    // Метод, который будет переопределять каждый конкретный тип врага
-    protected abstract void UpdateCurrentState();
+    
+    protected abstract void UpdateVision();
 
-    // Переключение состояния
-    public void SwitchState(EnemyState newState)
+    
+    public void SwitchState(EnemyStateBase newState)
     {
         if (newState == currentState) return;
 
-        OnStateExit(currentState);
-        previousState = currentState;
+        currentState?.OnExit();
+
+      
+        if (currentState is IdleState) previousStateEnum = EnemyState.Idle;
+        else if (currentState is PatrolState) previousStateEnum = EnemyState.Patrol;
+        else if (currentState is ChaseState) previousStateEnum = EnemyState.Chase;
+     
+
         currentState = newState;
         stateStartTime = Time.time;
-        OnStateEnter(newState);
+        currentState.OnEnter();
     }
 
-    public Transform[] GetPatrolPoints()
-    {
-        return GetComponentsInChildren<Transform>()
-            .Where(t => t.CompareTag("PatrolPoint"))
-            .ToArray();
-    }
-
-    protected virtual void OnStateEnter(EnemyState state)
-    {
-        //Debug.Log($"[{gameObject.name}] Входит в состояние: {state}");
-    }
-
-    protected virtual void OnStateExit(EnemyState state)
-    {
-        //Debug.Log($"[{gameObject.name}] Выходит из состояния: {state}");
-    }
-
-    // --- СИСТЕМА СЛЫШИМОСТИ ---
+   
     protected virtual void UpdateHearing()
     {
         if (hearingCooldown > 0)
@@ -91,63 +89,21 @@ public abstract class EnemyBase : MonoBehaviour
             return;
         }
 
-        // Логика "слышит ли враг звук"
-        // Это может быть вызвано извне через событие SoundManager.EmitSound(...)
     }
 
     public virtual void HearSound(Vector3 position, string type)
     {
-        if (currentState == EnemyState.Dead) return;
+        if (currentState.GetType().Name == "DeadState") return;
 
-        // Пример логики:
+      
         if (Vector3.Distance(transform.position, position) <= hearingRadius)
         {
             investigatePosition = position;
-            if (currentState != EnemyState.Chase && currentState != EnemyState.Attack)
-            {
-                SwitchState(EnemyState.Alerted);
-            }
+            SwitchState(new AlertedState(this));
         }
     }
 
-    // --- СИСТЕМА ЗРЕНИЯ ---
-    protected virtual void UpdateVision()
-    {
-        if (player == null) return;
-
-        Vector3 directionToPlayer = player.position - transform.position;
-        float distanceToPlayer = directionToPlayer.magnitude;
-
-        if (distanceToPlayer > visionRange) return;
-
-        float angle = Vector3.Angle(transform.forward, directionToPlayer);
-        if (angle <= fov * 0.5f)
-        {
-            // Raycast для проверки преград
-            if (Physics.Raycast(transform.position + Vector3.up * 1.5f, directionToPlayer.normalized, out RaycastHit hit, visionRange))
-            {
-                if (hit.collider.CompareTag("Player"))
-                {
-                    OnSeePlayer();
-                }
-            }
-        }
-    }
-
-    protected virtual void OnSeePlayer()
-    {
-        if (currentState == EnemyState.Dead) return;
-
-        lastKnownPlayerPosition = player.position;
-        OnSpotPlayer?.Invoke();
-
-        if (currentState != EnemyState.Chase && currentState != EnemyState.Attack)
-        {
-            SwitchState(EnemyState.Chase);
-        }
-    }
-
-    // --- ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ---
+    
     public bool IsPlayerInFOV()
     {
         if (player == null) return false;
@@ -165,8 +121,31 @@ public abstract class EnemyBase : MonoBehaviour
 
     public void Die()
     {
-        SwitchState(EnemyState.Dead);
+        SwitchState(new DeadState(this));
         OnDie?.Invoke();
-        // Отключение агента, анимация смерти и т.д.
+        
+    }
+
+
+    private void OnDrawGizmosSelected()
+    {
+  
+        if (fov > 0 && visionRange > 0)
+        {
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawWireSphere(transform.position, visionRange);
+        }
+   
+        if (hearingRadius > 0)
+        {
+            Gizmos.color = Color.gray;
+            Gizmos.DrawWireSphere(transform.position, hearingRadius);
+        }
+        
+        if (investigatePosition != Vector3.zero)
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawSphere(investigatePosition, 0.3f);
+        }
     }
 }
