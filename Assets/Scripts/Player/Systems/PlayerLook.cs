@@ -1,3 +1,4 @@
+// PlayerLook.cs
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -10,10 +11,19 @@ public class PlayerLook : MonoBehaviour
 
     [Header("Camera")]
     [SerializeField] private Transform cameraPivot;
+    [SerializeField] private float standCameraHeight = 1.65f;
+    [SerializeField] private float crouchCameraHeight = 1.0f;
+    [SerializeField] private float cameraSmoothTime = 0.2f;
+
+    [SerializeField] private WeaponManager weaponManager;
 
     private PlayerInputActions inputActions;
     private Vector2 lookInput;
     private float xRotation = 0f;
+    private float cameraHeightVelocity = 0f;
+
+    // Ссылка на PlayerCrouch для получения состояния приседания
+    [SerializeField] private PlayerCrouch crouch;
 
     private void Awake()
     {
@@ -45,7 +55,24 @@ public class PlayerLook : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (cameraPivot != null)
-            cameraPivot.localRotation = Quaternion.Euler(xRotation, 0, 0);
+        if (cameraPivot == null) return;
+
+        // Плавное изменение высоты камеры в зависимости от приседания
+        float targetHeight = crouch != null && crouch.IsCrouching 
+            ? crouchCameraHeight 
+            : standCameraHeight;
+
+        float currentHeight = Mathf.SmoothDamp(
+            cameraPivot.localPosition.y,
+            targetHeight,
+            ref cameraHeightVelocity,
+            cameraSmoothTime
+        );
+
+        cameraPivot.localPosition = new Vector3(0f, currentHeight, cameraPivot.localPosition.z);
+        cameraPivot.localRotation = Quaternion.Euler(xRotation, 0, 0);
+
+        Vector3 recoil = weaponManager?.GetRecoilOffset() ?? Vector3.zero;
+        cameraPivot.localRotation = Quaternion.Euler(xRotation + recoil.y, recoil.x, 0);
     }
 }

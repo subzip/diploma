@@ -151,7 +151,7 @@ PrefabInstance:
       addedObject: {fileID: 8649211539564816034}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 7fca168717a21db45b16f44b77a9670e, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 2941424208658594408}
+      addedObject: {fileID: 6017269871432174393}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 7fca168717a21db45b16f44b77a9670e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3337815451308070872}
@@ -307,7 +307,7 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!114 &2941424208658594408
+--- !u!114 &6017269871432174393
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -316,24 +316,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 2746573978101620470}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d51a8d4e6def18441b5b27d2a2feb26e, type: 3}
+  m_Script: {fileID: 11500000, guid: 6788d71f2b30c2745aa23667bd5b8f28, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  damage: 25
-  maxRange: 100
-  fireRate: 0.15
-  magazineSize: 30
-  reloadTime: 2
-  muzzleFlash: {fileID: 0}
-  hitEffectPrefab: {fileID: 5437651829920549507, guid: 4dd887d95db85994eb6f8e5e88daf8ca, type: 3}
-  impactDecalPrefab: {fileID: 4232728306331509725, guid: f5cec13a11d01954798c2ba82cb43c5f, type: 3}
-  impactDecalSize: 1
-  shootSound: {fileID: 8300000, guid: d466b209d83d8a645833ffefd858083c, type: 3}
-  reloadSound: {fileID: 8300000, guid: 8e89fe242bf02414a9d85568984a18b7, type: 3}
-  emptyClipSound: {fileID: 8300000, guid: 3ea0522317b2e634ba0cb45d85a118ef, type: 3}
-  hitLayers:
-    serializedVersion: 2
-    m_Bits: 0
+  stats: {fileID: 11400000, guid: 109a2809ab9d56b43af46045a1a0a639, type: 2}
+  tracerPrefab: {fileID: 7927837954525900577, guid: 16a91da7482d1cf4f9e1662f450071c5, type: 3}
+  tracerDuration: 0.1
 --- !u!114 &3337815451308070872
 MonoBehaviour:
   m_ObjectHideFlags: 0
