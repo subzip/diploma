@@ -4,14 +4,12 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
 {
-    [Header("Movement")]
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float jumpHeight = 2f;
     [SerializeField] private float gravity = -9.81f;
     [SerializeField] private float crouchSpeed = 2f;
     [SerializeField] private float sprintSpeed = 8f;
 
-    [Header("Stamina")]
     [SerializeField] private float staminaDrainRate = 20f;
     [SerializeField] private float staminaRegenRate = 15f;
     [SerializeField] private float staminaRegenDelay = 2f;
