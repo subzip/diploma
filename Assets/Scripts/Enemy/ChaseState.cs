@@ -13,7 +13,7 @@ public class ChaseState : EnemyStateBase
         }
         if (enemy.animator != null)
         {
-            enemy.animator.SetBool("IsMoving", true);
+            enemy.animator.SetBool("IsRunning", true);
             enemy.animator.SetBool("IsChasing", true);
         }
     }

@@ -1,0 +1,5 @@
+﻿<Solution>
+  <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="FSP.MAST.Scripts.csproj" />
+  <Project Path="Tests.csproj" />
+</Solution>

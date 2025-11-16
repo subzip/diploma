@@ -22,7 +22,9 @@ MonoBehaviour:
   recoilAngle: {x: -5, y: 0.7}
   recoilRecoverySpeed: 5
   muzzleFlash: {fileID: 0}
-  shootSound: {fileID: 0}
   hitLayers:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 195
+  shootSound: {fileID: 8300000, guid: d466b209d83d8a645833ffefd858083c, type: 3}
+  reloadSound: {fileID: 8300000, guid: 8e89fe242bf02414a9d85568984a18b7, type: 3}
+  emptyClipSound: {fileID: 8300000, guid: 3ea0522317b2e634ba0cb45d85a118ef, type: 3}

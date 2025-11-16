@@ -15,7 +15,7 @@ public class AttackState : EnemyStateBase
         }
         if (enemy.animator != null)
         {
-            enemy.animator.SetBool("IsAttacking", true);
+            enemy.animator.SetBool("IsInAttackRange", true);
         }
     }
 
@@ -50,7 +50,7 @@ public class AttackState : EnemyStateBase
     {
         if (enemy.animator != null)
         {
-            enemy.animator.SetBool("IsAttacking", false);
+            enemy.animator.SetBool("IsInAttackRange", false);
         }
     }
 

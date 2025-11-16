@@ -11,8 +11,8 @@ public class EnemyAI : MonoBehaviour
     [SerializeField] private float attackRange = 2f;
     
     [Header("Behavior Settings")]
-    [SerializeField] private float detectionDelay = 1.5f;  // Увеличено для более стабильного преследования
-    [SerializeField] private float lostTargetDelay = 8f;    // Увеличено для более длительного поиска
+    [SerializeField] private float detectionDelay = 1.5f;
+    [SerializeField] private float lostTargetDelay = 8f;
     [SerializeField] private float patrolRadius = 5f;
     [SerializeField] private float stuckCheckInterval = 1f;
     [SerializeField] private float stuckDistanceThreshold = 0.1f;
@@ -33,11 +33,9 @@ public class EnemyAI : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         enemy = GetComponent<Enemy>();
         
-        // Настройка NavMeshAgent для правильного вращения
-        agent.updateRotation = false; // Отключаем автоматическое вращение
+        agent.updateRotation = false;
         agent.updateUpAxis = false;
         
-        // Автоматическое определение игрока
         if (player == null)
         {
             GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
@@ -54,10 +52,8 @@ public class EnemyAI : MonoBehaviour
     
     private void Start()
     {
-        // Инициализация позиции
         lastPosition = transform.position;
         
-        // Инициализируем последнюю известную позицию как текущую позицию игрока
         if (player != null)
         {
             lastKnownPosition = player.position;
@@ -68,20 +64,16 @@ public class EnemyAI : MonoBehaviour
     {
         if (player == null || enemy.IsDead()) return;
         
-        // Проверка застревания
         CheckIfStuck();
         
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
         
-        // Проверка видимости игрока
         bool canSeePlayer = CanSeePlayer();
         
-        // Основная логика преследования
         if (distanceToPlayer <= chaseRange)
         {
             if (canSeePlayer)
             {
-                // Игрок в зоне видимости - обновляем последнюю известную позицию
                 lastKnownPosition = player.position;
                 isChasing = true;
                 lostTargetTimer = 0f;
@@ -89,17 +81,14 @@ public class EnemyAI : MonoBehaviour
             }
             else if (isChasing)
             {
-                // Игрок вне зоны видимости, но в пределах дистанции преследования
                 detectionTimer += Time.deltaTime;
                 
                 if (detectionTimer >= detectionDelay)
                 {
                     lostTargetTimer += Time.deltaTime;
                     
-                    // Продолжаем преследование до истечения lostTargetDelay
                     if (lostTargetTimer < lostTargetDelay)
                     {
-                        // Продолжаем двигаться к последней известной позиции
                         MoveToPosition(lastKnownPosition);
                     }
                     else
@@ -111,18 +100,14 @@ public class EnemyAI : MonoBehaviour
         }
         else
         {
-            // Игрок вне зоны преследования
             isChasing = false;
             lostTargetTimer = 0f;
         }
         
-        // Обновление пути
         if (isChasing)
         {
-            // Двигаемся к последней известной позиции
             MoveToPosition(lastKnownPosition);
             
-            // Проверка возможности атаки
             if (distanceToPlayer <= attackRange && canSeePlayer)
             {
                 AttackPlayer();
@@ -130,11 +115,9 @@ public class EnemyAI : MonoBehaviour
         }
         else
         {
-            // Патрулирование на месте
             Patrol();
         }
         
-        // Вращение врага в сторону движения
         RotateTowardsMovementDirection();
     }
     
@@ -154,10 +137,8 @@ public class EnemyAI : MonoBehaviour
                 isStuck = true;
                 Debug.Log($"[EnemyAI] Враг [{gameObject.name}] застрял! Попытка решения...");
                 
-                // Сохраняем состояние преследования
                 wasChasingBeforeStuck = isChasing;
                 
-                // Попытка решить проблему застревания
                 ResolveStuck();
             }
             else
@@ -172,7 +153,6 @@ public class EnemyAI : MonoBehaviour
     
     private void ResolveStuck()
     {
-        // Попытка 1: Найти новую точку в том же направлении
         Vector3 directionToTarget = (lastKnownPosition - transform.position).normalized;
         Vector3 newDestination = transform.position + directionToTarget * 3f;
         
@@ -183,7 +163,6 @@ public class EnemyAI : MonoBehaviour
             return;
         }
         
-        // Попытка 2: Найти точку патрулирования
         Vector3 randomPoint = transform.position + Random.insideUnitSphere * patrolRadius;
         randomPoint.y = transform.position.y;
         
@@ -200,14 +179,10 @@ public class EnemyAI : MonoBehaviour
         Vector3 directionToPlayer = player.position - transform.position;
         float angle = Vector3.Angle(directionToPlayer, transform.forward);
         
-        // Проверяем угол обзора
-        if (angle > 60f) return false;  // Увеличен угол обзора для более стабильного обнаружения
+        if (angle > 60f) return false; 
         
-        // Проверяем наличие препятствий между врагом и игроком
-        // Увеличена высота начала Raycast для лучшей видимости
         if (Physics.Raycast(transform.position + Vector3.up * 1.2f, directionToPlayer.normalized, out RaycastHit hit, chaseRange))
         {
-            // Проверяем, что это действительно игрок
             return hit.collider.CompareTag("Player");
         }
         
@@ -216,7 +191,6 @@ public class EnemyAI : MonoBehaviour
     
     private void MoveToPosition(Vector3 position)
     {
-        // Проверяем, можем ли мы достичь цели
         NavMeshPath path = new NavMeshPath();
         agent.CalculatePath(position, path);
         
@@ -226,7 +200,6 @@ public class EnemyAI : MonoBehaviour
         }
         else
         {
-            // Если путь недоступен, ищем альтернативную точку
             Vector3 adjustedPosition = position;
             NavMeshHit hit;
             
@@ -237,7 +210,6 @@ public class EnemyAI : MonoBehaviour
             }
             else
             {
-                // Если не можем найти точку, возвращаемся к патрулированию
                 isChasing = false;
             }
         }
@@ -247,11 +219,9 @@ public class EnemyAI : MonoBehaviour
     {
         if (agent.velocity.magnitude > 0.1f)
         {
-            // Получаем направление движения
             Vector3 direction = agent.velocity.normalized;
-            direction.y = 0; // Игнорируем вертикальное движение
+            direction.y = 0; 
             
-            // Плавно поворачиваемся в сторону движения
             if (direction.sqrMagnitude > 0.01f)
             {
                 Quaternion targetRotation = Quaternion.LookRotation(direction);
@@ -262,10 +232,8 @@ public class EnemyAI : MonoBehaviour
     
     private void AttackPlayer()
     {
-        // Останавливаем движение для атаки
         agent.isStopped = true;
         
-        // Выводим информацию о атаке в консоль
         Debug.Log($"⚔️ Враг [{gameObject.name}] атакует игрока!");
     }
     
@@ -273,10 +241,8 @@ public class EnemyAI : MonoBehaviour
     {
         agent.isStopped = false;
         
-        // Проверяем, что путь завершен или отсутствует
         bool shouldFindNewPoint = true;
         
-        // Безопасная проверка
         if (agent.hasPath && !agent.pathPending)
         {
             shouldFindNewPoint = agent.remainingDistance <= agent.stoppingDistance;
@@ -295,20 +261,16 @@ public class EnemyAI : MonoBehaviour
         }
     }
     
-    // Для отладки: отображение области видимости
     private void OnDrawGizmosSelected()
     {
         if (transform == null) return;
         
-        // Область преследования
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, chaseRange);
         
-        // Область атаки
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRange);
         
-        // Линия обзора
         Gizmos.color = Color.green;
         Vector3 viewAngle01 = Quaternion.AngleAxis(60, transform.up) * transform.forward * chaseRange;
         Vector3 viewAngle02 = Quaternion.AngleAxis(-60, transform.up) * transform.forward * chaseRange;
@@ -316,14 +278,12 @@ public class EnemyAI : MonoBehaviour
         Gizmos.DrawLine(transform.position, transform.position + viewAngle01);
         Gizmos.DrawLine(transform.position, transform.position + viewAngle02);
         
-        // Последняя известная позиция
         if (isChasing)
         {
             Gizmos.color = Color.blue;
             Gizmos.DrawSphere(lastKnownPosition, 0.3f);
         }
         
-        // Вектор движения
         if (agent != null)
         {
             Gizmos.color = Color.cyan;

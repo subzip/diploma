@@ -1,5 +1,6 @@
 // Assets/Scripts/Weapons/BaseWeapon.cs
 using UnityEngine;
+using TMPro;
 
 public abstract class BaseWeapon : MonoBehaviour
 {
@@ -8,14 +9,35 @@ public abstract class BaseWeapon : MonoBehaviour
     protected float nextFireTime;
     protected bool isReloading = false;
     protected Vector3 recoilOffset = Vector3.zero;
-    [SerializeField] protected GameObject tracerPrefab;
+    
     [SerializeField] private float tracerDuration = 0.1f;
+    [SerializeField] private TMP_Text ammoText;
 
     public bool CanShoot => !isReloading && currentAmmo > 0 && Time.time >= nextFireTime;
+
+
+    [Header("Effects")]
+    [SerializeField] private GameObject bulletHolePrefab;
+    [SerializeField] protected GameObject tracerEffectPrefab;
+
+    private AudioSource audioSource;
 
     public virtual void Initialize()
     {
         currentAmmo = stats.magazineSize;
+    }
+
+    private void Awake()
+    {
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
+        audioSource.playOnAwake = false;
+        audioSource.enabled = true;
+    }
+
+    void Update()
+    {
+        ammoText.text = currentAmmo.ToString();
     }
 
     public virtual void Shoot()
@@ -25,45 +47,48 @@ public abstract class BaseWeapon : MonoBehaviour
         currentAmmo--;
         nextFireTime = Time.time + stats.fireRate;
 
-        // Воспроизведение звука и вспышки (по-прежнему от оружия)
         if (stats.shootSound != null)
-            AudioSource.PlayClipAtPoint(stats.shootSound, transform.position);
+            audioSource.PlayOneShot(stats.shootSound);
         if (stats.muzzleFlash != null)
             stats.muzzleFlash.Play();
 
-        // 🔥 Raycast от ЦЕНТРА КАМЕРЫ, а не от оружия!
+       
         Camera playerCamera = Camera.main;
         if (playerCamera == null) return;
 
         Ray ray = playerCamera.ViewportPointToRay(Vector2.one * 0.5f);
         bool hit = Physics.Raycast(ray, out RaycastHit hitInfo, stats.range, stats.hitLayers);
-
-        // Определяем конечную точку трассера
         Vector3 tracerEnd = hit ? hitInfo.point : ray.GetPoint(stats.range);
 
-        // Создаём трассер ОТ ОРУЖИЯ до точки попадания
-        if (tracerPrefab != null)
-        {
-            GameObject tracerObj = Instantiate(tracerPrefab, transform.position, Quaternion.identity);
-            LineRenderer lr = tracerObj.GetComponent<LineRenderer>();
-            if (lr != null)
-            {
-                lr.SetPosition(0, transform.position); // Начало — из оружия
-                lr.SetPosition(1, tracerEnd);         // Конец — в точку попадания
-            }
 
-            // Уничтожаем после задержки
-            Destroy(tracerObj, tracerDuration);
+        if (tracerEffectPrefab != null)
+        {
+            GameObject tracer = Instantiate(tracerEffectPrefab, transform.position, Quaternion.identity);
+            tracer.transform.LookAt(tracerEnd);
+            Destroy(tracer, 1f);
         }
 
-        // Наносим урон ТОЛЬКО если попали
+        if (hit && bulletHolePrefab != null)
+        {
+            GameObject hole = Instantiate(bulletHolePrefab, hitInfo.point, Quaternion.FromToRotation(-Vector3.forward, hitInfo.normal));
+            Destroy(hole, 10f);
+        }
+
+
         if (hit && hitInfo.collider.TryGetComponent<IDamageable>(out IDamageable target))
         {
             target.TakeDamage(stats.damage, hitInfo.point);
         }
 
-        if(currentAmmo == 0)
+        if (stats.shootSound != null && currentAmmo != 0) audioSource.PlayOneShot(stats.shootSound);
+
+        if(currentAmmo == 0){
+            if (stats.emptyClipSound != null)
+                audioSource.PlayOneShot(stats.emptyClipSound);
             Reload();
+        }
+
+            
 
         ApplyRecoil();
     }
@@ -87,8 +112,12 @@ public abstract class BaseWeapon : MonoBehaviour
 
     public virtual void Reload()
     {
-        if (isReloading || currentAmmo == stats.magazineSize) return;
+        if (isReloading || currentAmmo >= stats.magazineSize) return;
         isReloading = true;
+        
+        if (stats.reloadSound != null)
+            audioSource.PlayOneShot(stats.reloadSound);
+        
         Invoke(nameof(FinishReload), stats.reloadTime);
     }
 
@@ -98,6 +127,5 @@ public abstract class BaseWeapon : MonoBehaviour
         isReloading = false;
     }
 
-    // Для передачи отдачи игроку
     public Vector3 GetRecoilOffset() => recoilOffset;
 }

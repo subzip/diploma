@@ -21,8 +21,11 @@ public class WeaponStats : ScriptableObject
 
     [Header("Effects")]
     public ParticleSystem muzzleFlash;
-    public AudioClip shootSound;
     public LayerMask hitLayers = -1;
+    [Header("Audio")]
+    public AudioClip shootSound;
+    public AudioClip reloadSound;
+    public AudioClip emptyClipSound;
 }
 
 public enum FireMode

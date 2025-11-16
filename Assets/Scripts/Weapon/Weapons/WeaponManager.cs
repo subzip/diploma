@@ -7,6 +7,7 @@ public class WeaponManager : MonoBehaviour
     [Header("Weapons")]
     [SerializeField] private BaseWeapon[] weapons;
     [SerializeField] private int currentWeaponIndex = 0;
+    
 
     private BaseWeapon CurrentWeapon => weapons[currentWeaponIndex];
     private PlayerInputActions inputActions;
@@ -54,6 +55,7 @@ public class WeaponManager : MonoBehaviour
 
         // Обновление отдачи (для передачи в камеру)
         CurrentWeapon?.UpdateRecoil(Time.deltaTime);
+        
     }
 
     // Для передачи отдачи игроку (в PlayerLook или отдельный компонент)

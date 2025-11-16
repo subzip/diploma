@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 7711383009314698023}
   - component: {fileID: 8515054629455310485}
   - component: {fileID: 8619664009334277708}
+  - component: {fileID: 2269257775989351969}
   - component: {fileID: 1237505213591335289}
   m_Layer: 0
   m_Name: Enemy_Stigmar
@@ -81,6 +82,22 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!114 &2269257775989351969
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 958267891364853621}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 759e7eec19f099a43b18f432737e9675, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  stats: {fileID: 11400000, guid: 18c1c1b8aa390da42a87f1809a269cb1, type: 2}
+  OnDeath:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!114 &1237505213591335289
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -93,11 +110,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 154b8818843f10248ada04753eb1df86, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  hearingRadius: 10
   visionRange: 20
   fov: 90
-  hearingRadius: 10
   attackRange: 3
-  patrolPoints: []
+  patrolSpeed: 2
+  chaseSpeed: 3.5
+  player: {fileID: 0}
+  agent: {fileID: 0}
+  animator: {fileID: 0}
+  lastKnownPlayerPosition: {x: 0, y: 0, z: 0}
+  investigatePosition: {x: 0, y: 0, z: 0}
+  specialAttackRange: 5
 --- !u!1 &4815817178987318264
 GameObject:
   m_ObjectHideFlags: 0

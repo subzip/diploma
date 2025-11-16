@@ -14,7 +14,7 @@ public class DeadState : EnemyStateBase
         if (enemy.animator != null)
         {
             enemy.animator.SetBool("IsDead", true);
-            // Запуск анимации смерти
+            //Destroy(this, 7f);
         }
       
     }

@@ -16,16 +16,12 @@ public class Enemy : MonoBehaviour, IDamageable
 
     public void TakeDamage(float damage, Vector3 hitPoint)
     {
-        // Не обрабатываем урон, если враг уже умер
         if (isDead) return;
 
-        // Уменьшаем здоровье
         currentHealth -= damage;
 
-        // Логируем получение урона
         Debug.Log($"💥 Враг [{gameObject.name}] получил {damage} урона. Здоровье: {currentHealth:F1}/{maxHealth}");
 
-        // Проверяем, умер ли враг
         if (currentHealth <= 0 && !isDead)
         {
             Die();
@@ -36,10 +32,8 @@ public class Enemy : MonoBehaviour, IDamageable
     {
         isDead = true;
 
-        // Логируем смерть
         Debug.Log($"💀 Враг [{gameObject.name}] уничтожен!");
 
-        // Добавляем небольшую задержку для визуального эффекта
         StartCoroutine(DeathRoutine());
     }
 
