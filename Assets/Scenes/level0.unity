@@ -13515,10 +13515,10 @@ MonoBehaviour:
   enemyLayer:
     serializedVersion: 2
     m_Bits: 64
-  enemySilhouetteMat: {fileID: 2100000, guid: 11889544dea152248ac91850dea889fd, type: 2}
+  enemySilhouetteMat: {fileID: 2100000, guid: f198ebb35a72018499102051280ad236, type: 2}
   postProcessVolume: {fileID: 1122933597}
-  grayscaleIntensity: 1
-  opacity: 0.7
+  grayscaleIntensity: 5
+  opacity: 0.9
 --- !u!1001 &1062978335
 PrefabInstance:
   m_ObjectHideFlags: 0
