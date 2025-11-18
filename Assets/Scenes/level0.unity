@@ -2527,7 +2527,7 @@ Transform:
   m_GameObject: {fileID: 194928683}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -17.66, y: -1, z: 16.285}
+  m_LocalPosition: {x: -16.15, y: -1, z: 16.285}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -9349,6 +9349,18 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
+    - target: {fileID: 680844295092795462, guid: 853c38713634cbc449102c676dd673fd, type: 3}
+      propertyPath: patrolPoints.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 680844295092795462, guid: 853c38713634cbc449102c676dd673fd, type: 3}
+      propertyPath: 'patrolPoints.Array.data[0]'
+      value: 
+      objectReference: {fileID: 1016214051}
+    - target: {fileID: 680844295092795462, guid: 853c38713634cbc449102c676dd673fd, type: 3}
+      propertyPath: 'patrolPoints.Array.data[1]'
+      value: 
+      objectReference: {fileID: 194928684}
     - target: {fileID: 759500953129861886, guid: 853c38713634cbc449102c676dd673fd, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -9405,6 +9417,14 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
+    - target: {fileID: 1887788755163211908, guid: 853c38713634cbc449102c676dd673fd, type: 3}
+      propertyPath: m_Avatar
+      value: 
+      objectReference: {fileID: 9000000, guid: bb1c641f1867dc84e93c4023e087adb4, type: 3}
+    - target: {fileID: 1887788755163211908, guid: 853c38713634cbc449102c676dd673fd, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: 6b19f2dd4cd68b2409e4be29ce848afd, type: 2}
     - target: {fileID: 2011490551017553499, guid: 853c38713634cbc449102c676dd673fd, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -9453,6 +9473,18 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
+    - target: {fileID: 4281345433468449424, guid: 853c38713634cbc449102c676dd673fd, type: 3}
+      propertyPath: patrolPoints.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4281345433468449424, guid: 853c38713634cbc449102c676dd673fd, type: 3}
+      propertyPath: 'patrolPoints.Array.data[0]'
+      value: 
+      objectReference: {fileID: 1016214051}
+    - target: {fileID: 4281345433468449424, guid: 853c38713634cbc449102c676dd673fd, type: 3}
+      propertyPath: 'patrolPoints.Array.data[1]'
+      value: 
+      objectReference: {fileID: 194928684}
     - target: {fileID: 4514170139799135208, guid: 853c38713634cbc449102c676dd673fd, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -9517,6 +9549,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
+    - target: {fileID: 6617009750556333948, guid: 853c38713634cbc449102c676dd673fd, type: 3}
+      propertyPath: deathAnimationTime
+      value: 0.3
+      objectReference: {fileID: 0}
     - target: {fileID: 6683431992524341958, guid: 853c38713634cbc449102c676dd673fd, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -9531,7 +9567,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7711383009314698023, guid: 853c38713634cbc449102c676dd673fd, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -184.53
+      value: -177.02
       objectReference: {fileID: 0}
     - target: {fileID: 7711383009314698023, guid: 853c38713634cbc449102c676dd673fd, type: 3}
       propertyPath: m_LocalPosition.y
@@ -9585,7 +9621,8 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 1237505213591335289, guid: 853c38713634cbc449102c676dd673fd, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 2342351900969895532, guid: 853c38713634cbc449102c676dd673fd, type: 3}
@@ -12206,7 +12243,7 @@ Transform:
   m_GameObject: {fileID: 1016214050}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -1, z: 13.9}
+  m_LocalPosition: {x: -3.94, y: -1, z: -0.51}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -13515,7 +13552,7 @@ MonoBehaviour:
   enemyLayer:
     serializedVersion: 2
     m_Bits: 64
-  enemySilhouetteMat: {fileID: 2100000, guid: f198ebb35a72018499102051280ad236, type: 2}
+  enemySilhouetteMat: {fileID: 2100000, guid: b8794524448b4fd4595324ed2dce9ae5, type: 2}
   postProcessVolume: {fileID: 1122933597}
   grayscaleIntensity: 5
   opacity: 0.9

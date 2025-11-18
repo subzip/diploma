@@ -2,5 +2,8 @@ using UnityEngine;
 
 public interface IDamageable
 {
-    void TakeDamage(float damage, Vector3 hitPoint);
+    public void TakeDamage(float damage, Vector3 hitPoint)
+    {
+        // Логика получения урона
+    }
 }

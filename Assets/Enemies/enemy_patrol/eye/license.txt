@@ -1,0 +1,11 @@
+Model Information:
+* title:	Eye Robot
+* source:	https://sketchfab.com/3d-models/eye-robot-0f62aedb1f564133b259b1dd02297673
+* author:	typhomnt (https://sketchfab.com/typhomnt)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Eye Robot" (https://sketchfab.com/3d-models/eye-robot-0f62aedb1f564133b259b1dd02297673) by typhomnt (https://sketchfab.com/typhomnt) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
