@@ -59,6 +59,7 @@ public class EnemyAI : MonoBehaviour
     public void Die()
     {
         currentState = EnemyState.Dead;
+        transform.position = new Vector3(transform.position.x, 0f, transform.position.z);
         animator.SetState(EnemyState.Dead);
     }
 }

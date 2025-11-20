@@ -8,8 +8,8 @@ public class SceneLoader : MonoBehaviour
 {
     [Header("Settings")]
     [SerializeField] private string targetSceneName = "Level-1";
-    [SerializeField] private Vector3 spawnPosition = Vector3.zero; // Позиция за дверью
-
+    [SerializeField] private Vector3 spawnPosition = new Vector3(27.331f, 7.086f, -23.299f); // Позиция за дверью
+    //27.331 7.086 -23.299
     [Header("Transition")]
     [SerializeField] private Image fadeImage; // Чёрный UI Image на Canvas
     [SerializeField] private float fadeDuration = 1f;
