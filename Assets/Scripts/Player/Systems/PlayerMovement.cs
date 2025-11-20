@@ -35,6 +35,7 @@ public class PlayerMovement : MonoBehaviour
     {
         controller = GetComponent<CharacterController>();
         inputActions = new PlayerInputActions();
+        DontDestroyOnLoad(gameObject);
     }
 
     private void OnEnable()
