@@ -8,11 +8,13 @@ public class SceneLoader : MonoBehaviour
 {
     [Header("Settings")]
     [SerializeField] private string targetSceneName = "Level-1";
+    [SerializeField] private QuestSystem questSystem;
     [SerializeField] private Vector3 spawnPosition = new Vector3(27.331f, 7.086f, -23.299f); // Позиция за дверью
     //27.331 7.086 -23.299
     [Header("Transition")]
     [SerializeField] private Image fadeImage; // Чёрный UI Image на Canvas
     [SerializeField] private float fadeDuration = 1f;
+   
 
     private bool isTransitioning = false;
 
@@ -25,12 +27,21 @@ public class SceneLoader : MonoBehaviour
     }
 
     private void OnTriggerEnter(Collider other)
+{
+    if (other.CompareTag("Player"))
     {
-        if (other.CompareTag("Player") && !isTransitioning)
+        // Проверяем, выполнена ли задача "Активировать дверь"
+        QuestItem current = questSystem.GetCurrentQuest();
+        if (current != null && current.title == "Активировать дверь")
         {
             StartCoroutine(LoadSceneWithFade());
         }
+        else
+        {
+            Debug.Log("Нужна ключ-карта!");
+        }
     }
+}
 
     private IEnumerator LoadSceneWithFade()
     {

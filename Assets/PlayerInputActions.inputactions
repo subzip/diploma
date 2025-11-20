@@ -130,6 +130,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "OpenQuests",
+                    "type": "Button",
+                    "id": "a18d8170-e680-4314-9348-656b03df3925",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -570,6 +579,17 @@
                     "processors": "",
                     "groups": "",
                     "action": "Neuroresist",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "0078a0de-f5af-4266-91c7-6f8168f4a8fd",
+                    "path": "<Keyboard>/tab",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "OpenQuests",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

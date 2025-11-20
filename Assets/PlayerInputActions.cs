@@ -216,6 +216,15 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""OpenQuests"",
+                    ""type"": ""Button"",
+                    ""id"": ""a18d8170-e680-4314-9348-656b03df3925"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -656,6 +665,17 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""groups"": """",
                     ""action"": ""Neuroresist"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""0078a0de-f5af-4266-91c7-6f8168f4a8fd"",
+                    ""path"": ""<Keyboard>/tab"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""OpenQuests"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -1257,6 +1277,7 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
         m_Player_PickUp = m_Player.FindAction("PickUp", throwIfNotFound: true);
         m_Player_Shoot = m_Player.FindAction("Shoot", throwIfNotFound: true);
         m_Player_Neuroresist = m_Player.FindAction("Neuroresist", throwIfNotFound: true);
+        m_Player_OpenQuests = m_Player.FindAction("OpenQuests", throwIfNotFound: true);
         // UI
         m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
         m_UI_Navigate = m_UI.FindAction("Navigate", throwIfNotFound: true);
@@ -1364,6 +1385,7 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_PickUp;
     private readonly InputAction m_Player_Shoot;
     private readonly InputAction m_Player_Neuroresist;
+    private readonly InputAction m_Player_OpenQuests;
     /// <summary>
     /// Provides access to input actions defined in input action map "Player".
     /// </summary>
@@ -1432,6 +1454,10 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
         /// </summary>
         public InputAction @Neuroresist => m_Wrapper.m_Player_Neuroresist;
         /// <summary>
+        /// Provides access to the underlying input action "Player/OpenQuests".
+        /// </summary>
+        public InputAction @OpenQuests => m_Wrapper.m_Player_OpenQuests;
+        /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
         public InputActionMap Get() { return m_Wrapper.m_Player; }
@@ -1499,6 +1525,9 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
             @Neuroresist.started += instance.OnNeuroresist;
             @Neuroresist.performed += instance.OnNeuroresist;
             @Neuroresist.canceled += instance.OnNeuroresist;
+            @OpenQuests.started += instance.OnOpenQuests;
+            @OpenQuests.performed += instance.OnOpenQuests;
+            @OpenQuests.canceled += instance.OnOpenQuests;
         }
 
         /// <summary>
@@ -1552,6 +1581,9 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
             @Neuroresist.started -= instance.OnNeuroresist;
             @Neuroresist.performed -= instance.OnNeuroresist;
             @Neuroresist.canceled -= instance.OnNeuroresist;
+            @OpenQuests.started -= instance.OnOpenQuests;
+            @OpenQuests.performed -= instance.OnOpenQuests;
+            @OpenQuests.canceled -= instance.OnOpenQuests;
         }
 
         /// <summary>
@@ -1950,6 +1982,13 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnNeuroresist(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "OpenQuests" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnOpenQuests(InputAction.CallbackContext context);
     }
     /// <summary>
     /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.
