@@ -1,5 +1,6 @@
 // EnemyCombat.cs
 using UnityEngine;
+using UnityEngine.AI;
 
 public class EnemyCombat : MonoBehaviour
 {
@@ -9,17 +10,26 @@ public class EnemyCombat : MonoBehaviour
     [SerializeField] private LayerMask playerLayer;
 
     private Transform player;
+    private NavMeshAgent agent;
     private float lastAttackTime;
 
     private void Start()
     {
         player = GameObject.FindGameObjectWithTag("Player")?.transform;
+        agent = GetComponent<NavMeshAgent>();
+        if (agent == null)
+        {
+            Debug.LogError("NavMeshAgent не найден на враге!");
+        }
     }
 
     public void UpdateChase()
     {
-        // Может быть расширен для движения к игроку
-        // Пока используем только зрение из EnemyVision
+        if (player != null && agent != null)
+        {
+            // Двигаемся к игроку
+            agent.SetDestination(player.position);
+        }
     }
 
     public void Attack()

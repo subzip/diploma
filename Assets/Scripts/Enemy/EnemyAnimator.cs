@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class EnemyAnimator : MonoBehaviour
 {
-    private Animator animator;
+    public Animator animator;
 
     private void Awake()
     {
