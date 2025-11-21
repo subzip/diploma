@@ -84,8 +84,8 @@ public class EnemyAI : MonoBehaviour
 
     public void Die()
     {
-        if (health.isDead) return;
-        health.isDead = true;
+        if (health.IsDead) return;
+        health.SetDead(true);
         isDying = true;
 
         NavMeshAgent agent = GetComponent<NavMeshAgent>();

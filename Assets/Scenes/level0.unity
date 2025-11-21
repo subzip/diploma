@@ -14849,7 +14849,7 @@ MonoBehaviour:
   maxLookUp: 80
   maxLookDown: 60
   cameraPivot: {fileID: 921899942}
-  standCameraHeight: 1.3
+  standCameraHeight: 1.15
   crouchCameraHeight: 0.9
   cameraSmoothTime: 0.05
   weaponManager: {fileID: 1059110638}
@@ -14882,7 +14882,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   moveSpeed: 5
-  jumpHeight: 2
+  jumpHeight: 1.7
   gravity: -9.81
   crouchSpeed: 2
   sprintSpeed: 8

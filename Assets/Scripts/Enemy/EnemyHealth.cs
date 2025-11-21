@@ -7,9 +7,14 @@ public class EnemyHealth : MonoBehaviour, IDamageable
     [SerializeField] private EnemyAI enemyAI;
 
     private int currentHealth;
-    public bool isDead = false;
+    private bool isDead = false;
 
     public bool IsDead => isDead;
+
+    public void SetDead(bool state)
+    {
+        isDead = state;
+    }
 
     private void Awake()
     {
