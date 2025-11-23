@@ -25,7 +25,7 @@ Transform:
   m_GameObject: {fileID: 140914667232652045}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 3.62, y: 4.96, z: 0.84}
+  m_LocalPosition: {x: 3.19, y: 4.96, z: 0.84}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -322,9 +322,6 @@ MonoBehaviour:
   stats: {fileID: 11400000, guid: 109a2809ab9d56b43af46045a1a0a639, type: 2}
   tracerDuration: 0.1
   ammoText: {fileID: 0}
-  shootSound: {fileID: 8300000, guid: d466b209d83d8a645833ffefd858083c, type: 3}
-  reloadSound: {fileID: 8300000, guid: 8e89fe242bf02414a9d85568984a18b7, type: 3}
-  emptyClipSound: {fileID: 8300000, guid: 3ea0522317b2e634ba0cb45d85a118ef, type: 3}
   bulletHolePrefab: {fileID: 5853822717371514007, guid: ee400ad4acbbaea449849401cb96ba1d, type: 3}
   tracerEffectPrefab: {fileID: 121086622532378310, guid: 7caffa3e17b1bf84e823bfecfce6bdc4, type: 3}
 --- !u!114 &3337815451308070872

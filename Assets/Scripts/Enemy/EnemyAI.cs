@@ -84,25 +84,23 @@ public class EnemyAI : MonoBehaviour
 
     public void Die()
     {
-        if (health.IsDead) return;
+        if (!health.IsDead) return;
         health.SetDead(true);
         isDying = true;
 
         NavMeshAgent agent = GetComponent<NavMeshAgent>();
 
+        Debug.Log("Dead");
+
         // Останавливаем агента
         if (agent != null) agent.isStopped = true;
-
-        // Отключаем CharacterController (если есть)
-        CharacterController cc = GetComponent<CharacterController>();
-        if (cc != null) cc.enabled = false;
 
         // Включаем анимацию смерти
         animator.animator.SetBool("IsDead", true);
 
         // Отключаем коллайдер через пару секунд
         Invoke(nameof(DisableCollider), 0.5f);
-        Destroy(gameObject, 3f);
+        //Destroy(gameObject, 3f);
     }
 
     private void DisableCollider()

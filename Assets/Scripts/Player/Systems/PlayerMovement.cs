@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -101,7 +102,16 @@ public class PlayerMovement : MonoBehaviour
         controller.Move(movement);
     }
 
+    
 
+    public float GetMoveSpeed()
+    {
+        if(isSprinting)
+            return sprintSpeed;
+        if(moveInput.magnitude > 0.1f)
+            return moveSpeed;
+        return 0;
+    }
     public bool IsMoving => moveInput.magnitude > 0.1f;
 
 }

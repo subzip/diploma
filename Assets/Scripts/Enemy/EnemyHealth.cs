@@ -30,7 +30,7 @@ public class EnemyHealth : MonoBehaviour, IDamageable
         if (currentHealth <= 0)
         {
             isDead = true;
-            enemyAI.Die(); // Вызываем смерть через AI
+            enemyAI.Die();
         }
     }
 }

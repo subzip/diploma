@@ -44,7 +44,8 @@ public class PlayerLook : MonoBehaviour
 
     private void Update()
     {
-        // Поворот тела
+        if(Time.timeScale == 0) return;
+        
         float yRotation = lookInput.x * lookSensitivity;
         transform.Rotate(Vector3.up * yRotation);
 
