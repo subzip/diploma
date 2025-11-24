@@ -1,6 +1,7 @@
 // Assets/Scripts/Weapons/BaseWeapon.cs
 using UnityEngine;
 using TMPro;
+using Unity.VisualScripting;
 
 public abstract class BaseWeapon : MonoBehaviour
 {
@@ -19,6 +20,9 @@ public abstract class BaseWeapon : MonoBehaviour
     [Header("Effects")]
     [SerializeField] private GameObject bulletHolePrefab;
     [SerializeField] protected GameObject tracerEffectPrefab;
+
+    [Header("Muzzle Flash")]
+    [SerializeField] private Transform muzzlePoint;
 
     private AudioSource audioSource;
 
@@ -49,14 +53,14 @@ public abstract class BaseWeapon : MonoBehaviour
 
         if (stats.shootSound != null)
             audioSource.PlayOneShot(stats.shootSound);
-        if (stats.muzzleFlash != null)
-            stats.muzzleFlash.Play();
+        
 
        
         Camera playerCamera = Camera.main;
         if (playerCamera == null) return;
 
         Ray ray = playerCamera.ViewportPointToRay(Vector2.one * 0.5f);
+        LayerMask wallMask = LayerMask.GetMask("Walls");
         bool hit = Physics.Raycast(ray, out RaycastHit hitInfo, stats.range, stats.hitLayers);
         Vector3 tracerEnd = hit ? hitInfo.point : ray.GetPoint(stats.range);
 
@@ -68,10 +72,42 @@ public abstract class BaseWeapon : MonoBehaviour
             Destroy(tracer, 1f);
         }
 
-        if (hit && bulletHolePrefab != null)
+        if (Physics.Raycast(ray, out RaycastHit wallHit, stats.range, wallMask))
         {
-            GameObject hole = Instantiate(bulletHolePrefab, hitInfo.point, Quaternion.FromToRotation(-Vector3.forward, hitInfo.normal));
-            Destroy(hole, 10f);
+            if (bulletHolePrefab != null)
+            {
+                Rigidbody rb = wallHit.collider.attachedRigidbody;
+                if(rb == null)
+                {
+                    GameObject hole = Instantiate(
+                        bulletHolePrefab,
+                        wallHit.point,
+                        Quaternion.FromToRotation(-Vector3.forward, wallHit.normal)
+                    );
+                    Destroy(hole, 10f);
+                }
+                
+            }
+            if (wallHit.collider.gameObject.layer == LayerMask.NameToLayer("Walls"))
+            {
+                Rigidbody rb = wallHit.collider.attachedRigidbody;
+                if (rb != null && !rb.isKinematic)
+                {
+                    // Сила направлена от игрока к точке попадания
+                    Vector3 forceDirection = (wallHit.point - transform.position).normalized;
+                    rb.AddForceAtPosition(forceDirection * stats.impactForce, wallHit.point, ForceMode.Impulse);
+                }
+            }
+        }
+
+        if (muzzlePoint != null && stats.muzzlePrefab != null)
+        {
+            GameObject flash = Instantiate(
+                stats.muzzlePrefab,
+                muzzlePoint.position,   // ✅ Мировая позиция
+                muzzlePoint.rotation    // ✅ Мировая ориентация
+            );
+            Destroy(flash, 2f); // Уничтожить через 2 сек
         }
 
 

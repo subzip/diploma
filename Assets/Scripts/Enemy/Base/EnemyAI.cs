@@ -32,7 +32,7 @@ public class EnemyAI : MonoBehaviour
         lastKnownPlayerPosition = player.position;
     }
 
-    protected void Start()
+    protected virtual void Start()
     {
         SwitchState(EnemyState.Patrol);
     }
