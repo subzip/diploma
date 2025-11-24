@@ -4,16 +4,16 @@ using UnityEngine.AI;
 
 public class EnemyCombat : MonoBehaviour
 {
-    [SerializeField] private float attackRange = 3f;
-    [SerializeField] private float attackCooldown = 1.5f;
-    [SerializeField] private int attackDamage = 25;
-    [SerializeField] private LayerMask playerLayer;
+    [SerializeField] protected float attackRange = 3f;
+    [SerializeField] protected float attackCooldown = 1.5f;
+    [SerializeField] protected int attackDamage = 25;
+    [SerializeField] protected LayerMask playerLayer;
 
-    private Transform player;
-    private NavMeshAgent agent;
-    private float lastAttackTime;
+    protected Transform player;
+    protected NavMeshAgent agent;
+    protected float lastAttackTime;
 
-    private void Start()
+    protected void Start()
     {
         player = GameObject.FindGameObjectWithTag("Player")?.transform;
         agent = GetComponent<NavMeshAgent>();
@@ -32,7 +32,7 @@ public class EnemyCombat : MonoBehaviour
         }
     }
 
-    public void Attack()
+    public virtual void Attack()
     {
         if (Time.time >= lastAttackTime + attackCooldown)
         {
@@ -50,7 +50,7 @@ public class EnemyCombat : MonoBehaviour
         }
     }
 
-    public bool IsInAttackRange()
+    public virtual bool IsInAttackRange()
     {
         if (player == null) return false;
         return Vector3.Distance(transform.position, player.position) <= attackRange;

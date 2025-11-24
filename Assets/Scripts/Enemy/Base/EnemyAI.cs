@@ -5,15 +5,18 @@ using UnityEngine.AI;
 public class EnemyAI : MonoBehaviour
 {
     [Header("References")]
-    [SerializeField] private EnemyPatrol patrol;
-    [SerializeField] private EnemyVision vision;
-    [SerializeField] private EnemyCombat combat;
-    [SerializeField] private EnemyHealth health;
-    [SerializeField] private EnemyAnimator animator;
+    [SerializeField] protected EnemyPatrol patrol;
+    [SerializeField] protected EnemyVision vision;
+    [SerializeField] protected EnemyCombat combat;
+    [SerializeField] protected EnemyHealth health;
+    [SerializeField] protected EnemyAnimator animator;
 
-    private EnemyState currentState = EnemyState.Patrol;
-    private bool isDying = false;
-    private float groundOffset = 0.1f;
+    protected EnemyState currentState = EnemyState.Patrol;
+    protected bool isDying = false;
+    protected float groundOffset = 0.1f;
+    protected Transform player;
+    protected Vector3 lastKnownPlayerPosition;
+
 
     public enum EnemyState
     {
@@ -23,12 +26,18 @@ public class EnemyAI : MonoBehaviour
         Dead
     }
 
-    private void Start()
+    protected void Awake()
+    {
+        player = GameObject.FindGameObjectWithTag("Player")?.transform;
+        lastKnownPlayerPosition = player.position;
+    }
+
+    protected void Start()
     {
         SwitchState(EnemyState.Patrol);
     }
 
-    private void Update()
+    protected void Update()
     {
         if (isDying)
         {
@@ -56,13 +65,13 @@ public class EnemyAI : MonoBehaviour
         }
     }
 
-    private void SwitchState(EnemyState newState)
+    public virtual void SwitchState(EnemyState newState)
     {
         currentState = newState;
         animator.SetState(currentState);
     }
 
-    private void MoveToGround()
+    protected void MoveToGround()
     {
         // Луч вниз для определения пола
         if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit, 10f))
@@ -103,7 +112,7 @@ public class EnemyAI : MonoBehaviour
         //Destroy(gameObject, 3f);
     }
 
-    private void DisableCollider()
+    protected void DisableCollider()
     {
         Collider col = GetComponent<Collider>();
         if (col != null) col.enabled = false;
