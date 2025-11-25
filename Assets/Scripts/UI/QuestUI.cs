@@ -40,6 +40,16 @@ public class QuestUI : MonoBehaviour
         }
     }
 
+    public void ShowHint(string text)
+    {
+        if (hintText != null)
+        {
+            hintText.gameObject.SetActive(true);
+            hintText.text = text;
+            Invoke("HideHint", hintDuration);
+        }
+    }
+
     private void OnEnable()
     {
         var input = new PlayerInputActions();
