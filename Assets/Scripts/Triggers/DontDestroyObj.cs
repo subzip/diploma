@@ -1,21 +1,35 @@
+// DontDestroyObj.cs
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class DontDestroyObj : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    [SerializeField] private string mainMenuSceneName = "StartGame";
 
     void Awake()
     {
+        if (SceneManager.GetActiveScene().name == mainMenuSceneName)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         DontDestroyOnLoad(gameObject);
-    }
-    void Start()
-    {
-        
+        gameObject.AddComponent<DontDestroyMarker>();
+
+        SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
-    // Update is called once per frame
-    void Update()
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        
+        if (scene.name == mainMenuSceneName)
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    private void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 }

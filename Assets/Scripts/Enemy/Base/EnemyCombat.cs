@@ -19,7 +19,7 @@ public class EnemyCombat : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         if (agent == null)
         {
-            Debug.LogError("NavMeshAgent не найден на враге!");
+            Debug.LogError("NavMeshAgent!");
         }
     }
 
@@ -27,7 +27,6 @@ public class EnemyCombat : MonoBehaviour
     {
         if (player != null && agent != null)
         {
-            // Двигаемся к игроку
             agent.SetDestination(player.position);
         }
     }

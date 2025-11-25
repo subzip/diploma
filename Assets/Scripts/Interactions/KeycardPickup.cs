@@ -5,12 +5,12 @@ using UnityEngine.InputSystem;
 public class KeycardPickup : MonoBehaviour
 {
     [Header("Interaction")]
-    [SerializeField] private float pickupRange = 2f;        // Дистанция подбора
-    [SerializeField] private float viewAngle = 30f;         // Угол обзора (в градусах)
-    [SerializeField] private string promptText = "Подберите карту"; // Текст подсказки
+    [SerializeField] private float pickupRange = 2f;
+    [SerializeField] private float viewAngle = 30f;
+    [SerializeField] private string promptText = "Подберите карту";
 
     [Header("Quest System")]
-    [SerializeField] private QuestSystem questSystem;       // Ссылка на систему задач
+    [SerializeField] private QuestSystem questSystem;
     [SerializeField] private QuestUI questUI;
     private bool isInRange = false;
     private bool isLookingAt = false;
@@ -18,11 +18,10 @@ public class KeycardPickup : MonoBehaviour
 
     private void Start()
     {
-        // Находим камеру игрока
         playerCamera = Camera.main?.transform;
         if (playerCamera == null)
         {
-            Debug.LogError("Камера не найдена! Убедитесь, что у камеры тег 'MainCamera'");
+            Debug.LogError("Camera");
         }
     }
 
@@ -31,7 +30,6 @@ public class KeycardPickup : MonoBehaviour
         CheckProximity();
         CheckViewDirection();
 
-        // Показ подсказки
         if (isInRange && isLookingAt)
         {
             ShowPrompt();

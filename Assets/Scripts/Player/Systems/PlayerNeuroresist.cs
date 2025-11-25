@@ -46,7 +46,6 @@ public class PlayerNeuroresist : MonoBehaviour
             DeactivateNeuroresist();
         }
 
-        // Обновление силуэтов врагов (каждый кадр)
         if (isActive)
         {
             UpdateEnemySilhouettes();
@@ -60,7 +59,6 @@ public class PlayerNeuroresist : MonoBehaviour
         isActive = true;
         endTime = Time.time + duration;
 
-        // Включить постобработку
         EnablePostProcessing(true);
 
         Debug.Log("Нейрорезист активирован!");
@@ -72,22 +70,16 @@ public class PlayerNeuroresist : MonoBehaviour
 
         isActive = false;
 
-        // Выключить постобработку
         EnablePostProcessing(false);
 
-        // Скрыть все силуэты
         HideAllSilhouettes();
 
-        Debug.Log("Нейрорезист деактивирован.");
     }
 
     private void EnablePostProcessing(bool enabled)
     {
         if (postProcessVolume == null) return;
 
-        // Включаем/выключаем эффекты через Volume
-        // Нужно добавить Grayscale и Chromatic Aberration через Volume Profile
-        // Но для простоты — просто меняем цвет фона через камеру
         Camera.main.clearFlags = enabled ? CameraClearFlags.SolidColor : CameraClearFlags.Skybox;
         Camera.main.backgroundColor = enabled ? new Color(0.2f, 0.2f, 0.2f, opacity) : Color.black;
     }
@@ -100,7 +92,6 @@ public class PlayerNeuroresist : MonoBehaviour
             Renderer[] renderers = col.GetComponentsInChildren<Renderer>();
             foreach (Renderer r in renderers)
             {
-                // Показываем силуэт через стены
                 if (r.material != enemySilhouetteMat)
                 {
                     r.material = enemySilhouetteMat;
@@ -117,11 +108,9 @@ public class PlayerNeuroresist : MonoBehaviour
             Renderer[] renderers = col.GetComponentsInChildren<Renderer>();
             foreach (Renderer r in renderers)
             {
-                // Восстанавливаем оригинальный материал (если нужно)
-                // Или просто убираем силуэт
                 if (r.material == enemySilhouetteMat)
                 {
-                    r.material = null; // или оригинальный материал
+                    r.material = null;
                 }
             }
         }

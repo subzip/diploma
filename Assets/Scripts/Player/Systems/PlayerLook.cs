@@ -22,7 +22,6 @@ public class PlayerLook : MonoBehaviour
     private float xRotation = 0f;
     private float cameraHeightVelocity = 0f;
 
-    // Ссылка на PlayerCrouch для получения состояния приседания
     [SerializeField] private PlayerCrouch crouch;
 
     private void Awake()
@@ -49,7 +48,6 @@ public class PlayerLook : MonoBehaviour
         float yRotation = lookInput.x * lookSensitivity;
         transform.Rotate(Vector3.up * yRotation);
 
-        // Поворот камеры вверх-вниз
         xRotation -= lookInput.y * lookSensitivity;
         xRotation = Mathf.Clamp(xRotation, -maxLookUp, maxLookDown);
     }
@@ -58,7 +56,6 @@ public class PlayerLook : MonoBehaviour
     {
         if (cameraPivot == null) return;
 
-        // Плавное изменение высоты камеры в зависимости от приседания
         float targetHeight = crouch != null && crouch.IsCrouching 
             ? crouchCameraHeight 
             : standCameraHeight;

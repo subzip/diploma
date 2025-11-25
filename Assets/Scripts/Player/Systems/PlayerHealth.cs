@@ -8,13 +8,13 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 {
     [Header("Health Settings")]
     [SerializeField] private float maxHealth = 100f;
-    [SerializeField] private float healthRegenDelay = 7f; // Задержка перед восстановлением
-    [SerializeField] private float healthRegenRate = 15f; // Скорость восстановления в секунду
+    [SerializeField] private float healthRegenDelay = 7f;
+    [SerializeField] private float healthRegenRate = 15f;
     [SerializeField] private Slider healthSlider;
 
     [Header("Visual Feedback")]
-    [SerializeField] private Image damageOverlayLeft;  // Красный прямоугольник слева
-    [SerializeField] private Image damageOverlayRight; // Красный прямоугольник справа
+    [SerializeField] private Image damageOverlayLeft;
+    [SerializeField] private Image damageOverlayRight;
     [SerializeField] private float damageFlashDuration = 0.3f;
 
     private float currentHealth;
@@ -41,7 +41,6 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     {
         if (isDead) return;
 
-        // Восстановление здоровья
         if (canRegen)
         {
             currentHealth += healthRegenRate * Time.deltaTime;
@@ -52,7 +51,6 @@ public class PlayerHealth : MonoBehaviour, IDamageable
             canRegen = true;
         }
 
-        // Обновление UI
         if (healthSlider != null)
         {
             healthSlider.value = currentHealth;
@@ -68,7 +66,6 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         lastDamageTime = Time.time;
         canRegen = false;
 
-        // Визуальный эффект урона
         ShowDamageOverlay();
 
         // Проверка смерти
@@ -82,7 +79,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     {
         if (damageOverlayLeft != null)
         {
-            damageOverlayLeft.color = new Color(1, 0, 0, 1f); // Красный 50% прозрачности
+            damageOverlayLeft.color = new Color(1, 0, 0, 1f);
             damageOverlayLeft.CrossFadeAlpha(1, damageFlashDuration, true);
             //yield return new WaitForSeconds(damageFlashDuration);
         }
@@ -103,7 +100,17 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         isDead = true;
         healthSlider.value = 0;
         Debug.Log("Игрок мёртв!");
-        // Позже можно добавить: экран смерти, перезапуск уровня и т.д.
-        Time.timeScale = 0;
+        DeathScreen deathScreen = FindObjectOfType<DeathScreen>();
+
+        if (deathScreen != null)
+        {
+            deathScreen.ShowDeathScreen();
+        }
+        else
+        {
+            Time.timeScale = 0f;
+            Cursor.visible = true;
+            Cursor.lockState = CursorLockMode.None;
+        }
     }
 }

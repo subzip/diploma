@@ -8,6 +8,7 @@ TagManager:
   - Door
   - Weapon
   - PatrolPoint
+  - DontDestroy
   layers:
   - Default
   - TransparentFX

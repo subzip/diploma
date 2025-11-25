@@ -41,23 +41,20 @@ public class WeaponManager : MonoBehaviour
         {
             CurrentWeapon.Shoot();
         }
-        // Auto обрабатывается в Update
+    
     }
 
     private void Update()
     {
-        // Автоматическая стрельба
         if (CurrentWeapon?.stats.fireMode == FireMode.Auto && 
             inputActions.Player.Shoot.ReadValue<float>() > 0.1f)
         {
             CurrentWeapon.Shoot();
         }
 
-        // Обновление отдачи (для передачи в камеру)
         CurrentWeapon?.UpdateRecoil(Time.deltaTime);
         
     }
 
-    // Для передачи отдачи игроку (в PlayerLook или отдельный компонент)
     public Vector3 GetRecoilOffset() => CurrentWeapon?.GetRecoilOffset() ?? Vector3.zero;
 }

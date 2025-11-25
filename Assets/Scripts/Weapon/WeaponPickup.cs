@@ -3,7 +3,7 @@ using UnityEngine;
 public class WeaponPickup : MonoBehaviour
 {
     [SerializeField] private string weaponName = "Assault Rifle";
-    [SerializeField] public GameObject weaponPrefab; // Префаб самого оружия
+    [SerializeField] public GameObject weaponPrefab;
 
     private void OnTriggerEnter(Collider other)
     {
@@ -13,12 +13,11 @@ public class WeaponPickup : MonoBehaviour
         //     if (player != null)
         //     {
         //         player.PickUpWeapon(weaponPrefab);
-        //         Destroy(gameObject); // Удаляем лежащее оружие
+        //         Destroy(gameObject);
         //     }
         // }
     }
 
-    // Для отладки: отображение подсказки
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;

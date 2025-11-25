@@ -8,9 +8,9 @@ public class WeaponSway : MonoBehaviour
     [SerializeField] private Transform playerCamera;
 
     [Header("Settings")]
-    [SerializeField] private float maxSpeed = 8f; // Макс. скорость бега
+    [SerializeField] private float maxSpeed = 8f;
 
-    private PlayerMovement playerMovement; // Или любой компонент с moveInput
+    private PlayerMovement playerMovement; 
 
     private void Awake()
     {
@@ -22,8 +22,7 @@ public class WeaponSway : MonoBehaviour
     {
         if (playerMovement == null) return;
 
-        // Получаем скорость игрока (0 = стоит, 1 = бежит)
-        float moveSpeed = playerMovement.GetMoveSpeed(); // Нужно добавить метод в PlayerMovement
+        float moveSpeed = playerMovement.GetMoveSpeed(); 
         float normalizedSpeed = Mathf.Clamp01(moveSpeed / maxSpeed);
 
         animator.SetFloat("Speed", normalizedSpeed);

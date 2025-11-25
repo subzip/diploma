@@ -31,7 +31,7 @@ public class EnemyPatrol : MonoBehaviour
         }
         else
         {
-            arriveTime = Time.time; // Обновляем время при движении
+            arriveTime = Time.time;
         }
     }
 }

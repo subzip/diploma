@@ -1,4 +1,4 @@
-// Assets/Scripts/Weapons/BaseWeapon.cs
+
 using UnityEngine;
 using TMPro;
 using Unity.VisualScripting;
@@ -93,7 +93,6 @@ public abstract class BaseWeapon : MonoBehaviour
                 Rigidbody rb = wallHit.collider.attachedRigidbody;
                 if (rb != null && !rb.isKinematic)
                 {
-                    // Сила направлена от игрока к точке попадания
                     Vector3 forceDirection = (wallHit.point - transform.position).normalized;
                     rb.AddForceAtPosition(forceDirection * stats.impactForce, wallHit.point, ForceMode.Impulse);
                 }
@@ -104,10 +103,10 @@ public abstract class BaseWeapon : MonoBehaviour
         {
             GameObject flash = Instantiate(
                 stats.muzzlePrefab,
-                muzzlePoint.position,   // ✅ Мировая позиция
-                muzzlePoint.rotation    // ✅ Мировая ориентация
+                muzzlePoint.position,   
+                muzzlePoint.rotation    
             );
-            Destroy(flash, 2f); // Уничтожить через 2 сек
+            Destroy(flash, 2f);
         }
 
 

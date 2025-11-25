@@ -20,7 +20,7 @@ public class FlyingDrone : MonoBehaviour, IDamageable
     [SerializeField] private ParticleSystem laserVFX;
 
     [Header("Search")]
-    [SerializeField] private float searchTime = 1.5f; // Время поиска после потери игрока
+    [SerializeField] private float searchTime = 1.5f; 
 
     [Header("Health")]
     [SerializeField] private int maxHealth = 50;
@@ -30,11 +30,11 @@ public class FlyingDrone : MonoBehaviour, IDamageable
     private float lastAttackTime;
     private float arriveTime;
     private Vector3 currentTarget;
-    private Vector3 lastKnownPlayerPosition; // ← НОВОЕ: последняя позиция игрока
+    private Vector3 lastKnownPlayerPosition;
     private Transform player;
     private bool isAttacking = false;
-    private bool isSearching = false;        // ← НОВОЕ: в поиске
-    private float searchStartTime;           // ← НОВОЕ: время начала поиска
+    private bool isSearching = false;      
+    private float searchStartTime; 
 
     private void Awake()
     {
@@ -53,7 +53,6 @@ public class FlyingDrone : MonoBehaviour, IDamageable
 
         if (canSeePlayer)
         {
-            // Видим игрока — атакуем
             lastKnownPlayerPosition = player.position;
             currentTarget = player.position;
             isAttacking = true;
@@ -61,7 +60,6 @@ public class FlyingDrone : MonoBehaviour, IDamageable
         }
         else if (isAttacking)
         {
-            // Потеряли из виду — начинаем поиск
             isAttacking = false;
             isSearching = true;
             searchStartTime = Time.time;
@@ -69,7 +67,6 @@ public class FlyingDrone : MonoBehaviour, IDamageable
         }
         else if (isSearching)
         {
-            // Если поисковое время вышло — возвращаемся к патрулированию
             if (Time.time - searchStartTime > searchTime)
             {
                 isSearching = false;
@@ -77,7 +74,6 @@ public class FlyingDrone : MonoBehaviour, IDamageable
             }
         }
 
-        // Движение и поворот
         transform.position = Vector3.MoveTowards(transform.position, currentTarget, patrolSpeed * Time.deltaTime);
         if (currentTarget != transform.position)
         {
@@ -85,7 +81,6 @@ public class FlyingDrone : MonoBehaviour, IDamageable
             transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(lookDir, Vector3.up), 5f * Time.deltaTime);
         }
 
-        // Достижение точки патрулирования
         if (!isAttacking && !isSearching && Vector3.Distance(transform.position, currentTarget) < 0.5f)
         {
             if (Time.time - arriveTime > waitTime)
@@ -95,7 +90,6 @@ public class FlyingDrone : MonoBehaviour, IDamageable
             }
         }
 
-        // Атака
         if (isAttacking)
         {
             AttackPlayer();
@@ -156,7 +150,7 @@ public class FlyingDrone : MonoBehaviour, IDamageable
 
     private void Die()
     {
-        Debug.Log("Дрон уничтожен!");
+        Debug.Log("DroneDead!");
         Destroy(gameObject);
     }
 }

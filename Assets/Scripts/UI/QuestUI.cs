@@ -7,10 +7,10 @@ using UnityEngine.UI;
 public class QuestUI : MonoBehaviour
 {
     [Header("References")]
-    [SerializeField] private GameObject questPanel;       // Панель с задачей
-    [SerializeField] private TMP_Text questTitleText;          // Название
-    [SerializeField] private TMP_Text questDescriptionText;    // Описание
-    [SerializeField] private TMP_Text hintText;                // Подсказка при старте
+    [SerializeField] private GameObject questPanel;   
+    [SerializeField] private TMP_Text questTitleText; 
+    [SerializeField] private TMP_Text questDescriptionText;
+    [SerializeField] private TMP_Text hintText;  
 
     [Header("Settings")]
     [SerializeField] private float hintDuration = 3f;
@@ -85,7 +85,6 @@ public class QuestUI : MonoBehaviour
         }
     }
 
-    // Вызывается из Input System
     public void ToggleQuestPanel()
     {
         questPanel.SetActive(!questPanel.activeSelf);

@@ -12,12 +12,10 @@ public class PlayerAnimatorUpdater : MonoBehaviour
     {
         if (animator == null || movement == null || crouch == null) return;
 
-        // Получаем данные из модулей
         bool isMoving = movement.IsMoving;
         bool isSprinting = movement.IsSprinting && movement.CurrentStamina > 0;
         bool isCrouching = crouch.IsCrouching;
 
-        // Передаём в Animator
         animator.SetBool("IsRunning", isMoving);
         animator.SetBool("IsSprinting", isSprinting);
         animator.SetBool("IsCrouching", isCrouching);

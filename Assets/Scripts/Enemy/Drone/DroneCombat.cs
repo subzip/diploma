@@ -9,10 +9,8 @@ public class DroneCombat : EnemyCombat
     [SerializeField] private float fireRate = 0.8f;
     [SerializeField] private ParticleSystem laserVFX;
 
-    // УБИРАЕМ Start() с override — используем Awake или OnEnable
     private void Awake()
     {
-        // Применяем параметры дрона
         attackRange = laserRange;
         attackCooldown = fireRate;
         attackDamage = Mathf.RoundToInt(laserDamage);

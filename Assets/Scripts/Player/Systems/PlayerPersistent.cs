@@ -1,4 +1,4 @@
-// PlayerPersistent.cs
+
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -31,11 +31,10 @@ public class PlayerPersistent : MonoBehaviour
         }
         else
         {
-            Destroy(gameObject); // Удаляем дубликаты
+            Destroy(gameObject);
         }
     }
 
-    // Вызывается при выходе из триггера (необязательно)
     private void OnEnable()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
@@ -48,6 +47,6 @@ public class PlayerPersistent : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // Можно добавить логику пост-загрузки (например, позиционирование)
+        
     }
 }

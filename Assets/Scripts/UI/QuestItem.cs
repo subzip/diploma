@@ -13,6 +13,5 @@ public class QuestItem
     public void Complete()
     {
         isCompleted = true;
-        Debug.Log($"Задача выполнена: {title}");
     }
 }

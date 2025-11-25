@@ -17,7 +17,6 @@ public class EnemyAI : MonoBehaviour
     protected Transform player;
     protected Vector3 lastKnownPlayerPosition;
 
-
     public enum EnemyState
     {
         Patrol,
@@ -73,16 +72,13 @@ public class EnemyAI : MonoBehaviour
 
     protected void MoveToGround()
     {
-        // Луч вниз для определения пола
         if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit, 10f))
         {
             float targetY = hit.point.y + groundOffset;
             Vector3 targetPosition = new Vector3(transform.position.x, targetY, transform.position.z);
 
-            // Плавно опускаем
             transform.position = Vector3.Lerp(transform.position, targetPosition, 10f * Time.deltaTime);
 
-            // Если почти касаемся — фиксируем и останавливаем
             if (Mathf.Abs(transform.position.y - targetY) < 0.01f)
             {
                 transform.position = targetPosition;
@@ -101,13 +97,10 @@ public class EnemyAI : MonoBehaviour
 
         Debug.Log("Dead");
 
-        // Останавливаем агента
         if (agent != null) agent.isStopped = true;
 
-        // Включаем анимацию смерти
         animator.animator.SetBool("IsDead", true);
 
-        // Отключаем коллайдер через пару секунд
         Invoke(nameof(DisableCollider), 0.5f);
         //Destroy(gameObject, 3f);
     }

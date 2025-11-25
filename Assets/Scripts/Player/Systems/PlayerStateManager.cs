@@ -1,9 +1,9 @@
-// Assets/Scripts/Player/Core/PlayerStateManager.cs
+
 using UnityEngine;
 
 public class PlayerStateManager : MonoBehaviour
 {
-    // Состояния
+    
     public bool isSprinting { get; set; } = false;
     public bool isCrouching { get; set; } = false;
     public bool isReloading { get; set; } = false;

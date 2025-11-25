@@ -12,12 +12,12 @@ public class WeaponStats : ScriptableObject
     public float reloadTime = 2f;
 
     [Header("Firing")]
-    public float fireRate = 0.1f; // 0.1 = 10 выстрелов/сек
+    public float fireRate = 0.1f;
     public FireMode fireMode = FireMode.Auto;
     public float impactForce = 500f; 
 
     [Header("Recoil")]
-    public Vector2 recoilAngle = new Vector2(0.5f, 0.2f); // вверх, вправо
+    public Vector2 recoilAngle = new Vector2(0.5f, 0.2f);
     public float recoilRecoverySpeed = 5f;
 
     [Header("Effects")]

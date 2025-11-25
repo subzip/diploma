@@ -1,4 +1,4 @@
-// Assets/Scripts/Player/Systems/PlayerStamina.cs
+
 using UnityEngine;
 
 public class PlayerStamina : MonoBehaviour

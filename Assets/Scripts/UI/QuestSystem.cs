@@ -17,7 +17,7 @@ public class QuestSystem : MonoBehaviour
         if (questUI != null)
         {
             questUI.ShowInitialHint();
-            UpdateUI(); // ← ЭТО ОБЯЗАТЕЛЬНО
+            UpdateUI();
         }
     }
 
@@ -27,7 +27,6 @@ public class QuestSystem : MonoBehaviour
 
         quests[currentQuestIndex].Complete();
 
-        // Переходим к следующей задаче
         currentQuestIndex++;
         questUI.ShowCompleted();
         UpdateUI();
