@@ -1,117 +1,144 @@
-
+// PlayerNeuroresist.cs
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.InputSystem;
+using UnityEngine.Rendering.Universal;
 
 [RequireComponent(typeof(PlayerInputActions))]
 public class PlayerNeuroresist : MonoBehaviour
 {
-    [Header("Neuroresist Settings")]
-    [SerializeField] private float duration = 15f;   
-    [SerializeField] private float radius = 100f;     
-    [SerializeField] private LayerMask enemyLayer;     
-    [SerializeField] private Material enemySilhouetteMat;   
+    [Header("Settings")]
+    [SerializeField] private float duration = 15f;
+    [SerializeField] private float detectionRadius = 100f;
+    [SerializeField] private LayerMask enemyLayer;
+
+    [Header("UI")]
+    [SerializeField] private Canvas uiCanvas;
+    [SerializeField] private GameObject indicatorPrefab; // Префаб с белым кружком/крестом
 
     [Header("Post-processing")]
-    [SerializeField] private Volume postProcessVolume;
-    [SerializeField] private float grayscaleIntensity = 1f;
-    [SerializeField] private float opacity = 0.7f;
+    [SerializeField] private Volume volume; // Global Volume на сцене
 
     private bool isActive = false;
     private float endTime;
-    private PlayerInputActions inputActions;
-    private Renderer[] originalRenderers;
-
-    private void Awake()
-    {
-        inputActions = new PlayerInputActions();
-    }
+    private GameObject[] indicators = new GameObject[50];
+    private Collider[] detectedEnemies = new Collider[50];
+    private int enemyCount = 0;
+    private VolumeProfile runtimeProfile; // Важно: клонируемый профиль
 
     private void OnEnable()
     {
-        inputActions.Player.Enable();
-        inputActions.Player.Neuroresist.performed += _ => ActivateNeuroresist();
+        var input = new PlayerInputActions();
+        input.Player.Enable();
+        input.Player.Neuroresist.performed += _ => Activate();
     }
 
-    private void OnDisable()
+    private void Start()
     {
-        inputActions.Player.Disable();
-        DeactivateNeuroresist();
+        // 🔥 КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Клонируем Volume Profile
+        if (volume != null && volume.profile != null)
+        {
+            runtimeProfile = Instantiate(volume.profile);
+            volume.profile = runtimeProfile;
+        }
     }
 
     private void Update()
     {
-        if (isActive && Time.time >= endTime)
-        {
-            DeactivateNeuroresist();
-        }
-
         if (isActive)
         {
-            UpdateEnemySilhouettes();
+            if (Time.time >= endTime)
+            {
+                Deactivate();
+                return;
+            }
+
+            // Обновление позиций подсветок
+            for (int i = 0; i < enemyCount; i++)
+            {
+                if (detectedEnemies[i] != null && indicators[i] != null)
+                {
+                    Vector3 screenPoint = Camera.main.WorldToScreenPoint(detectedEnemies[i].transform.position);
+                    indicators[i].transform.position = screenPoint;
+                }
+            }
         }
     }
 
-    private void ActivateNeuroresist()
+    private void Activate()
     {
         if (isActive) return;
 
         isActive = true;
         endTime = Time.time + duration;
 
-        EnablePostProcessing(true);
+        // Поиск врагов в радиусе
+        enemyCount = Physics.OverlapSphereNonAlloc(transform.position, detectionRadius, detectedEnemies, enemyLayer);
 
-        Debug.Log("Нейрорезист активирован!");
-    }
-
-    private void DeactivateNeuroresist()
-    {
-        if (!isActive) return;
-
-        isActive = false;
-
-        EnablePostProcessing(false);
-
-        HideAllSilhouettes();
-
-    }
-
-    private void EnablePostProcessing(bool enabled)
-    {
-        if (postProcessVolume == null) return;
-
-        Camera.main.clearFlags = enabled ? CameraClearFlags.SolidColor : CameraClearFlags.Skybox;
-        Camera.main.backgroundColor = enabled ? new Color(0.2f, 0.2f, 0.2f, opacity) : Color.black;
-    }
-
-    private void UpdateEnemySilhouettes()
-    {
-        Collider[] colliders = Physics.OverlapSphere(transform.position, radius, enemyLayer);
-        foreach (Collider col in colliders)
+        // Создание подсветок
+        for (int i = 0; i < enemyCount; i++)
         {
-            Renderer[] renderers = col.GetComponentsInChildren<Renderer>();
-            foreach (Renderer r in renderers)
+            if (detectedEnemies[i] != null)
             {
-                if (r.material != enemySilhouetteMat)
-                {
-                    r.material = enemySilhouetteMat;
-                }
+                GameObject ind = Instantiate(indicatorPrefab, uiCanvas.transform);
+                indicators[i] = ind;
+                ind.SetActive(true);
             }
         }
+
+        // 🔥 ПРИМЕНЕНИЕ ЭФФЕКТОВ (работает в URP 2022+)
+        ApplyNeuroresistEffects(true);
     }
 
-    private void HideAllSilhouettes()
+    private void Deactivate()
     {
-        Collider[] colliders = Physics.OverlapSphere(transform.position, radius, enemyLayer);
-        foreach (Collider col in colliders)
+        isActive = false;
+
+        // Удаление подсветок
+        for (int i = 0; i < enemyCount; i++)
         {
-            Renderer[] renderers = col.GetComponentsInChildren<Renderer>();
-            foreach (Renderer r in renderers)
+            if (indicators[i] != null)
             {
-                if (r.material == enemySilhouetteMat)
-                {
-                    r.material = null;
-                }
+                Destroy(indicators[i]);
+            }
+        }
+        enemyCount = 0;
+
+        // 🔥 СБРОС ЭФФЕКТОВ
+        ApplyNeuroresistEffects(false);
+    }
+
+    private void ApplyNeuroresistEffects(bool enabled)
+    {
+        if (runtimeProfile == null) return;
+
+        // Получаем настройки
+        if (runtimeProfile.TryGet<ColorAdjustments>(out var colorAdjust))
+        {
+            colorAdjust.active = enabled;
+            if (enabled)
+            {
+                colorAdjust.saturation.value = -100f;   // Полностью ч/б
+                colorAdjust.postExposure.value = -0.3f; // Затемнение
+                colorAdjust.contrast.value = 20f;       // Повышение контраста
+            }
+            else
+            {
+                colorAdjust.saturation.value = 0f;
+                colorAdjust.postExposure.value = 0f;
+                colorAdjust.contrast.value = 0f;
+            }
+        }
+
+        if (runtimeProfile.TryGet<Vignette>(out var vignette))
+        {
+            vignette.active = enabled;
+            if (enabled)
+            {
+                vignette.intensity.value = 0.6f;
+            }
+            else
+            {
+                vignette.intensity.value = 0f;
             }
         }
     }
