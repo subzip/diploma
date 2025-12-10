@@ -34,7 +34,7 @@ public class WeaponManager : MonoBehaviour
         {
             weapons[0].gameObject.SetActive(true);
             weapons[0].transform.SetParent(weaponSlots[0]);
-            UpdateIKTarget();
+            UpdateIKTargets(weapons[0].transform);
         }
     }
 
@@ -78,48 +78,59 @@ public class WeaponManager : MonoBehaviour
 
     private void SwitchWeapon(int slotIndex)
     {
-        // Проверка корректности слота
         if (slotIndex < 0 || slotIndex >= weapons.Length || weapons[slotIndex] == null)
             return;
 
-        // Если уже стоит это оружие — не переключаем
         if (currentWeaponIndex == slotIndex)
             return;
 
-        // Деактивируем текущее оружие
-        weapons[currentWeaponIndex].gameObject.SetActive(false);
+        // Деактивируем старое оружие
+        if (weapons[currentWeaponIndex] != null)
+        {
+            weapons[currentWeaponIndex].gameObject.SetActive(false);
+        }
 
-        // Активируем новое оружие
+        // Активируем новое
         currentWeaponIndex = slotIndex;
-        weapons[currentWeaponIndex].gameObject.SetActive(true);
+        BaseWeapon newWeapon = weapons[currentWeaponIndex];
+        newWeapon.gameObject.SetActive(true);
         
-        // Перемещаем оружие в правильный слот
-        weapons[currentWeaponIndex].transform.SetParent(weaponSlots[currentWeaponIndex]);
-        weapons[currentWeaponIndex].transform.localPosition = Vector3.zero;
-        weapons[currentWeaponIndex].transform.localRotation = Quaternion.identity;
+        // Помещаем оружие в слот
+        newWeapon.transform.SetParent(weaponSlots[currentWeaponIndex]);
+        // newWeapon.transform.localPosition = Vector3.zero;
+        // newWeapon.transform.localRotation = Quaternion.identity;
 
-        // Обновляем IK-привязку
-        UpdateIKTarget();
-        
-        Debug.Log($"Оружие изменено на слот {currentWeaponIndex + 1}");
+        // 🔥 ОБНОВЛЯЕМ IK-ТАРГЕТЫ
+        UpdateIKTargets(newWeapon.transform);
     }
 
-    private void UpdateIKTarget()
+    private void UpdateIKTargets(Transform weaponRoot)
     {
-        if (leftHandIK != null && CurrentWeapon != null && rightHandIK != null)
+        // Обновляем цель для левой руки
+        if (leftHandIK != null)
         {
-            // Ищем точки привязки на оружии
-            Transform leftGrip = CurrentWeapon.transform.Find("LeftHandP");
-            Transform rightGrip = CurrentWeapon.transform.Find("RightHandP");
-            
+            Transform leftGrip = weaponRoot.Find("LeftHandP");
             if (leftGrip != null)
             {
                 leftHandIK.data.target = leftGrip;
             }
-            
+            else
+            {
+                Debug.LogWarning($"Не найдена точка 'LeftHandP' на оружии {weaponRoot.name}");
+            }
+        }
+
+        // Обновляем позицию правой руки (если используется)
+        if (rightHandIK != null)
+        {
+            Transform rightGrip = weaponRoot.Find("RightHandP");
             if (rightGrip != null)
             {
                 rightHandIK.data.target = rightGrip;
+            }
+            else
+            {
+                Debug.LogWarning($"Не найдена точка 'RightHandP' на оружии {weaponRoot.name}");
             }
         }
     }
