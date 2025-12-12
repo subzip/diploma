@@ -16,6 +16,7 @@ public class WeaponManager : MonoBehaviour
     //[SerializeField] private Transform rightHandGripPoint;
 
     private BaseWeapon CurrentWeapon => weapons[currentWeaponIndex];
+    [SerializeField] private RigBuilder rigBuilder;
     private PlayerInputActions inputActions;
 
     private void Awake()
@@ -132,6 +133,12 @@ public class WeaponManager : MonoBehaviour
             {
                 Debug.LogWarning($"Не найдена точка 'RightHandP' на оружии {weaponRoot.name}");
             }
+        }
+
+        if (rigBuilder != null)
+        {
+            rigBuilder.enabled = false;
+            rigBuilder.enabled = true;
         }
     }
 

@@ -20,7 +20,7 @@ MonoBehaviour:
   fireRate: 0.4
   fireMode: 0
   impactForce: 500
-  recoilAngle: {x: 0.5, y: 0.2}
+  recoilAngle: {x: -3, y: 1}
   recoilRecoverySpeed: 3
   muzzlePrefab: {fileID: 0}
   hitLayers:
