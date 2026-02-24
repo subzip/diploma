@@ -18076,9 +18076,8 @@ MonoBehaviour:
   enemyLayer:
     serializedVersion: 2
     m_Bits: 64
-  uiCanvas: {fileID: 2022874796}
-  indicatorPrefab: {fileID: 7689530995607723540, guid: 3e8ffa1e331d7254b9cc3a36c6f3211e, type: 3}
-  volume: {fileID: 670762216}
+  xrayLayerName: XRay
+  postProcess: {fileID: 670762219}
 --- !u!114 &1059110640
 MonoBehaviour:
   m_ObjectHideFlags: 0

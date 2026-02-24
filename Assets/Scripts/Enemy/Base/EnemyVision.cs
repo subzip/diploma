@@ -26,7 +26,7 @@ public class EnemyVision : MonoBehaviour
         float angle = Vector3.Angle(transform.forward, direction);
         if (angle > fieldOfView * 0.5f) return false;
 
-        if (Physics.Raycast(transform.position + Vector3.up * 1.3f, direction.normalized, out RaycastHit hit, distance, playerLayer))
+        if (Physics.Raycast(transform.position + Vector3.up * 1.3f, direction.normalized, out RaycastHit hit, distance))
         {
             return hit.collider.CompareTag("Player");
         }

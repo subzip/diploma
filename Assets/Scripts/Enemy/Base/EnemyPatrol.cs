@@ -16,6 +16,15 @@ public class EnemyPatrol : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
     }
 
+    private void Start()
+    {
+        if (patrolPoints.Length > 0)
+        {
+            agent.SetDestination(patrolPoints[0].position);
+            arriveTime = Time.time;
+        }
+    }
+
     public void UpdatePatrol()
     {
         if (patrolPoints.Length == 0) return;

@@ -27,7 +27,8 @@ public class EnemyCombat : MonoBehaviour
     {
         if (player != null && agent != null)
         {
-            agent.SetDestination(player.position);
+            if (agent.destination != player.position)
+                agent.SetDestination(player.position);
         }
     }
 

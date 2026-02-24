@@ -1,8 +1,6 @@
 // PlayerHealth.cs
-using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
-
 
 public class PlayerHealth : MonoBehaviour, IDamageable
 {
@@ -22,8 +20,6 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     private float lastDamageTime;
     private bool canRegen = false;
 
-    
-
     private void Awake()
     {
         currentHealth = maxHealth;
@@ -33,8 +29,8 @@ public class PlayerHealth : MonoBehaviour, IDamageable
             healthSlider.value = currentHealth;
         }
 
-        damageOverlayLeft.canvasRenderer.SetAlpha(0);
-        damageOverlayRight.canvasRenderer.SetAlpha(0);
+        damageOverlayLeft?.canvasRenderer.SetAlpha(0);
+        damageOverlayRight?.canvasRenderer.SetAlpha(0);
     }
 
     private void Update()
@@ -68,7 +64,6 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
         ShowDamageOverlay();
 
-        // Проверка смерти
         if (currentHealth <= 0 && !isDead)
         {
             Die();
@@ -81,25 +76,21 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         {
             damageOverlayLeft.color = new Color(1, 0, 0, 1f);
             damageOverlayLeft.CrossFadeAlpha(1, damageFlashDuration, true);
-            //yield return new WaitForSeconds(damageFlashDuration);
+            damageOverlayLeft.CrossFadeAlpha(0, damageFlashDuration, true);
         }
         if (damageOverlayRight != null)
         {
             damageOverlayRight.color = new Color(1, 0, 0, 1f);
             damageOverlayRight.CrossFadeAlpha(1, damageFlashDuration, true);
-            //yield return new WaitForSeconds(damageFlashDuration);
+            damageOverlayRight.CrossFadeAlpha(0, damageFlashDuration, true);
         }
-
-        damageOverlayLeft.CrossFadeAlpha(0, damageFlashDuration, true);
-        damageOverlayRight.CrossFadeAlpha(0, damageFlashDuration, true);
-
     }
 
     private void Die()
     {
         isDead = true;
-        healthSlider.value = 0;
-        Debug.Log("Игрок мёртв!");
+        if (healthSlider != null) healthSlider.value = 0;
+        Debug.Log("Игрок мёртв");
         DeathScreen deathScreen = FindObjectOfType<DeathScreen>();
 
         if (deathScreen != null)

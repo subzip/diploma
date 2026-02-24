@@ -43,17 +43,18 @@ public class WeaponManager : MonoBehaviour
     {
         inputActions.Player.Enable();
         inputActions.Player.Shoot.performed += OnShoot;
-        inputActions.Player.Reload.performed += _ => CurrentWeapon?.Reload();
-        inputActions.Player.Slot1.performed += _ => SwitchWeapon(0);
-        inputActions.Player.Slot2.performed += _ => SwitchWeapon(1);
+        inputActions.Player.Reload.performed += OnReload;
+        inputActions.Player.Slot1.performed += OnSlot1;
+        inputActions.Player.Slot2.performed += OnSlot2;
     }
 
     private void OnDisable()
     {
         inputActions.Player.Disable();
         inputActions.Player.Shoot.performed -= OnShoot;
-        inputActions.Player.Slot1.performed -= _ => SwitchWeapon(0);
-        inputActions.Player.Slot2.performed -= _ => SwitchWeapon(1);
+        inputActions.Player.Reload.performed -= OnReload;
+        inputActions.Player.Slot1.performed -= OnSlot1;
+        inputActions.Player.Slot2.performed -= OnSlot2;
     }
 
     private void OnShoot(InputAction.CallbackContext ctx)
@@ -65,6 +66,10 @@ public class WeaponManager : MonoBehaviour
             CurrentWeapon.Shoot();
         }
     }
+
+    private void OnReload(InputAction.CallbackContext ctx) => CurrentWeapon?.Reload();
+    private void OnSlot1(InputAction.CallbackContext ctx) => SwitchWeapon(0);
+    private void OnSlot2(InputAction.CallbackContext ctx) => SwitchWeapon(1);
 
     private void Update()
     {

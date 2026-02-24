@@ -41,7 +41,7 @@ public abstract class BaseWeapon : MonoBehaviour
 
     void Update()
     {
-        ammoText.text = currentAmmo.ToString();
+        if (ammoText != null) ammoText.text = currentAmmo.ToString();
     }
 
     public virtual void Shoot()
@@ -114,8 +114,6 @@ public abstract class BaseWeapon : MonoBehaviour
         {
             target.TakeDamage(stats.damage, hitInfo.point);
         }
-
-        if (stats.shootSound != null && currentAmmo != 0) audioSource.PlayOneShot(stats.shootSound);
 
         if(currentAmmo == 0){
             if (stats.emptyClipSound != null)

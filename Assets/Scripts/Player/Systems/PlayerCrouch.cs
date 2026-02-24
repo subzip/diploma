@@ -10,6 +10,7 @@ public class PlayerCrouch : MonoBehaviour
 
     private CharacterController controller;
     private PlayerInputActions inputActions;
+    private PlayerMovement movement;
     private bool isCrouching = false;
     private float currentHeight;
     private float heightVelocity = 0f;
@@ -20,6 +21,7 @@ public class PlayerCrouch : MonoBehaviour
     {
         controller = GetComponent<CharacterController>();
         inputActions = new PlayerInputActions();
+        movement = GetComponent<PlayerMovement>();
     }
 
     private void OnEnable()
@@ -43,7 +45,7 @@ public class PlayerCrouch : MonoBehaviour
         float targetHeight = isCrouching ? crouchHeight : standHeight;
         float targetCenterY = targetHeight / 2f;
 
-        if (GetComponent<PlayerMovement>().IsGrounded)
+        if (movement != null && movement.IsGrounded)
         {
             float currentBottom = transform.position.y - controller.center.y + controller.height / 2f;
             float newBottom = transform.position.y - targetCenterY + targetHeight / 2f;

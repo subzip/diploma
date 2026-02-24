@@ -27,8 +27,17 @@ public class EnemyAI : MonoBehaviour
 
     protected void Awake()
     {
-        player = GameObject.FindGameObjectWithTag("Player")?.transform;
-        lastKnownPlayerPosition = player.position;
+        var playerObj = GameObject.FindGameObjectWithTag("Player");
+        if (playerObj != null)
+        {
+            player = playerObj.transform;
+            lastKnownPlayerPosition = player.position;
+        }
+        else
+        {
+            player = null;
+            lastKnownPlayerPosition = transform.position;
+        }
     }
 
     protected virtual void Start()
@@ -38,6 +47,12 @@ public class EnemyAI : MonoBehaviour
 
     protected void Update()
     {
+        if (player == null)
+        {
+            var playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj != null) player = playerObj.transform;
+        }
+
         if (isDying)
         {
             MoveToGround();

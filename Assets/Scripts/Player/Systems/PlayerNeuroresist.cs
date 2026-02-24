@@ -1,7 +1,9 @@
 // PlayerNeuroresist.cs
+// Активирует «скан через стены»: переводит видимых врагов во временный XRay-слой,
+// который рендерится отдельным Render Feature (силуэт/подсветка), параллельно включает постэффекты.
+using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
+using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(PlayerInputActions))]
 public class PlayerNeuroresist : MonoBehaviour
@@ -11,135 +13,103 @@ public class PlayerNeuroresist : MonoBehaviour
     [SerializeField] private float detectionRadius = 100f;
     [SerializeField] private LayerMask enemyLayer;
 
-    [Header("UI")]
-    [SerializeField] private Canvas uiCanvas;
-    [SerializeField] private GameObject indicatorPrefab; // Префаб с белым кружком/крестом
+    [Header("Rendering")]
+    [Tooltip("Имя слоя, который попадает в RenderObjects feature для подсветки.")]
+    [SerializeField] private string xrayLayerName = "XRay";
+    [SerializeField] private NeuroresistPostProcess postProcess;
 
-    [Header("Post-processing")]
-    [SerializeField] private Volume volume; // Global Volume на сцене
-
-    private bool isActive = false;
+    private int xrayLayer;
+    private bool isActive;
     private float endTime;
-    private GameObject[] indicators = new GameObject[50];
-    private Collider[] detectedEnemies = new Collider[50];
-    private int enemyCount = 0;
-    private VolumeProfile runtimeProfile; // Важно: клонируемый профиль
+
+    private readonly Collider[] detectedEnemies = new Collider[50];
+    private readonly List<Renderer> cachedRenderers = new();
+    private readonly List<int> cachedOriginalLayers = new();
+
+    private PlayerInputActions input;
+
+    private void Awake()
+    {
+        input = new PlayerInputActions();
+        xrayLayer = LayerMask.NameToLayer(xrayLayerName);
+        if (xrayLayer == -1)
+        {
+            Debug.LogWarning($"Слой '{xrayLayerName}' не найден. Создай слой и привяжи его в Render Feature.");
+        }
+    }
 
     private void OnEnable()
     {
-        var input = new PlayerInputActions();
         input.Player.Enable();
-        input.Player.Neuroresist.performed += _ => Activate();
+        input.Player.Neuroresist.performed += OnNeuroresist;
     }
 
-    private void Start()
+    private void OnDisable()
     {
-        // 🔥 КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Клонируем Volume Profile
-        if (volume != null && volume.profile != null)
-        {
-            runtimeProfile = Instantiate(volume.profile);
-            volume.profile = runtimeProfile;
-        }
+        input.Player.Neuroresist.performed -= OnNeuroresist;
+        input.Player.Disable();
+        if (isActive) Deactivate(); // на всякий случай возвращаем слои
     }
 
     private void Update()
     {
-        if (isActive)
-        {
-            if (Time.time >= endTime)
-            {
-                Deactivate();
-                return;
-            }
+        if (!isActive) return;
 
-            // Обновление позиций подсветок
-            for (int i = 0; i < enemyCount; i++)
-            {
-                if (detectedEnemies[i] != null && indicators[i] != null)
-                {
-                    Vector3 screenPoint = Camera.main.WorldToScreenPoint(detectedEnemies[i].transform.position);
-                    indicators[i].transform.position = screenPoint;
-                }
-            }
+        if (Time.time >= endTime)
+        {
+            Deactivate();
+            return;
         }
+    }
+
+    private void OnNeuroresist(InputAction.CallbackContext ctx)
+    {
+        if (!isActive) Activate();
     }
 
     private void Activate()
     {
-        if (isActive) return;
+        if (isActive || xrayLayer == -1) return;
 
         isActive = true;
         endTime = Time.time + duration;
 
-        // Поиск врагов в радиусе
-        enemyCount = Physics.OverlapSphereNonAlloc(transform.position, detectionRadius, detectedEnemies, enemyLayer);
+        // Находим врагов вокруг игрока
+        int count = Physics.OverlapSphereNonAlloc(transform.position, detectionRadius, detectedEnemies, enemyLayer);
 
-        // Создание подсветок
-        for (int i = 0; i < enemyCount; i++)
+        cachedRenderers.Clear();
+        cachedOriginalLayers.Clear();
+
+        for (int i = 0; i < count; i++)
         {
-            if (detectedEnemies[i] != null)
+            if (detectedEnemies[i] == null) continue;
+
+            var rends = detectedEnemies[i].GetComponentsInChildren<Renderer>(true);
+            foreach (var r in rends)
             {
-                GameObject ind = Instantiate(indicatorPrefab, uiCanvas.transform);
-                indicators[i] = ind;
-                ind.SetActive(true);
+                cachedRenderers.Add(r);
+                cachedOriginalLayers.Add(r.gameObject.layer);
+                r.gameObject.layer = xrayLayer;
             }
         }
 
-        // 🔥 ПРИМЕНЕНИЕ ЭФФЕКТОВ (работает в URP 2022+)
-        ApplyNeuroresistEffects(true);
+        if (postProcess != null) postProcess.EnableEffects(true);
     }
 
     private void Deactivate()
     {
         isActive = false;
 
-        // Удаление подсветок
-        for (int i = 0; i < enemyCount; i++)
+        // Вернуть слои
+        for (int i = 0; i < cachedRenderers.Count; i++)
         {
-            if (indicators[i] != null)
-            {
-                Destroy(indicators[i]);
-            }
-        }
-        enemyCount = 0;
-
-        // 🔥 СБРОС ЭФФЕКТОВ
-        ApplyNeuroresistEffects(false);
-    }
-
-    private void ApplyNeuroresistEffects(bool enabled)
-    {
-        if (runtimeProfile == null) return;
-
-        // Получаем настройки
-        if (runtimeProfile.TryGet<ColorAdjustments>(out var colorAdjust))
-        {
-            colorAdjust.active = enabled;
-            if (enabled)
-            {
-                colorAdjust.saturation.value = -100f;   // Полностью ч/б
-                colorAdjust.postExposure.value = -0.3f; // Затемнение
-                colorAdjust.contrast.value = 20f;       // Повышение контраста
-            }
-            else
-            {
-                colorAdjust.saturation.value = 0f;
-                colorAdjust.postExposure.value = 0f;
-                colorAdjust.contrast.value = 0f;
-            }
+            if (cachedRenderers[i] != null)
+                cachedRenderers[i].gameObject.layer = cachedOriginalLayers[i];
         }
 
-        if (runtimeProfile.TryGet<Vignette>(out var vignette))
-        {
-            vignette.active = enabled;
-            if (enabled)
-            {
-                vignette.intensity.value = 0.6f;
-            }
-            else
-            {
-                vignette.intensity.value = 0f;
-            }
-        }
+        cachedRenderers.Clear();
+        cachedOriginalLayers.Clear();
+
+        if (postProcess != null) postProcess.EnableEffects(false);
     }
 }
