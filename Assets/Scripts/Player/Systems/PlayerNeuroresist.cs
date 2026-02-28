@@ -17,6 +17,8 @@ public class PlayerNeuroresist : MonoBehaviour
     [Tooltip("Имя слоя, который попадает в RenderObjects feature для подсветки.")]
     [SerializeField] private string xrayLayerName = "XRay";
     [SerializeField] private NeuroresistPostProcess postProcess;
+    [Tooltip("Опционально: временно применять override-материал вместо материала врага (если RenderObjects не ставит свой).")]
+    [SerializeField] private Material xrayMaterialOverride;
 
     private int xrayLayer;
     private bool isActive;
@@ -25,6 +27,7 @@ public class PlayerNeuroresist : MonoBehaviour
     private readonly Collider[] detectedEnemies = new Collider[50];
     private readonly List<Renderer> cachedRenderers = new();
     private readonly List<int> cachedOriginalLayers = new();
+    private readonly List<Material[]> cachedOriginalMats = new();
 
     private PlayerInputActions input;
 
@@ -35,6 +38,17 @@ public class PlayerNeuroresist : MonoBehaviour
         if (xrayLayer == -1)
         {
             Debug.LogWarning($"Слой '{xrayLayerName}' не найден. Создай слой и привяжи его в Render Feature.");
+        }
+
+        // Автоподхват постпроцесса, если поле не выставлено в инспекторе.
+        if (postProcess == null)
+        {
+            postProcess = GetComponentInChildren<NeuroresistPostProcess>();
+            if (postProcess == null) postProcess = FindObjectOfType<NeuroresistPostProcess>();
+        }
+        if (postProcess == null)
+        {
+            Debug.LogWarning("NeuroresistPostProcess не назначен и не найден в сцене — экранные эффекты не включатся.");
         }
     }
 
@@ -79,6 +93,7 @@ public class PlayerNeuroresist : MonoBehaviour
 
         cachedRenderers.Clear();
         cachedOriginalLayers.Clear();
+        cachedOriginalMats.Clear();
 
         for (int i = 0; i < count; i++)
         {
@@ -89,7 +104,16 @@ public class PlayerNeuroresist : MonoBehaviour
             {
                 cachedRenderers.Add(r);
                 cachedOriginalLayers.Add(r.gameObject.layer);
+                cachedOriginalMats.Add(r.sharedMaterials);
                 r.gameObject.layer = xrayLayer;
+
+                // Если рендер-фича не переопределяет материал, можно временно поставить свой.
+                if (xrayMaterialOverride != null)
+                {
+                    var mats = new Material[r.sharedMaterials.Length];
+                    for (int m = 0; m < mats.Length; m++) mats[m] = xrayMaterialOverride;
+                    r.sharedMaterials = mats;
+                }
             }
         }
 
@@ -104,11 +128,20 @@ public class PlayerNeuroresist : MonoBehaviour
         for (int i = 0; i < cachedRenderers.Count; i++)
         {
             if (cachedRenderers[i] != null)
+            {
                 cachedRenderers[i].gameObject.layer = cachedOriginalLayers[i];
+
+                // Вернём материалы, если меняли.
+                if (cachedOriginalMats.Count == cachedRenderers.Count && cachedOriginalMats[i] != null)
+                {
+                    cachedRenderers[i].sharedMaterials = cachedOriginalMats[i];
+                }
+            }
         }
 
         cachedRenderers.Clear();
         cachedOriginalLayers.Clear();
+        cachedOriginalMats.Clear();
 
         if (postProcess != null) postProcess.EnableEffects(false);
     }

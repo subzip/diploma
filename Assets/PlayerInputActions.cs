@@ -252,6 +252,15 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Slot3"",
+                    ""type"": ""Button"",
+                    ""id"": ""d1ff4dd7-142c-4044-9572-0f93e3078667"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -736,6 +745,17 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""groups"": """",
                     ""action"": ""Slot2"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""49b1acc8-dd54-47ea-84e0-ae599a0f6eb7"",
+                    ""path"": ""<Keyboard>/3"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Slot3"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -1341,6 +1361,7 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
         m_Player_Pause = m_Player.FindAction("Pause", throwIfNotFound: true);
         m_Player_Slot1 = m_Player.FindAction("Slot1", throwIfNotFound: true);
         m_Player_Slot2 = m_Player.FindAction("Slot2", throwIfNotFound: true);
+        m_Player_Slot3 = m_Player.FindAction("Slot3", throwIfNotFound: true);
         // UI
         m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
         m_UI_Navigate = m_UI.FindAction("Navigate", throwIfNotFound: true);
@@ -1452,6 +1473,7 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_Pause;
     private readonly InputAction m_Player_Slot1;
     private readonly InputAction m_Player_Slot2;
+    private readonly InputAction m_Player_Slot3;
     /// <summary>
     /// Provides access to input actions defined in input action map "Player".
     /// </summary>
@@ -1536,6 +1558,10 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
         /// </summary>
         public InputAction @Slot2 => m_Wrapper.m_Player_Slot2;
         /// <summary>
+        /// Provides access to the underlying input action "Player/Slot3".
+        /// </summary>
+        public InputAction @Slot3 => m_Wrapper.m_Player_Slot3;
+        /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
         public InputActionMap Get() { return m_Wrapper.m_Player; }
@@ -1615,6 +1641,9 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
             @Slot2.started += instance.OnSlot2;
             @Slot2.performed += instance.OnSlot2;
             @Slot2.canceled += instance.OnSlot2;
+            @Slot3.started += instance.OnSlot3;
+            @Slot3.performed += instance.OnSlot3;
+            @Slot3.canceled += instance.OnSlot3;
         }
 
         /// <summary>
@@ -1680,6 +1709,9 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
             @Slot2.started -= instance.OnSlot2;
             @Slot2.performed -= instance.OnSlot2;
             @Slot2.canceled -= instance.OnSlot2;
+            @Slot3.started -= instance.OnSlot3;
+            @Slot3.performed -= instance.OnSlot3;
+            @Slot3.canceled -= instance.OnSlot3;
         }
 
         /// <summary>
@@ -2106,6 +2138,13 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnSlot2(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Slot3" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnSlot3(InputAction.CallbackContext context);
     }
     /// <summary>
     /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.

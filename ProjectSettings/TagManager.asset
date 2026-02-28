@@ -9,6 +9,7 @@ TagManager:
   - Weapon
   - PatrolPoint
   - DontDestroy
+  - Enemy
   layers:
   - Default
   - TransparentFX

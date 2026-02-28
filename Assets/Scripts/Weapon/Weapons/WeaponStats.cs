@@ -17,11 +17,18 @@ public class WeaponStats : ScriptableObject
     public float impactForce = 500f; 
 
     [Header("Recoil")]
-    public Vector2 recoilAngle = new Vector2(0.5f, 0.2f);
-    public float recoilRecoverySpeed = 5f;
+    public float recoilKickMin = 0.35f;
+    public float recoilKickMax = 0.6f;
+    public float recoilHorizontal = 0.25f;
+    public float recoilRecoverySpeed = 6f;    // чем выше — быстрее возврат
+    public float recoilSnap = 10f;            // чем выше — резче дергает камеру
 
     [Header("Effects")]
     public GameObject muzzlePrefab;
+    public GameObject tracerEffectPrefab;
+    public GameObject impactDefaultPrefab;
+    public GameObject impactFleshPrefab;
+    public GameObject casingPrefab;
     public LayerMask hitLayers = -1;
     [Header("Audio")]
     public AudioClip shootSound;

@@ -10,6 +10,8 @@ public abstract class BaseWeapon : MonoBehaviour
     protected float nextFireTime;
     protected bool isReloading = false;
     protected Vector3 recoilOffset = Vector3.zero;
+    private Vector2 recoilCurrent = Vector2.zero;
+    private Vector2 recoilVelocity = Vector2.zero;
     
     [SerializeField] private float tracerDuration = 0.1f;
     [SerializeField] private TMP_Text ammoText;
@@ -19,7 +21,7 @@ public abstract class BaseWeapon : MonoBehaviour
 
     [Header("Effects")]
     [SerializeField] private GameObject bulletHolePrefab;
-    [SerializeField] protected GameObject tracerEffectPrefab;
+    [SerializeField] private Transform casingEjectPoint;
 
     [Header("Muzzle Flash")]
     [SerializeField] private Transform muzzlePoint;
@@ -55,47 +57,46 @@ public abstract class BaseWeapon : MonoBehaviour
             audioSource.PlayOneShot(stats.shootSound);
         
 
-       
         Camera playerCamera = Camera.main;
         if (playerCamera == null) return;
 
         Ray ray = playerCamera.ViewportPointToRay(Vector2.one * 0.5f);
-        LayerMask wallMask = LayerMask.GetMask("Walls");
-        bool hit = Physics.Raycast(ray, out RaycastHit hitInfo, stats.range, stats.hitLayers);
+        bool hit = Physics.Raycast(ray, out RaycastHit hitInfo, stats.range, stats.hitLayers, QueryTriggerInteraction.Ignore);
         Vector3 tracerEnd = hit ? hitInfo.point : ray.GetPoint(stats.range);
 
 
-        if (tracerEffectPrefab != null)
+        if (stats.tracerEffectPrefab != null)
         {
-            GameObject tracer = Instantiate(tracerEffectPrefab, transform.position, Quaternion.identity);
+            GameObject tracer = Instantiate(stats.tracerEffectPrefab, muzzlePoint != null ? muzzlePoint.position : transform.position, Quaternion.identity);
             tracer.transform.LookAt(tracerEnd);
             Destroy(tracer, 1f);
         }
 
-        if (Physics.Raycast(ray, out RaycastHit wallHit, stats.range, wallMask))
+        // Impact visuals & decals
+        if (hit)
         {
-            if (bulletHolePrefab != null)
+            SpawnImpact(hitInfo);
+
+            if (bulletHolePrefab != null && hitInfo.collider.gameObject.layer == LayerMask.NameToLayer("Walls"))
             {
-                Rigidbody rb = wallHit.collider.attachedRigidbody;
-                if(rb == null)
+                Rigidbody rb = hitInfo.collider.attachedRigidbody;
+                if (rb == null)
                 {
                     GameObject hole = Instantiate(
                         bulletHolePrefab,
-                        wallHit.point,
-                        Quaternion.FromToRotation(-Vector3.forward, wallHit.normal)
+                        hitInfo.point,
+                        Quaternion.FromToRotation(-Vector3.forward, hitInfo.normal)
                     );
                     Destroy(hole, 10f);
                 }
-                
             }
-            if (wallHit.collider.gameObject.layer == LayerMask.NameToLayer("Walls"))
+
+            // Physics impact
+            Rigidbody rb_ = hitInfo.collider.attachedRigidbody;
+            if (rb_ != null && !rb_.isKinematic)
             {
-                Rigidbody rb = wallHit.collider.attachedRigidbody;
-                if (rb != null && !rb.isKinematic)
-                {
-                    Vector3 forceDirection = (wallHit.point - transform.position).normalized;
-                    rb.AddForceAtPosition(forceDirection * stats.impactForce, wallHit.point, ForceMode.Impulse);
-                }
+                Vector3 forceDirection = (hitInfo.point - transform.position).normalized;
+                rb_.AddForceAtPosition(forceDirection * stats.impactForce, hitInfo.point, ForceMode.Impulse);
             }
         }
 
@@ -124,23 +125,24 @@ public abstract class BaseWeapon : MonoBehaviour
             
 
         ApplyRecoil();
+
+        EjectCasing();
     }
 
     protected virtual void ApplyRecoil()
     {
-        recoilOffset += new Vector3(
-            Random.Range(-stats.recoilAngle.y, stats.recoilAngle.y),
-            stats.recoilAngle.x,
-            0
-        );
+        float kick = Random.Range(stats.recoilKickMin, stats.recoilKickMax);
+        float horiz = Random.Range(-stats.recoilHorizontal, stats.recoilHorizontal);
+
+        // Камера смотрит вверх при отрицательном pitch, поэтому вертикальный импульс инвертируем
+        recoilCurrent += new Vector2(horiz, -kick);
+        recoilOffset = new Vector3(recoilCurrent.x, recoilCurrent.y, 0);
     }
 
     public virtual void UpdateRecoil(float deltaTime)
     {
-        if (recoilOffset != Vector3.zero)
-        {
-            recoilOffset = Vector3.Lerp(recoilOffset, Vector3.zero, stats.recoilRecoverySpeed * deltaTime);
-        }
+        recoilCurrent = Vector2.SmoothDamp(recoilCurrent, Vector2.zero, ref recoilVelocity, 1f / Mathf.Max(0.01f, stats.recoilRecoverySpeed), Mathf.Infinity, deltaTime);
+        recoilOffset = new Vector3(recoilCurrent.x * stats.recoilSnap, recoilCurrent.y * stats.recoilSnap, 0);
     }
 
     public virtual void Reload()
@@ -161,4 +163,29 @@ public abstract class BaseWeapon : MonoBehaviour
     }
 
     public Vector3 GetRecoilOffset() => recoilOffset;
+
+    private void EjectCasing()
+    {
+        if (stats.casingPrefab == null || casingEjectPoint == null) return;
+        var casing = Instantiate(stats.casingPrefab, casingEjectPoint.position, casingEjectPoint.rotation);
+        if (casing.TryGetComponent<Rigidbody>(out var rb))
+        {
+            rb.AddForce(casingEjectPoint.right * Random.Range(1.5f, 2.5f) + Vector3.up * Random.Range(0.5f, 1f), ForceMode.Impulse);
+            rb.AddTorque(Random.insideUnitSphere * 2f, ForceMode.Impulse);
+        }
+        Destroy(casing, 6f);
+    }
+
+    private void SpawnImpact(RaycastHit hitInfo)
+    {
+        GameObject prefab = stats.impactDefaultPrefab;
+        if (hitInfo.collider.CompareTag("Enemy") && stats.impactFleshPrefab != null)
+            prefab = stats.impactFleshPrefab;
+
+        if (prefab != null)
+        {
+            var impact = Instantiate(prefab, hitInfo.point, Quaternion.LookRotation(hitInfo.normal));
+            Destroy(impact, 5f);
+        }
+    }
 }

@@ -7,6 +7,7 @@ public class PlayerWeapon : MonoBehaviour
     [Header("IK & Weapon")]
     [SerializeField] private TwoBoneIKConstraint leftHandIK;
     [SerializeField] private Transform rightHandGripPoint;
+    [SerializeField] private WeaponManager weaponManager;
 
     private PlayerInputActions inputActions;
     private Transform cameraPivot;
@@ -15,6 +16,7 @@ public class PlayerWeapon : MonoBehaviour
     {
         inputActions = new PlayerInputActions();
         cameraPivot = GetComponent<PlayerLook>().GetComponent<Transform>();
+        if (weaponManager == null) weaponManager = GetComponent<WeaponManager>();
     }
 
     private void OnEnable()
@@ -34,28 +36,20 @@ public class PlayerWeapon : MonoBehaviour
         {
             if (hit.collider.TryGetComponent<WeaponPickup>(out var pickup))
             {
-                pickup.gameObject.SetActive(false);
-                PickUpWeapon(pickup.weaponPrefab);
-                Destroy(pickup.gameObject);
+                if (weaponManager != null)
+                {
+                    // Если в пикапе лежит сценовый экземпляр оружия, отдаём его; иначе — prefab
+                    GameObject toGive = hit.collider.GetComponent<BaseWeapon>() != null
+                        ? hit.collider.gameObject
+                        : pickup.weaponPrefab;
+
+                    weaponManager.PickupWeapon(toGive);
+                }
+                pickup.Consume();
             }
         }
     }
 
-    public void PickUpWeapon(GameObject weaponPrefab)
-    {
-        foreach (Transform child in transform)
-        {
-            if (child.CompareTag("Weapon")) Destroy(child.gameObject);
-        }
-
-        GameObject weapon = Instantiate(weaponPrefab, rightHandGripPoint.position, rightHandGripPoint.rotation);
-        weapon.transform.SetParent(transform);
-        weapon.tag = "Weapon";
-
-        if (leftHandIK != null)
-        {
-            Transform leftGrip = weapon.transform.Find("LeftHandP");
-            if (leftGrip != null) leftHandIK.data.target = leftGrip;
-        }
-    }
+    // Подбор теперь через WeaponManager; оставлено для совместимости
+    public void PickUpWeapon(GameObject weaponPrefab) => weaponManager?.PickupWeapon(weaponPrefab);
 }
