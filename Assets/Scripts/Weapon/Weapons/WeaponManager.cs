@@ -1,13 +1,14 @@
 // Assets/Scripts/Weapons/WeaponManager.cs
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.Animations.Rigging;
+using UnityEngine.InputSystem;
 
 public class WeaponManager : MonoBehaviour
 {
     [Header("Weapons")]
-    [SerializeField] private Transform[] weaponSlots; // слоты для оружия на руках
+    [SerializeField] private Transform[] weaponSlots;
     [SerializeField] private int currentWeaponIndex = 0;
     [SerializeField] private float switchCooldown = 0.25f;
 
@@ -16,16 +17,17 @@ public class WeaponManager : MonoBehaviour
     [SerializeField] private TwoBoneIKConstraint rightHandIK;
     [SerializeField] private RigBuilder rigBuilder;
 
-    private readonly System.Collections.Generic.List<BaseWeapon> weapons = new();
+    private readonly List<BaseWeapon> weapons = new();
     private BaseWeapon CurrentWeapon => (currentWeaponIndex >= 0 && currentWeaponIndex < weapons.Count) ? weapons[currentWeaponIndex] : null;
     private PlayerInputActions inputActions;
     private bool isSwitching = false;
+    private bool fireHeld = false;
 
     private void Awake()
     {
-        inputActions = new PlayerInputActions();
+        inputActions = GameInput.Instance.Actions;
 
-        // Собираем оружие из детей слотов (никаких сериализованных массивов, чтобы не путать префабы и инстансы)
+        // Подхватываем оружие из детей слотов
         for (int i = 0; i < weaponSlots.Length; i++)
         {
             var existing = weaponSlots[i].GetComponentInChildren<BaseWeapon>(true);
@@ -37,20 +39,17 @@ public class WeaponManager : MonoBehaviour
             existing.transform.localPosition = Vector3.zero;
             existing.transform.localRotation = Quaternion.identity;
             existing.gameObject.SetActive(false);
-
-            Debug.Log($"[WeaponManager] Slot {i} scene weapon: {existing.name} (id {existing.GetInstanceID()})");
         }
 
-        // Стартуем с пистолета (если найден), иначе первое доступное
-        int startIndex = FindWeaponIndexByName("Pistol");
+        int startIndex = FindWeaponIndexByName("pistol");
         if (startIndex == -1) startIndex = FindFirstExistingWeapon();
         if (startIndex != -1) EquipImmediate(startIndex);
     }
 
     private void OnEnable()
     {
-        inputActions.Player.Enable();
         inputActions.Player.Shoot.performed += OnShoot;
+        inputActions.Player.Shoot.canceled += OnShootCanceled;
         inputActions.Player.Reload.performed += OnReload;
         inputActions.Player.Slot1.performed += OnSlot1;
         inputActions.Player.Slot2.performed += OnSlot2;
@@ -59,37 +58,24 @@ public class WeaponManager : MonoBehaviour
 
     private void OnDisable()
     {
-        if (inputActions != null)
-        {
-            inputActions.Player.Shoot.performed -= OnShoot;
-            inputActions.Player.Reload.performed -= OnReload;
-            inputActions.Player.Slot1.performed -= OnSlot1;
-            inputActions.Player.Slot2.performed -= OnSlot2;
-            inputActions.Player.Slot3.performed -= OnSlot3;
-            inputActions.Player.Disable();
-        }
-    }
-
-    private void OnDestroy()
-    {
-        if (inputActions != null)
-        {
-            inputActions.Dispose();
-            inputActions = null;
-        }
+        if (inputActions == null) return;
+        inputActions.Player.Shoot.performed -= OnShoot;
+        inputActions.Player.Shoot.canceled -= OnShootCanceled;
+        inputActions.Player.Reload.performed -= OnReload;
+        inputActions.Player.Slot1.performed -= OnSlot1;
+        inputActions.Player.Slot2.performed -= OnSlot2;
+        inputActions.Player.Slot3.performed -= OnSlot3;
     }
 
     private void Update()
     {
-        if (!isSwitching && CurrentWeapon?.stats.fireMode == FireMode.Auto &&
-            inputActions.Player.Shoot.ReadValue<float>() > 0.1f)
+        if (!isSwitching && fireHeld && CurrentWeapon?.stats.fireMode == FireMode.Auto)
         {
             CurrentWeapon.Shoot();
         }
 
         CurrentWeapon?.UpdateRecoil(Time.deltaTime);
 
-        // Прямое чтение клавиш 1-3, чтобы не лезть в InputActions-ассет
         if (Keyboard.current != null)
         {
             if (Keyboard.current.digit1Key.wasPressedThisFrame) SwitchWeapon(0);
@@ -100,8 +86,10 @@ public class WeaponManager : MonoBehaviour
 
     private void OnShoot(InputAction.CallbackContext ctx)
     {
+        fireHeld = true;
         if (isSwitching) return;
         if (CurrentWeapon == null) return;
+        if (CurrentWeapon.IsReloading) return;
 
         if (CurrentWeapon.stats.fireMode == FireMode.SemiAuto)
         {
@@ -109,6 +97,7 @@ public class WeaponManager : MonoBehaviour
         }
     }
 
+    private void OnShootCanceled(InputAction.CallbackContext ctx) => fireHeld = false;
     private void OnReload(InputAction.CallbackContext ctx) => CurrentWeapon?.Reload();
     private void OnSlot1(InputAction.CallbackContext ctx) => SwitchWeapon(0);
     private void OnSlot2(InputAction.CallbackContext ctx) => SwitchWeapon(1);
@@ -119,9 +108,8 @@ public class WeaponManager : MonoBehaviour
         if (slotIndex < 0 || slotIndex >= weapons.Count) return;
         if (weapons[slotIndex] == null) return;
         if (currentWeaponIndex == slotIndex) return;
-        if (isSwitching) return;
+        if (isSwitching || fireHeld) return;
 
-        Debug.Log($"[WeaponManager] Request switch {currentWeaponIndex} -> {slotIndex}");
         StartCoroutine(SwitchRoutine(slotIndex));
     }
 
@@ -131,8 +119,8 @@ public class WeaponManager : MonoBehaviour
 
         if (currentWeaponIndex >= 0 && currentWeaponIndex < weapons.Count && weapons[currentWeaponIndex] != null)
         {
+            weapons[currentWeaponIndex].CancelReload();
             weapons[currentWeaponIndex].gameObject.SetActive(false);
-            Debug.Log($"[WeaponManager] Deactivate slot {currentWeaponIndex}: {weapons[currentWeaponIndex].name}");
         }
 
         currentWeaponIndex = slotIndex;
@@ -141,7 +129,6 @@ public class WeaponManager : MonoBehaviour
         newWeapon.transform.SetParent(weaponSlots[Mathf.Clamp(currentWeaponIndex, 0, weaponSlots.Length - 1)]);
         newWeapon.transform.localPosition = Vector3.zero;
         newWeapon.transform.localRotation = Quaternion.identity;
-        Debug.Log($"[WeaponManager] Switched to slot {currentWeaponIndex}: {newWeapon.name} (instanceID {newWeapon.GetInstanceID()})");
 
         UpdateIKTargets(newWeapon.transform);
 
@@ -212,7 +199,6 @@ public class WeaponManager : MonoBehaviour
         if (freeSlot == -1) freeSlot = currentWeaponIndex; // заменяем текущее, если нет свободных
         freeSlot = Mathf.Clamp(freeSlot, 0, weaponSlots.Length - 1);
 
-        // Удаляем старое оружие в слоте, чтобы не копить объекты
         if (freeSlot < weapons.Count && weapons[freeSlot] != null)
         {
             Destroy(weapons[freeSlot].gameObject);
@@ -221,13 +207,12 @@ public class WeaponManager : MonoBehaviour
 
         Transform slot = weaponSlots[freeSlot];
 
-        // Если нам дали сценовый объект (дропнутое оружие), просто перемещаем его в слот без клонирования
         GameObject weaponObj;
         if (weaponPrefab.scene.rootCount != 0)
         {
             weaponObj = weaponPrefab;
             var pickup = weaponObj.GetComponent<WeaponPickup>();
-            if (pickup != null) Destroy(pickup); // чтобы не триггерилось снова
+            if (pickup != null) Destroy(pickup);
             weaponObj.transform.SetParent(slot);
             weaponObj.transform.SetPositionAndRotation(slot.position, slot.rotation);
         }

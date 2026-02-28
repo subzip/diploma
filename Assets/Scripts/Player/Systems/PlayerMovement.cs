@@ -49,25 +49,37 @@ public class PlayerMovement : MonoBehaviour
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
-        inputActions = new PlayerInputActions();
         DontDestroyOnLoad(gameObject);
     }
 
     private void OnEnable()
     {
-        inputActions.Player.Enable();
-        inputActions.Player.Move.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
-        inputActions.Player.Move.canceled += ctx => moveInput = Vector2.zero;
-        inputActions.Player.Sprint.performed += _ => isSprinting = true;
-        inputActions.Player.Sprint.canceled += _ => isSprinting = false;
-        inputActions.Player.Crouch.performed += _ => isCrouching = !isCrouching;
-        inputActions.Player.Jump.performed += _ => jumpBufferCounter = jumpBufferTime;
+        inputActions = GameInput.Instance.Actions;
+        inputActions.Player.Move.performed += OnMovePerformed;
+        inputActions.Player.Move.canceled += OnMoveCanceled;
+        inputActions.Player.Sprint.performed += OnSprintPerformed;
+        inputActions.Player.Sprint.canceled += OnSprintCanceled;
+        inputActions.Player.Crouch.performed += OnCrouchPerformed;
+        inputActions.Player.Jump.performed += OnJumpPerformed;
     }
 
     private void OnDisable()
     {
-        inputActions.Player.Disable();
+        if (inputActions == null) return;
+        inputActions.Player.Move.performed -= OnMovePerformed;
+        inputActions.Player.Move.canceled -= OnMoveCanceled;
+        inputActions.Player.Sprint.performed -= OnSprintPerformed;
+        inputActions.Player.Sprint.canceled -= OnSprintCanceled;
+        inputActions.Player.Crouch.performed -= OnCrouchPerformed;
+        inputActions.Player.Jump.performed -= OnJumpPerformed;
     }
+
+    private void OnMovePerformed(UnityEngine.InputSystem.InputAction.CallbackContext ctx) => moveInput = ctx.ReadValue<Vector2>();
+    private void OnMoveCanceled(UnityEngine.InputSystem.InputAction.CallbackContext ctx) => moveInput = Vector2.zero;
+    private void OnSprintPerformed(UnityEngine.InputSystem.InputAction.CallbackContext ctx) => isSprinting = true;
+    private void OnSprintCanceled(UnityEngine.InputSystem.InputAction.CallbackContext ctx) => isSprinting = false;
+    private void OnCrouchPerformed(UnityEngine.InputSystem.InputAction.CallbackContext ctx) => isCrouching = !isCrouching;
+    private void OnJumpPerformed(UnityEngine.InputSystem.InputAction.CallbackContext ctx) => jumpBufferCounter = jumpBufferTime;
 
     private void Update()
     {

@@ -18,7 +18,7 @@ public class EnemyPatrol : MonoBehaviour
 
     private void Start()
     {
-        if (patrolPoints.Length > 0)
+        if (agent != null && agent.enabled && patrolPoints.Length > 0)
         {
             agent.SetDestination(patrolPoints[0].position);
             arriveTime = Time.time;
@@ -28,6 +28,7 @@ public class EnemyPatrol : MonoBehaviour
     public void UpdatePatrol()
     {
         if (patrolPoints.Length == 0) return;
+        if (agent == null || !agent.enabled) return;
 
         if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
         {

@@ -14,21 +14,23 @@ public class PlayerWeapon : MonoBehaviour
 
     private void Awake()
     {
-        inputActions = new PlayerInputActions();
+        inputActions = GameInput.Instance.Actions;
         cameraPivot = GetComponent<PlayerLook>().GetComponent<Transform>();
         if (weaponManager == null) weaponManager = GetComponent<WeaponManager>();
     }
 
     private void OnEnable()
     {
-        inputActions.Player.Enable();
-        inputActions.Player.PickUp.performed += _ => TryPickUpWeapon();
+        inputActions.Player.PickUp.performed += OnPickUp;
     }
 
     private void OnDisable()
     {
-        inputActions.Player.Disable();
+        if (inputActions == null) return;
+        inputActions.Player.PickUp.performed -= OnPickUp;
     }
+
+    private void OnPickUp(InputAction.CallbackContext _) => TryPickUpWeapon();
 
     private void TryPickUpWeapon()
     {

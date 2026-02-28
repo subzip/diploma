@@ -9,23 +9,21 @@ public class PauseManager : MonoBehaviour
     [SerializeField] private GameObject camera1;
     private bool isPaused = false;
     private PlayerInputActions inputActions;
-
-    private void Awake()
-    {
-        inputActions = new PlayerInputActions();
-    }
     
 
     private void OnEnable()
     {
-        inputActions.Player.Enable();
-        inputActions.Player.Pause.performed += _ => TogglePause();
+        inputActions = GameInput.Instance.Actions;
+        inputActions.Player.Pause.performed += OnPausePerformed;
     }
 
     private void OnDisable()
     {
-        inputActions.Player.Disable();
+        if (inputActions == null) return;
+        inputActions.Player.Pause.performed -= OnPausePerformed;
     }
+
+    private void OnPausePerformed(UnityEngine.InputSystem.InputAction.CallbackContext _) => TogglePause();
 
     public void Continue()
     {

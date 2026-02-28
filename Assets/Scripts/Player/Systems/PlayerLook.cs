@@ -26,20 +26,24 @@ public class PlayerLook : MonoBehaviour
 
     private void Awake()
     {
-        inputActions = new PlayerInputActions();
+        inputActions = GameInput.Instance.Actions;
     }
 
     private void OnEnable()
     {
-        inputActions.Player.Enable();
-        inputActions.Player.Look.performed += ctx => lookInput = ctx.ReadValue<Vector2>();
-        inputActions.Player.Look.canceled += ctx => lookInput = Vector2.zero;
+        inputActions.Player.Look.performed += OnLookPerformed;
+        inputActions.Player.Look.canceled += OnLookCanceled;
     }
 
     private void OnDisable()
     {
-        inputActions.Player.Disable();
+        if (inputActions == null) return;
+        inputActions.Player.Look.performed -= OnLookPerformed;
+        inputActions.Player.Look.canceled -= OnLookCanceled;
     }
+
+    private void OnLookPerformed(UnityEngine.InputSystem.InputAction.CallbackContext ctx) => lookInput = ctx.ReadValue<Vector2>();
+    private void OnLookCanceled(UnityEngine.InputSystem.InputAction.CallbackContext ctx) => lookInput = Vector2.zero;
 
     private void Update()
     {

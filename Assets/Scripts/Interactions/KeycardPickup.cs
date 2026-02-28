@@ -15,6 +15,14 @@ public class KeycardPickup : MonoBehaviour
     private bool isInRange = false;
     private bool isLookingAt = false;
     private Transform playerCamera;
+    private PlayerInputActions inputActions;
+
+    [Header("Highlight")]
+    [SerializeField] private MeshRenderer[] renderersToHighlight;
+    [SerializeField] private Color emissionColor = new Color(0.3f, 0.8f, 0.2f);
+    [SerializeField] private float pulseSpeed = 3f;
+    private MaterialPropertyBlock mpb;
+    private bool consumed = false;
 
     private void Start()
     {
@@ -23,10 +31,15 @@ public class KeycardPickup : MonoBehaviour
         {
             Debug.LogError("Camera");
         }
+        if (renderersToHighlight == null || renderersToHighlight.Length == 0)
+            renderersToHighlight = GetComponentsInChildren<MeshRenderer>(true);
+        mpb = new MaterialPropertyBlock();
+        EnableEmission();
     }
 
     private void Update()
     {
+        if (consumed) return;
         CheckProximity();
         CheckViewDirection();
 
@@ -76,6 +89,9 @@ public class KeycardPickup : MonoBehaviour
 
     private void Pickup()
     {
+        consumed = true;
+        DisableEmission();
+
         if (questSystem != null)
         {
             questSystem.CompleteCurrentQuest();
@@ -86,15 +102,52 @@ public class KeycardPickup : MonoBehaviour
 
     private void OnEnable()
     {
-        var input = new PlayerInputActions();
-        input.Player.Enable();
-        input.Player.PickUp.performed += OnPickup;
+        inputActions = GameInput.Instance.Actions;
+        inputActions.Player.PickUp.performed += OnPickup;
     }
 
     private void OnDisable()
     {
-        var input = new PlayerInputActions();
-        input.Player.Disable();
-        input.Player.PickUp.performed -= OnPickup;
+        if (inputActions == null) return;
+        inputActions.Player.PickUp.performed -= OnPickup;
+    }
+
+    private void LateUpdate()
+    {
+        if (consumed || renderersToHighlight == null) return;
+        float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * pulseSpeed);
+        foreach (var r in renderersToHighlight)
+        {
+            if (r == null) continue;
+            r.GetPropertyBlock(mpb);
+            mpb.SetColor("_EmissionColor", emissionColor * pulse);
+            r.SetPropertyBlock(mpb);
+        }
+    }
+
+    private void EnableEmission()
+    {
+        if (renderersToHighlight == null) return;
+        foreach (var r in renderersToHighlight)
+        {
+            if (r == null) continue;
+            foreach (var mat in r.sharedMaterials)
+            {
+                if (mat != null && !mat.IsKeywordEnabled("_EMISSION"))
+                    mat.EnableKeyword("_EMISSION");
+            }
+        }
+    }
+
+    private void DisableEmission()
+    {
+        if (renderersToHighlight == null) return;
+        foreach (var r in renderersToHighlight)
+        {
+            if (r == null) continue;
+            r.GetPropertyBlock(mpb);
+            mpb.SetColor("_EmissionColor", Color.black);
+            r.SetPropertyBlock(mpb);
+        }
     }
 }

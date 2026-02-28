@@ -10,6 +10,7 @@ public class EnemyAI : MonoBehaviour
     [SerializeField] protected EnemyCombat combat;
     [SerializeField] protected EnemyHealth health;
     [SerializeField] protected EnemyAnimator animator;
+    [SerializeField] protected float lostSightGrace = 1.5f;
 
     protected EnemyState currentState = EnemyState.Patrol;
     protected bool isDying = false;
@@ -69,12 +70,15 @@ public class EnemyAI : MonoBehaviour
             case EnemyState.Chase:
                 combat.UpdateChase();
                 if (combat.IsInAttackRange()) SwitchState(EnemyState.Attack);
-                else if (!vision.CanSeePlayer()) SwitchState(EnemyState.Patrol);
+                else if (!vision.CanSeePlayer() && !vision.SeenRecently(lostSightGrace)) SwitchState(EnemyState.Patrol);
                 break;
 
             case EnemyState.Attack:
                 combat.Attack();
-                if (!combat.IsInAttackRange()) SwitchState(EnemyState.Chase);
+                if (!combat.IsInAttackRange() && (vision.CanSeePlayer() || vision.SeenRecently(lostSightGrace)))
+                    SwitchState(EnemyState.Chase);
+                else if (!vision.SeenRecently(lostSightGrace))
+                    SwitchState(EnemyState.Patrol);
                 break;
         }
     }
@@ -113,6 +117,7 @@ public class EnemyAI : MonoBehaviour
         Debug.Log("Dead");
 
         if (agent != null) agent.isStopped = true;
+        if (agent != null) agent.enabled = false;
 
         animator.animator.SetBool("IsDead", true);
 

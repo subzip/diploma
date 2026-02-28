@@ -20,20 +20,22 @@ public class PlayerCrouch : MonoBehaviour
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
-        inputActions = new PlayerInputActions();
+        inputActions = GameInput.Instance.Actions;
         movement = GetComponent<PlayerMovement>();
     }
 
     private void OnEnable()
     {
-        inputActions.Player.Enable();
-        inputActions.Player.Crouch.performed += _ => isCrouching = !isCrouching;
+        inputActions.Player.Crouch.performed += OnCrouch;
     }
 
     private void OnDisable()
     {
-        inputActions.Player.Disable();
+        if (inputActions == null) return;
+        inputActions.Player.Crouch.performed -= OnCrouch;
     }
+
+    private void OnCrouch(UnityEngine.InputSystem.InputAction.CallbackContext _) => isCrouching = !isCrouching;
 
     private void Update()
     {

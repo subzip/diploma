@@ -23,20 +23,24 @@ public class PlayerAudio : MonoBehaviour
         audioSource.spatialBlend = 1f;
         audioSource.rolloffMode = AudioRolloffMode.Logarithmic;
         audioSource.maxDistance = 15f;
-        inputActions = new PlayerInputActions();
+        inputActions = GameInput.Instance.Actions;
     }
 
     private void OnEnable()
     {
-        inputActions.Player.Enable();
-        inputActions.Player.Move.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
-        inputActions.Player.Move.canceled += ctx => moveInput = Vector2.zero;
+        inputActions.Player.Move.performed += OnMove;
+        inputActions.Player.Move.canceled += OnMoveCancel;
     }
 
     private void OnDisable()
     {
-        inputActions.Player.Disable();
+        if (inputActions == null) return;
+        inputActions.Player.Move.performed -= OnMove;
+        inputActions.Player.Move.canceled -= OnMoveCancel;
     }
+
+    private void OnMove(InputAction.CallbackContext ctx) => moveInput = ctx.ReadValue<Vector2>();
+    private void OnMoveCancel(InputAction.CallbackContext ctx) => moveInput = Vector2.zero;
 
     private void Update()
     {

@@ -15,6 +15,8 @@ public class QuestUI : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private float hintDuration = 3f;
 
+    private PlayerInputActions inputActions;
+
     private void Start()
     {
         questPanel.SetActive(false);
@@ -52,16 +54,17 @@ public class QuestUI : MonoBehaviour
 
     private void OnEnable()
     {
-        var input = new PlayerInputActions();
-        input.Player.Enable();
-        input.Player.OpenQuests.performed += _ => ToggleQuestPanel();
+        inputActions = GameInput.Instance.Actions;
+        inputActions.Player.OpenQuests.performed += OnOpenQuests;
     }
 
     private void OnDisable()
     {
-        var input = new PlayerInputActions();
-        input.Player.Disable();
+        if (inputActions == null) return;
+        inputActions.Player.OpenQuests.performed -= OnOpenQuests;
     }
+
+    private void OnOpenQuests(UnityEngine.InputSystem.InputAction.CallbackContext _) => ToggleQuestPanel();
 
     private void HideHint()
     {

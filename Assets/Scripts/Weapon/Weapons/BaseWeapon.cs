@@ -17,6 +17,8 @@ public abstract class BaseWeapon : MonoBehaviour
     [SerializeField] private TMP_Text ammoText;
 
     public bool CanShoot => !isReloading && currentAmmo > 0 && Time.time >= nextFireTime;
+    public bool IsReloading => isReloading;
+    public int CurrentAmmo => currentAmmo;
 
 
     [Header("Effects")]
@@ -160,6 +162,13 @@ public abstract class BaseWeapon : MonoBehaviour
     {
         currentAmmo = stats.magazineSize;
         isReloading = false;
+    }
+
+    public virtual void CancelReload()
+    {
+        if (!isReloading) return;
+        isReloading = false;
+        CancelInvoke(nameof(FinishReload));
     }
 
     public Vector3 GetRecoilOffset() => recoilOffset;
