@@ -7,6 +7,7 @@ public class PlayerNeuroresist : MonoBehaviour
 {
     [Header("Settings")]
     [SerializeField] private float duration = 15f;
+    [SerializeField] private float cooldown = 90f;
     [SerializeField] private float detectionRadius = 100f;
     [SerializeField] private LayerMask enemyLayer;
 
@@ -25,13 +26,17 @@ public class PlayerNeuroresist : MonoBehaviour
     private readonly List<Material[]> cachedOriginalMats = new();
 
     private PlayerInputActions input;
+    private PlayerMovement movement;
+    private float nextReadyTime = 0f;
 
     public float CurrentValue => isActive ? Mathf.Max(0f, endTime - Time.time) : 0f;
     public float MaxValue => duration;
+    public bool IsActive => isActive;
 
     private void Awake()
     {
         input = GameInput.Instance.Actions;
+        movement = GetComponent<PlayerMovement>();
         xrayLayer = LayerMask.NameToLayer(xrayLayerName);
         if (xrayLayer == -1)
         {
@@ -67,7 +72,7 @@ public class PlayerNeuroresist : MonoBehaviour
 
     private void OnNeuroresist(InputAction.CallbackContext ctx)
     {
-        if (!isActive) Activate();
+        if (!isActive && Time.time >= nextReadyTime) Activate();
     }
 
     private void Activate()
@@ -76,6 +81,7 @@ public class PlayerNeuroresist : MonoBehaviour
 
         isActive = true;
         endTime = Time.time + duration;
+        if (movement != null) movement.SetNeuroMultiplier(0.7f);
 
         int count = Physics.OverlapSphereNonAlloc(transform.position, detectionRadius, detectedEnemies, enemyLayer);
 
@@ -126,5 +132,8 @@ public class PlayerNeuroresist : MonoBehaviour
         cachedOriginalMats.Clear();
 
         if (postProcess != null) postProcess.EnableEffects(false);
+        if (movement != null) movement.SetNeuroMultiplier(1f);
+
+        nextReadyTime = Time.time + cooldown;
     }
 }

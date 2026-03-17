@@ -17681,6 +17681,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1059110623}
   - component: {fileID: 1059110635}
+  - component: {fileID: 1059110645}
   - component: {fileID: 1059110641}
   - component: {fileID: 1059110640}
   - component: {fileID: 1059110639}
@@ -17690,6 +17691,7 @@ GameObject:
   - component: {fileID: 1059110629}
   - component: {fileID: 1059110636}
   - component: {fileID: 1059110637}
+  - component: {fileID: 1059110644}
   - component: {fileID: 1059110619}
   - component: {fileID: 1059110624}
   - component: {fileID: 1059110625}
@@ -18136,7 +18138,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 11b1fca35f5ff1a45b566e41011e9c48, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  lookSensitivity: 0.5
+  lookSensitivity: 0.2
   maxLookUp: 80
   maxLookDown: 45
   cameraPivot: {fileID: 921899942}
@@ -18145,6 +18147,12 @@ MonoBehaviour:
   cameraSmoothTime: 0.05
   weaponManager: {fileID: 828940394}
   crouch: {fileID: 1059110634}
+  movement: {fileID: 1059110635}
+  neuroresist: {fileID: 1059110639}
+  bobAmplitudeWalk: 0.02
+  bobAmplitudeSprint: 0.035
+  bobFrequencyWalk: 8
+  bobFrequencySprint: 11
 --- !u!114 &1059110634
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18231,6 +18239,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   duration: 10
+  cooldown: 90
   detectionRadius: 100
   enemyLayer:
     serializedVersion: 2
@@ -18304,6 +18313,37 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3c4af827c4244e549981c489948705b5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &1059110644
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1059110618}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3c4af827c4244e549981c489948705b5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &1059110645
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1059110618}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9fe38212fb0c5724396f046f63bb084e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  weaponHolder: {fileID: 828940393}
+  aimOffset: {x: 0.05, y: -0.05, z: 0.1}
+  aimLerpSpeed: 10
+  playerCamera: {fileID: 1799595919}
+  aimFov: 55
+  aimOverlay: {fileID: 0}
+  aimSlowMultiplier: 0.7
 --- !u!1 &1059494621
 GameObject:
   m_ObjectHideFlags: 0

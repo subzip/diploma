@@ -23,10 +23,21 @@ public class PlayerLook : MonoBehaviour
     private float cameraHeightVelocity = 0f;
 
     [SerializeField] private PlayerCrouch crouch;
+    [SerializeField] private PlayerMovement movement;
+    [SerializeField] private PlayerNeuroresist neuroresist;
+
+    [Header("Headbob")]
+    [SerializeField] private float bobAmplitudeWalk = 0.02f;
+    [SerializeField] private float bobAmplitudeSprint = 0.035f;
+    [SerializeField] private float bobFrequencyWalk = 8f;
+    [SerializeField] private float bobFrequencySprint = 11f;
+    private float bobTimer = 0f;
 
     private void Awake()
     {
         inputActions = GameInput.Instance.Actions;
+        if (movement == null) movement = GetComponent<PlayerMovement>();
+        if (neuroresist == null) neuroresist = GetComponent<PlayerNeuroresist>();
     }
 
     private void OnEnable()
@@ -71,10 +82,35 @@ public class PlayerLook : MonoBehaviour
             cameraSmoothTime
         );
 
-        cameraPivot.localPosition = new Vector3(0f, currentHeight, cameraPivot.localPosition.z);
+        // headbob
+        float speed = movement != null ? movement.GetMoveSpeed() : 0f;
+        bool grounded = movement != null ? movement.IsGrounded : true;
+        float bobOffsetY = 0f;
+        float bobOffsetX = 0f;
+        if (grounded && speed > 0.1f)
+        {
+            bool sprinting = movement.IsSprinting;
+            bobTimer += Time.deltaTime * (sprinting ? bobFrequencySprint : bobFrequencyWalk);
+            float amp = sprinting ? bobAmplitudeSprint : bobAmplitudeWalk;
+            bobOffsetY = Mathf.Sin(bobTimer) * amp;
+            bobOffsetX = Mathf.Cos(bobTimer * 0.5f) * amp * 0.5f;
+        }
+        else
+        {
+            bobTimer = 0f;
+        }
+
+        cameraPivot.localPosition = new Vector3(bobOffsetX, currentHeight + bobOffsetY, cameraPivot.localPosition.z);
         cameraPivot.localRotation = Quaternion.Euler(xRotation, 0, 0);
 
         Vector3 recoil = weaponManager?.GetRecoilOffset() ?? Vector3.zero;
-        cameraPivot.localRotation = Quaternion.Euler(xRotation + recoil.y, recoil.x, 0);
+        float neuroJitter = 0f;
+        if (neuroresist != null && neuroresist.CurrentValue > 0f)
+        {
+            float jitterAmp = 0.3f;
+            float jitterFreq = 18f;
+            neuroJitter = Mathf.Sin(Time.time * jitterFreq) * jitterAmp;
+        }
+        cameraPivot.localRotation = Quaternion.Euler(xRotation + recoil.y + neuroJitter, recoil.x + bobOffsetX * 30f, 0);
     }
 }

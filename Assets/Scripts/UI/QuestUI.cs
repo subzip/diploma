@@ -20,6 +20,8 @@ public class QuestUI : MonoBehaviour
     private void Start()
     {
         questPanel.SetActive(false);
+        Cursor.lockState = CursorLockMode.Locked; // Блокирует курсор в центре
+        Cursor.visible = false; // Скрывает курсор
     }
 
     public void ShowInitialHint()

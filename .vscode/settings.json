@@ -67,5 +67,6 @@
         "*.sln": "*.csproj",
         "*.slnx": "*.csproj"
     },
-    "dotnet.defaultSolution": "diploma.slnx"
+    "dotnet.defaultSolution": "diploma.slnx",
+    "chatgpt.openOnStartup": true
 }

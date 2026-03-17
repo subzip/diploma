@@ -1,4 +1,3 @@
-
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -15,10 +14,9 @@ public class NeuroresistPostProcess : MonoBehaviour
     private void Awake()
     {
         volume = GetComponent<Volume>();
-        // Убедимся, что volume глобальный и вес полный
         volume.isGlobal = true;
         volume.weight = 1f;
-        // Если каких‑то override нет в профиле — добавляем в рантайме, чтобы TryGet не проваливался.
+
         EnsureOverride(ref vignette);
         EnsureOverride(ref chromatic);
         EnsureOverride(ref grain);
@@ -37,28 +35,30 @@ public class NeuroresistPostProcess : MonoBehaviour
         if (vignette != null)
         {
             vignette.active = enabled;
-            vignette.intensity.value = enabled ? 0.6f : 0f;
+            vignette.intensity.value = enabled ? 0.65f : 0f;
+            vignette.smoothness.value = enabled ? 0.5f : 0.2f;
         }
 
         if (chromatic != null)
         {
             chromatic.active = enabled;
-            chromatic.intensity.value = enabled ? 0.25f : 0f;
+            chromatic.intensity.value = enabled ? 0.4f : 0f;
         }
 
         if (grain != null)
         {
             grain.active = enabled;
-            grain.intensity.value = enabled ? 0.35f : 0f;
-            grain.response.value = enabled ? 0.8f : 0f;
+            grain.intensity.value = enabled ? 0.45f : 0f;
+            grain.response.value = enabled ? 0.9f : 0f;
         }
 
         if (colorAdjust != null)
         {
             colorAdjust.active = enabled;
-            colorAdjust.saturation.value = enabled ? -100f : 0f;  // ч/б
-            colorAdjust.postExposure.value = enabled ? -0.3f : 0f;
-            colorAdjust.contrast.value = enabled ? 20f : 0f;
+            colorAdjust.saturation.value = enabled ? -100f : 0f;
+            colorAdjust.postExposure.value = enabled ? -0.25f : 0f;
+            colorAdjust.contrast.value = enabled ? 25f : 0f;
+            colorAdjust.colorFilter.value = enabled ? new Color(0.2f, 0.6f, 1f, 1f) : Color.white;
         }
     }
 }

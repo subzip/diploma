@@ -40,6 +40,8 @@ public class PlayerMovement : MonoBehaviour
     private float currentStamina = 100f;
     private float coyoteCounter = 0f;
     private float jumpBufferCounter = 0f;
+    private float aimMultiplier = 1f;
+    private float neuroMultiplier = 1f;
 
     public bool IsGrounded => isGrounded;
     public bool IsSprinting => isSprinting;
@@ -130,6 +132,7 @@ public class PlayerMovement : MonoBehaviour
         float targetSpeed = moveSpeed;
         if (isCrouching) targetSpeed = crouchSpeed;
         else if (isSprinting && currentStamina > 0f) targetSpeed = sprintSpeed;
+        targetSpeed *= aimMultiplier * neuroMultiplier;
 
         Vector3 inputDir = (transform.right * moveInput.x + transform.forward * moveInput.y);
         inputDir = inputDir.sqrMagnitude > 1f ? inputDir.normalized : inputDir;
@@ -180,5 +183,8 @@ public class PlayerMovement : MonoBehaviour
         return new Vector3(horizontalVelocity.x, 0, horizontalVelocity.z).magnitude;
     }
     public bool IsMoving => new Vector3(horizontalVelocity.x, 0, horizontalVelocity.z).magnitude > 0.1f;
+
+    public void SetAimMultiplier(float multiplier) => aimMultiplier = Mathf.Max(0.1f, multiplier);
+    public void SetNeuroMultiplier(float multiplier) => neuroMultiplier = Mathf.Max(0.1f, multiplier);
 
 }
