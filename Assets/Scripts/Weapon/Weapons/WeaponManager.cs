@@ -18,7 +18,7 @@ public class WeaponManager : MonoBehaviour
     [SerializeField] private RigBuilder rigBuilder;
 
     private readonly List<BaseWeapon> weapons = new();
-    private BaseWeapon CurrentWeapon => (currentWeaponIndex >= 0 && currentWeaponIndex < weapons.Count) ? weapons[currentWeaponIndex] : null;
+    public BaseWeapon CurrentWeapon => (currentWeaponIndex >= 0 && currentWeaponIndex < weapons.Count) ? weapons[currentWeaponIndex] : null;
     private PlayerInputActions inputActions;
     private bool isSwitching = false;
     private bool fireHeld = false;
@@ -75,13 +75,6 @@ public class WeaponManager : MonoBehaviour
         }
 
         CurrentWeapon?.UpdateRecoil(Time.deltaTime);
-
-        if (Keyboard.current != null)
-        {
-            if (Keyboard.current.digit1Key.wasPressedThisFrame) SwitchWeapon(0);
-            if (Keyboard.current.digit2Key.wasPressedThisFrame) SwitchWeapon(1);
-            if (Keyboard.current.digit3Key.wasPressedThisFrame) SwitchWeapon(2);
-        }
     }
 
     private void OnShoot(InputAction.CallbackContext ctx)

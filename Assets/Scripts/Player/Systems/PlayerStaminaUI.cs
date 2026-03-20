@@ -16,7 +16,7 @@ public class PlayerStaminaUI : MonoBehaviour
     {
         if (staminaSlider != null && playerMovement != null)
         {
-            staminaSlider.value = playerMovement.CurrentStamina / 100f;
+            staminaSlider.value = playerMovement.CurrentStamina / Mathf.Max(0.001f, playerMovement.MaxStamina);
         }
     }
 }

@@ -1,22 +1,19 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Animations.Rigging;
 
 public class PlayerWeapon : MonoBehaviour
 {
-    [Header("IK & Weapon")]
-    [SerializeField] private TwoBoneIKConstraint leftHandIK;
-    [SerializeField] private Transform rightHandGripPoint;
+    [Header("Weapon")]
     [SerializeField] private WeaponManager weaponManager;
+    [SerializeField] private Transform interactionOrigin;
 
     private PlayerInputActions inputActions;
-    private Transform cameraPivot;
 
     private void Awake()
     {
         inputActions = GameInput.Instance.Actions;
-        cameraPivot = GetComponent<PlayerLook>().GetComponent<Transform>();
-        if (weaponManager == null) weaponManager = GetComponent<WeaponManager>();
+        if (weaponManager == null) weaponManager = GetComponentInChildren<WeaponManager>();
+        if (interactionOrigin == null) interactionOrigin = Camera.main != null ? Camera.main.transform : transform;
     }
 
     private void OnEnable()
@@ -34,7 +31,12 @@ public class PlayerWeapon : MonoBehaviour
 
     private void TryPickUpWeapon()
     {
-        if (Physics.Raycast(cameraPivot.position, cameraPivot.forward, out RaycastHit hit, 3f))
+        if (interactionOrigin == null && Camera.main != null)
+            interactionOrigin = Camera.main.transform;
+
+        if (interactionOrigin == null) return;
+
+        if (Physics.Raycast(interactionOrigin.position, interactionOrigin.forward, out RaycastHit hit, 3f))
         {
             if (hit.collider.TryGetComponent<WeaponPickup>(out var pickup))
             {

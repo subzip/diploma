@@ -24,9 +24,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4472212156889546126}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.27059793, y: 0.65328157, z: 0.65328157, w: -0.27059793}
-  m_LocalPosition: {x: -1.5942688, y: -1.0118998, z: -4.717699}
-  m_LocalScale: {x: 0.029999994, y: 0.029999997, z: 0.03}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5272116246888395063}
@@ -55,9 +55,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7748069687012427111}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.27059793, y: 0.65328157, z: 0.65328157, w: -0.27059793}
-  m_LocalPosition: {x: -1.7453003, y: -1.0067998, z: -4.5535088}
-  m_LocalScale: {x: 0.029999994, y: 0.029999997, z: 0.03}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5272116246888395063}
@@ -132,6 +132,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   weaponName: Assault Rifle
   weaponPrefab: {fileID: 9152377585250893847}
+  renderersToHighlight: []
+  emissionColor: {r: 0.1, g: 0.6, b: 1, a: 1}
+  pulseSpeed: 3
 --- !u!65 &3341696965970987737
 BoxCollider:
   m_ObjectHideFlags: 0

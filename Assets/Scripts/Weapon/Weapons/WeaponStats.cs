@@ -14,7 +14,18 @@ public class WeaponStats : ScriptableObject
     [Header("Firing")]
     public float fireRate = 0.1f;
     public FireMode fireMode = FireMode.Auto;
-    public float impactForce = 500f; 
+    public float impactForce = 500f;
+
+    [Header("Spread (COD-like Dynamic)")]
+    [Min(0f)] public float hipSpread = 1.5f;
+    [Min(0f)] public float aimSpread = 0.35f;
+    [Min(0f)] public float moveSpreadPenalty = 0.8f;
+    [Min(0f)] public float sprintSpreadPenalty = 1.3f;
+    [Min(0f)] public float airSpreadPenalty = 1.7f;
+    [Min(0f)] public float crouchSpreadReduction = 0.2f;
+    [Min(0f)] public float bloomPerShot = 0.2f;
+    [Min(0f)] public float maxBloom = 2.0f;
+    [Min(0f)] public float bloomRecovery = 5f;
 
     [Header("Recoil")]
     public float recoilKickMin = 0.35f;
@@ -34,6 +45,14 @@ public class WeaponStats : ScriptableObject
     public AudioClip shootSound;
     public AudioClip reloadSound;
     public AudioClip emptyClipSound;
+
+    [Header("ADS Pose")]
+    public Vector3 hipLocalPosition = Vector3.zero;
+    public Vector3 hipLocalEuler = Vector3.zero;
+    public Vector3 aimLocalPosition = new Vector3(0.015f, -0.02f, 0.08f);
+    public Vector3 aimLocalEuler = Vector3.zero;
+    public bool useAdsFovOverride = false;
+    [Min(1f)] public float adsFovOverride = 55f;
 }
 
 public enum FireMode

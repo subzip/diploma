@@ -1,27 +1,28 @@
-using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
 {
+    [Header("Speed")]
     [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private float jumpHeight = 2f;
-    [SerializeField] private float gravity = -9.81f;
-    [SerializeField] private float crouchSpeed = 2f;
     [SerializeField] private float sprintSpeed = 8f;
+    [SerializeField] private float crouchSpeed = 2f;
+    [SerializeField] private float jumpHeight = 2f;
 
-    [Header("Smoothing")]
-    [SerializeField] private float acceleration = 12f;
-    [SerializeField] private float deceleration = 14f;
-    [SerializeField] private float airAcceleration = 6f;
-    [SerializeField] private float airDeceleration = 2f;
-    [SerializeField] private float brakingDeceleration = 20f; // резкий стоп при смене направления
+    [Header("Source-Lite Movement")]
+    [SerializeField] private float groundAcceleration = 14f;
+    [SerializeField] private float airAcceleration = 22f;
+    [SerializeField] private float airMaxWishSpeed = 3.2f;
+    [SerializeField] private float groundFriction = 10f;
+    [SerializeField] private float gravityStrength = -30f;
+    [SerializeField] private float maxFallSpeed = 80f;
+
+    [Header("Jump Assist")]
     [SerializeField] private float coyoteTime = 0.15f;
     [SerializeField] private float jumpBufferTime = 0.12f;
-    [SerializeField] private float groundFriction = 8f;
-    [SerializeField] private float gravityStrength = -30f;
 
+    [Header("Stamina")]
     [SerializeField] private float staminaDrainRate = 20f;
     [SerializeField] private float staminaRegenRate = 15f;
     [SerializeField] private float staminaRegenDelay = 2f;
@@ -29,28 +30,33 @@ public class PlayerMovement : MonoBehaviour
 
     private CharacterController controller;
     private PlayerInputActions inputActions;
+    private PlayerCrouch crouch;
+
     private Vector2 moveInput;
     private Vector3 horizontalVelocity = Vector3.zero;
-    private float yVelocity = 0f;
+    private float yVelocity;
+
     private bool isGrounded;
-    private bool isSprinting = false;
-    private bool isCrouching = false;
-    private bool canRegenStamina = false;
-    private float lastSprintTime = 0f;
+    private bool sprintHeld;
+    private bool canRegenStamina;
+    private float lastSprintTime;
     private float currentStamina = 100f;
-    private float coyoteCounter = 0f;
-    private float jumpBufferCounter = 0f;
+    private float coyoteCounter;
+    private float jumpBufferCounter;
     private float aimMultiplier = 1f;
     private float neuroMultiplier = 1f;
 
     public bool IsGrounded => isGrounded;
-    public bool IsSprinting => isSprinting;
-    public bool IsCrouching => isCrouching;
+    public bool IsSprinting => sprintHeld && !IsCrouching && currentStamina > 0f && moveInput.sqrMagnitude > 0.01f;
+    public bool IsCrouching => crouch != null && crouch.IsCrouching;
     public float CurrentStamina => currentStamina;
+    public float MaxStamina => staminaMax;
+    public bool IsMoving => horizontalVelocity.sqrMagnitude > 0.01f;
 
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
+        crouch = GetComponent<PlayerCrouch>();
         DontDestroyOnLoad(gameObject);
     }
 
@@ -61,7 +67,6 @@ public class PlayerMovement : MonoBehaviour
         inputActions.Player.Move.canceled += OnMoveCanceled;
         inputActions.Player.Sprint.performed += OnSprintPerformed;
         inputActions.Player.Sprint.canceled += OnSprintCanceled;
-        inputActions.Player.Crouch.performed += OnCrouchPerformed;
         inputActions.Player.Jump.performed += OnJumpPerformed;
     }
 
@@ -72,16 +77,14 @@ public class PlayerMovement : MonoBehaviour
         inputActions.Player.Move.canceled -= OnMoveCanceled;
         inputActions.Player.Sprint.performed -= OnSprintPerformed;
         inputActions.Player.Sprint.canceled -= OnSprintCanceled;
-        inputActions.Player.Crouch.performed -= OnCrouchPerformed;
         inputActions.Player.Jump.performed -= OnJumpPerformed;
     }
 
-    private void OnMovePerformed(UnityEngine.InputSystem.InputAction.CallbackContext ctx) => moveInput = ctx.ReadValue<Vector2>();
-    private void OnMoveCanceled(UnityEngine.InputSystem.InputAction.CallbackContext ctx) => moveInput = Vector2.zero;
-    private void OnSprintPerformed(UnityEngine.InputSystem.InputAction.CallbackContext ctx) => isSprinting = true;
-    private void OnSprintCanceled(UnityEngine.InputSystem.InputAction.CallbackContext ctx) => isSprinting = false;
-    private void OnCrouchPerformed(UnityEngine.InputSystem.InputAction.CallbackContext ctx) => isCrouching = !isCrouching;
-    private void OnJumpPerformed(UnityEngine.InputSystem.InputAction.CallbackContext ctx) => jumpBufferCounter = jumpBufferTime;
+    private void OnMovePerformed(InputAction.CallbackContext ctx) => moveInput = ctx.ReadValue<Vector2>();
+    private void OnMoveCanceled(InputAction.CallbackContext ctx) => moveInput = Vector2.zero;
+    private void OnSprintPerformed(InputAction.CallbackContext ctx) => sprintHeld = true;
+    private void OnSprintCanceled(InputAction.CallbackContext ctx) => sprintHeld = false;
+    private void OnJumpPerformed(InputAction.CallbackContext ctx) => jumpBufferCounter = jumpBufferTime;
 
     private void Update()
     {
@@ -96,7 +99,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void HandleJump()
     {
-        if (jumpBufferCounter > 0f && coyoteCounter > 0f && !isCrouching)
+        if (jumpBufferCounter > 0f && coyoteCounter > 0f && !IsCrouching)
         {
             yVelocity = Mathf.Sqrt(jumpHeight * -2f * gravityStrength);
             jumpBufferCounter = 0f;
@@ -106,85 +109,102 @@ public class PlayerMovement : MonoBehaviour
 
     private void HandleStamina()
     {
-        if (isSprinting && moveInput.magnitude > 0.1f)
+        if (IsSprinting)
         {
             currentStamina -= staminaDrainRate * Time.deltaTime;
-            currentStamina = Mathf.Clamp(currentStamina, 0, staminaMax);
+            currentStamina = Mathf.Clamp(currentStamina, 0f, staminaMax);
             lastSprintTime = Time.time;
             canRegenStamina = false;
 
-            if (currentStamina <= 0.01f) isSprinting = false;
+            if (currentStamina <= 0.01f) sprintHeld = false;
         }
         else
         {
             if (!canRegenStamina && Time.time - lastSprintTime > staminaRegenDelay)
                 canRegenStamina = true;
+
             if (canRegenStamina)
             {
                 currentStamina += staminaRegenRate * Time.deltaTime;
-                currentStamina = Mathf.Clamp(currentStamina, 0, staminaMax);
+                currentStamina = Mathf.Clamp(currentStamina, 0f, staminaMax);
             }
         }
     }
 
     private void HandleMovement()
     {
-        float targetSpeed = moveSpeed;
-        if (isCrouching) targetSpeed = crouchSpeed;
-        else if (isSprinting && currentStamina > 0f) targetSpeed = sprintSpeed;
-        targetSpeed *= aimMultiplier * neuroMultiplier;
+        float targetMaxSpeed = moveSpeed;
+        if (IsCrouching) targetMaxSpeed = crouchSpeed;
+        else if (IsSprinting) targetMaxSpeed = sprintSpeed;
+        targetMaxSpeed *= aimMultiplier * neuroMultiplier;
 
-        Vector3 inputDir = (transform.right * moveInput.x + transform.forward * moveInput.y);
-        inputDir = inputDir.sqrMagnitude > 1f ? inputDir.normalized : inputDir;
-
-        Vector3 desiredHorizontal = inputDir * targetSpeed;
-
-        bool hasInput = inputDir.sqrMagnitude > 0.01f;
-        bool reversing = hasInput && Vector3.Dot(horizontalVelocity, desiredHorizontal) < 0f;
-
-        float accel = isGrounded ? acceleration : airAcceleration;
-        float decel = isGrounded ? deceleration : airDeceleration;
-        float brake = isGrounded ? brakingDeceleration : decel;
-
-        float moveRate = hasInput
-            ? (reversing ? brake : accel)
-            : decel;
-
-        // Если нет ввода — тянем к нулю
-        Vector3 targetVel = hasInput ? desiredHorizontal : Vector3.zero;
-
-        horizontalVelocity = Vector3.MoveTowards(horizontalVelocity, targetVel, moveRate * Time.deltaTime);
+        Vector3 wishDirection = (transform.right * moveInput.x + transform.forward * moveInput.y);
+        if (wishDirection.sqrMagnitude > 1f) wishDirection.Normalize();
 
         if (isGrounded)
         {
-            if (yVelocity < 0) yVelocity = -5f; // сильнее прижимаем к земле, чтобы не зависать
+            ApplyGroundFriction();
+            Accelerate(wishDirection, targetMaxSpeed, groundAcceleration);
 
-            if (inputDir.sqrMagnitude < 0.0001f)
-            {
-                // дополнительное сухое трение, чтобы не скользить
-                float frictionFactor = Mathf.Clamp01(groundFriction * Time.deltaTime);
-                horizontalVelocity *= (1f - frictionFactor);
-                if (horizontalVelocity.sqrMagnitude < 0.01f) horizontalVelocity = Vector3.zero;
-            }
+            if (yVelocity < 0f) yVelocity = -2f;
+        }
+        else
+        {
+            AirAccelerate(wishDirection, targetMaxSpeed, airAcceleration);
         }
 
-        yVelocity = Mathf.Max(yVelocity + gravityStrength * Time.deltaTime, -80f);
+        yVelocity = Mathf.Max(yVelocity + gravityStrength * Time.deltaTime, -maxFallSpeed);
 
-        Vector3 moveThisFrame = new Vector3(horizontalVelocity.x, 0f, horizontalVelocity.z);
-        moveThisFrame += Vector3.up * yVelocity;
-
-        controller.Move(moveThisFrame * Time.deltaTime);
+        Vector3 velocity = horizontalVelocity + Vector3.up * yVelocity;
+        controller.Move(velocity * Time.deltaTime);
     }
 
-    
+    private void ApplyGroundFriction()
+    {
+        float speed = horizontalVelocity.magnitude;
+        if (speed < 0.001f)
+        {
+            horizontalVelocity = Vector3.zero;
+            return;
+        }
+
+        float drop = speed * groundFriction * Time.deltaTime;
+        float newSpeed = Mathf.Max(speed - drop, 0f);
+        horizontalVelocity *= newSpeed / speed;
+    }
+
+    private void Accelerate(Vector3 wishDir, float wishSpeed, float accel)
+    {
+        if (wishDir.sqrMagnitude < 0.0001f || wishSpeed <= 0f) return;
+
+        float currentSpeed = Vector3.Dot(horizontalVelocity, wishDir);
+        float addSpeed = wishSpeed - currentSpeed;
+        if (addSpeed <= 0f) return;
+
+        float accelSpeed = accel * wishSpeed * Time.deltaTime;
+        if (accelSpeed > addSpeed) accelSpeed = addSpeed;
+        horizontalVelocity += wishDir * accelSpeed;
+    }
+
+    private void AirAccelerate(Vector3 wishDir, float wishSpeed, float accel)
+    {
+        if (wishDir.sqrMagnitude < 0.0001f || wishSpeed <= 0f) return;
+
+        float cappedWishSpeed = Mathf.Min(wishSpeed, airMaxWishSpeed);
+        float currentSpeed = Vector3.Dot(horizontalVelocity, wishDir);
+        float addSpeed = cappedWishSpeed - currentSpeed;
+        if (addSpeed <= 0f) return;
+
+        float accelSpeed = accel * cappedWishSpeed * Time.deltaTime;
+        if (accelSpeed > addSpeed) accelSpeed = addSpeed;
+        horizontalVelocity += wishDir * accelSpeed;
+    }
 
     public float GetMoveSpeed()
     {
-        return new Vector3(horizontalVelocity.x, 0, horizontalVelocity.z).magnitude;
+        return horizontalVelocity.magnitude;
     }
-    public bool IsMoving => new Vector3(horizontalVelocity.x, 0, horizontalVelocity.z).magnitude > 0.1f;
 
     public void SetAimMultiplier(float multiplier) => aimMultiplier = Mathf.Max(0.1f, multiplier);
     public void SetNeuroMultiplier(float multiplier) => neuroMultiplier = Mathf.Max(0.1f, multiplier);
-
 }

@@ -15,6 +15,7 @@ public class KeycardPickup : MonoBehaviour
     private bool isInRange = false;
     private bool isLookingAt = false;
     private Transform playerCamera;
+    private Transform playerTransform;
     private PlayerInputActions inputActions;
 
     [Header("Highlight")]
@@ -31,6 +32,7 @@ public class KeycardPickup : MonoBehaviour
         {
             Debug.LogError("Camera");
         }
+        playerTransform = GameObject.FindGameObjectWithTag("Player")?.transform;
         if (renderersToHighlight == null || renderersToHighlight.Length == 0)
             renderersToHighlight = GetComponentsInChildren<MeshRenderer>(true);
         mpb = new MaterialPropertyBlock();
@@ -52,10 +54,14 @@ public class KeycardPickup : MonoBehaviour
 
     private void CheckProximity()
     {
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
-        if (player != null)
+        if (playerTransform == null)
         {
-            float distance = Vector3.Distance(transform.position, player.transform.position);
+            playerTransform = GameObject.FindGameObjectWithTag("Player")?.transform;
+        }
+
+        if (playerTransform != null)
+        {
+            float distance = Vector3.Distance(transform.position, playerTransform.position);
             isInRange = distance <= pickupRange;
         }
         else
