@@ -20,12 +20,16 @@ public class AimController : MonoBehaviour
     [Header("Gameplay")]
     [SerializeField] private GameObject aimOverlay;
     [SerializeField] private float aimSlowMultiplier = 0.7f;
+    [SerializeField] private float aimOverlayFadeSpeed = 8f;
+    [SerializeField] private float overlayPositionTolerance = 0.015f;
+    [SerializeField] private float overlayRotationTolerance = 4f;
 
     private Vector3 defaultHolderLocalPos;
     private Quaternion defaultHolderLocalRot;
     private float defaultFov;
     private PlayerMovement movement;
     private bool isAiming;
+    private CanvasGroup aimOverlayGroup;
 
     public bool IsAiming => isAiming;
 
@@ -43,6 +47,22 @@ public class AimController : MonoBehaviour
             defaultHolderLocalRot = weaponHolder.localRotation;
         }
 
+        if (aimOverlay != null)
+        {
+            aimOverlayGroup = aimOverlay.GetComponent<CanvasGroup>();
+            if (aimOverlayGroup != null)
+            {
+                aimOverlayGroup.alpha = 0f;
+                aimOverlayGroup.interactable = false;
+                aimOverlayGroup.blocksRaycasts = false;
+                aimOverlay.SetActive(true);
+            }
+            else
+            {
+                aimOverlay.SetActive(false);
+            }
+        }
+
         movement = GetComponent<PlayerMovement>();
     }
 
@@ -55,11 +75,41 @@ public class AimController : MonoBehaviour
         {
             isAiming = aimPressed;
             if (movement != null) movement.SetAimMultiplier(isAiming ? aimSlowMultiplier : 1f);
-            if (aimOverlay != null) aimOverlay.SetActive(isAiming);
         }
 
+        UpdateAimOverlay();
         UpdateTransforms();
         UpdateFov();
+    }
+
+    private void UpdateAimOverlay()
+    {
+        if (aimOverlay == null) return;
+
+        BaseWeapon currentWeapon = weaponManager != null ? weaponManager.CurrentWeapon : null;
+        WeaponStats stats = currentWeapon != null ? currentWeapon.stats : null;
+        bool allowOverlay = stats == null ? isAiming : stats.useAimOverlay && isAiming;
+
+        if (allowOverlay && currentWeapon != null && stats != null)
+        {
+            float posDelta = Vector3.Distance(currentWeapon.transform.localPosition, stats.aimLocalPosition);
+            float rotDelta = Quaternion.Angle(currentWeapon.transform.localRotation, Quaternion.Euler(stats.aimLocalEuler));
+            allowOverlay = posDelta <= overlayPositionTolerance && rotDelta <= overlayRotationTolerance;
+        }
+
+        if (aimOverlayGroup != null)
+        {
+            float target = allowOverlay ? 1f : 0f;
+            aimOverlayGroup.alpha = Mathf.MoveTowards(
+                aimOverlayGroup.alpha,
+                target,
+                aimOverlayFadeSpeed * Time.unscaledDeltaTime
+            );
+        }
+        else
+        {
+            aimOverlay.SetActive(allowOverlay);
+        }
     }
 
     private void UpdateTransforms()

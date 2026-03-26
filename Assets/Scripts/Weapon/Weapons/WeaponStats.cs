@@ -53,6 +53,9 @@ public class WeaponStats : ScriptableObject
     public Vector3 aimLocalEuler = Vector3.zero;
     public bool useAdsFovOverride = false;
     [Min(1f)] public float adsFovOverride = 55f;
+
+    [Header("ADS Overlay")]
+    public bool useAimOverlay = true;
 }
 
 public enum FireMode

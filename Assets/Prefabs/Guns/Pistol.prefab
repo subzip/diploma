@@ -48,10 +48,25 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   stats: {fileID: 0}
-  tracerDuration: 0.1
   ammoText: {fileID: 0}
+  tracerDuration: 0.1
   bulletHolePrefab: {fileID: 0}
-  tracerEffectPrefab: {fileID: 0}
+  casingEjectPoint: {fileID: 0}
+  useDecalProjector: 1
+  decalMaterial: {fileID: 2100000, guid: c5a67e7ceb67edc459ab2b5f51d4ab5d, type: 2}
+  decalSize: {x: 0.015, y: 0.015}
+  decalDepth: 0.02
+  decalPush: 0.002
+  decalLifetime: 12
+  decalTextureScale: 3
+  decalUseNormalForward: 1
+  decalParentToHit: 0
+  decalParentOverride: {fileID: 0}
+  debugDecals: 0
+  debugDecalsVerbose: 0
+  debugDecalSize: {x: 0.5, y: 0.5}
+  debugDecalDepth: 0.5
+  debugDecalColor: {r: 1, g: 0, b: 0, a: 1}
   muzzlePoint: {fileID: 0}
 --- !u!1 &3885933479138177098
 GameObject:

@@ -19,12 +19,36 @@ MonoBehaviour:
   reloadTime: 2
   fireRate: 0.1
   fireMode: 1
-  recoilAngle: {x: -5, y: 1.3}
+  impactForce: 500
+  hipSpread: 1.5
+  aimSpread: 0.35
+  moveSpreadPenalty: 0.8
+  sprintSpreadPenalty: 1.3
+  airSpreadPenalty: 1.7
+  crouchSpreadReduction: 0.2
+  bloomPerShot: 0.2
+  maxBloom: 2
+  bloomRecovery: 5
+  recoilKickMin: 0.35
+  recoilKickMax: 0.6
+  recoilHorizontal: 0.25
   recoilRecoverySpeed: 5
+  recoilSnap: 10
   muzzlePrefab: {fileID: 0}
+  tracerEffectPrefab: {fileID: 0}
+  impactDefaultPrefab: {fileID: 0}
+  impactFleshPrefab: {fileID: 0}
+  casingPrefab: {fileID: 0}
   hitLayers:
     serializedVersion: 2
-    m_Bits: 195
+    m_Bits: 706
   shootSound: {fileID: 8300000, guid: d466b209d83d8a645833ffefd858083c, type: 3}
   reloadSound: {fileID: 8300000, guid: 8e89fe242bf02414a9d85568984a18b7, type: 3}
   emptyClipSound: {fileID: 8300000, guid: 3ea0522317b2e634ba0cb45d85a118ef, type: 3}
+  hipLocalPosition: {x: 0, y: 0, z: 0}
+  hipLocalEuler: {x: 0, y: 0, z: 0}
+  aimLocalPosition: {x: 0.05, y: -0.02, z: 0.153}
+  aimLocalEuler: {x: 0, y: 10, z: 0}
+  useAdsFovOverride: 0
+  adsFovOverride: 10
+  useAimOverlay: 1

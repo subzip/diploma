@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 
 public abstract class BaseWeapon : MonoBehaviour
 {
@@ -12,6 +13,22 @@ public abstract class BaseWeapon : MonoBehaviour
     [SerializeField] private float tracerDuration = 1f;
     [SerializeField] private GameObject bulletHolePrefab;
     [SerializeField] private Transform casingEjectPoint;
+    [SerializeField] private bool useDecalProjector = true;
+    [SerializeField] private Material decalMaterial;
+    [SerializeField] private Vector2 decalSize = new Vector2(0.08f, 0.08f);
+    [SerializeField] private float decalDepth = 0.02f;
+    [SerializeField] private float decalPush = 0.002f;
+    [SerializeField] private float decalLifetime = 12f;
+    [SerializeField] private float decalTextureScale = 2.5f;
+    [SerializeField] private bool decalUseNormalForward = true;
+    [SerializeField] private bool decalParentToHit = false;
+    [SerializeField] private Transform decalParentOverride;
+    [Header("Decal Debug")]
+    [SerializeField] private bool debugDecals = false;
+    [SerializeField] private bool debugDecalsVerbose = false;
+    [SerializeField] private Vector2 debugDecalSize = new Vector2(0.5f, 0.5f);
+    [SerializeField] private float debugDecalDepth = 0.5f;
+    [SerializeField] private Color debugDecalColor = new Color(1f, 0f, 0f, 1f);
 
     [Header("Muzzle Flash")]
     [SerializeField] private Transform muzzlePoint;
@@ -28,6 +45,7 @@ public abstract class BaseWeapon : MonoBehaviour
     private AudioSource audioSource;
     private PlayerMovement movement;
     private AimController aimController;
+    private Material runtimeDecalMaterial;
 
     public bool CanShoot => !isReloading && currentAmmo > 0 && Time.time >= nextFireTime;
     public bool IsReloading => isReloading;
@@ -57,6 +75,14 @@ public abstract class BaseWeapon : MonoBehaviour
         RecoverBloom(Time.deltaTime);
     }
 
+    private void OnDestroy()
+    {
+        if (runtimeDecalMaterial != null)
+        {
+            Destroy(runtimeDecalMaterial);
+        }
+    }
+
     public virtual void Shoot()
     {
         if (!CanShoot || stats == null) return;
@@ -84,6 +110,10 @@ public abstract class BaseWeapon : MonoBehaviour
 
         if (hit)
         {
+            if (debugDecalsVerbose)
+            {
+                Debug.Log($"[DecalDebug] HIT {hitInfo.collider.name} layer {hitInfo.collider.gameObject.layer} point {hitInfo.point} normal {hitInfo.normal}");
+            }
             SpawnImpact(hitInfo);
             TrySpawnBulletHole(hitInfo);
             TryApplyPhysicsImpact(hitInfo, shotDirection);
@@ -92,6 +122,10 @@ public abstract class BaseWeapon : MonoBehaviour
             {
                 target.TakeDamage(stats.damage, hitInfo.point);
             }
+        }
+        else if (debugDecalsVerbose)
+        {
+            Debug.Log("[DecalDebug] Raycast MISS");
         }
 
         if (muzzlePoint != null && stats.muzzlePrefab != null)
@@ -220,6 +254,12 @@ public abstract class BaseWeapon : MonoBehaviour
 
     private void TrySpawnBulletHole(RaycastHit hitInfo)
     {
+        if (useDecalProjector && decalMaterial != null)
+        {
+            SpawnDecalProjector(hitInfo);
+            return;
+        }
+
         if (bulletHolePrefab == null) return;
         if (hitInfo.collider.gameObject.layer != LayerMask.NameToLayer("Walls")) return;
 
@@ -232,6 +272,94 @@ public abstract class BaseWeapon : MonoBehaviour
             Quaternion.FromToRotation(-Vector3.forward, hitInfo.normal)
         );
         Destroy(hole, 10f);
+    }
+
+    private void SpawnDecalProjector(RaycastHit hitInfo)
+    {
+        Vector3 normal = hitInfo.normal;
+        Vector3 forward = decalUseNormalForward ? normal : -normal;
+
+        Vector2 size = debugDecals ? debugDecalSize : decalSize;
+        float depth = debugDecals ? debugDecalDepth : decalDepth;
+        float halfDepth = Mathf.Max(0.001f, depth) * 0.5f;
+
+        Vector3 position = hitInfo.point + forward * (decalPush + halfDepth);
+
+        // Stabilize orientation around the normal.
+        Vector3 up = Vector3.up;
+        if (Mathf.Abs(Vector3.Dot(up, forward)) > 0.98f)
+            up = Vector3.right;
+        Quaternion rotation = Quaternion.LookRotation(forward, up);
+
+        GameObject decalObj = new GameObject("BulletDecal");
+        decalObj.transform.SetPositionAndRotation(position, rotation);
+        if (decalParentOverride != null)
+        {
+            decalObj.transform.SetParent(decalParentOverride, true);
+        }
+        else if (decalParentToHit)
+        {
+            decalObj.transform.SetParent(hitInfo.collider.transform, true);
+        }
+
+        DecalProjector projector = decalObj.AddComponent<DecalProjector>();
+        projector.material = GetDecalMaterial();
+
+        projector.size = new Vector3(size.x, size.y, Mathf.Max(0.001f, depth));
+        projector.pivot = new Vector3(0f, 0f, -0.5f);
+        projector.fadeFactor = 1f;
+        projector.drawDistance = 50f;
+        projector.startAngleFade = 180f;
+        projector.endAngleFade = 180f;
+
+        if (debugDecals && decalMaterial != null)
+        {
+            Material debugMat = new Material(decalMaterial);
+            ApplyDecalTextureScale(debugMat);
+            if (debugMat.HasProperty("_BaseColor")) debugMat.SetColor("_BaseColor", debugDecalColor);
+            if (debugMat.HasProperty("_Color")) debugMat.SetColor("_Color", debugDecalColor);
+            projector.material = debugMat;
+        }
+
+        if (debugDecals)
+        {
+            Debug.Log($"[DecalDebug] Spawned at {hitInfo.point}, normal {hitInfo.normal}, layer {hitInfo.collider.gameObject.layer}");
+            Debug.DrawRay(hitInfo.point, hitInfo.normal * 0.3f, Color.red, 2f);
+            Debug.DrawRay(hitInfo.point, forward * 0.3f, Color.green, 2f);
+        }
+
+        Destroy(decalObj, decalLifetime);
+    }
+
+    private Material GetDecalMaterial()
+    {
+        if (decalMaterial == null) return null;
+
+        if (runtimeDecalMaterial == null)
+        {
+            runtimeDecalMaterial = new Material(decalMaterial);
+            ApplyDecalTextureScale(runtimeDecalMaterial);
+        }
+
+        return runtimeDecalMaterial;
+    }
+
+    private void ApplyDecalTextureScale(Material mat)
+    {
+        if (mat == null) return;
+
+        float scale = Mathf.Max(0.05f, decalTextureScale);
+        Vector2 tiling = new Vector2(scale, scale);
+
+        if (mat.HasProperty("_BaseMap")) mat.SetTextureScale("_BaseMap", tiling);
+        if (mat.HasProperty("_MainTex")) mat.SetTextureScale("_MainTex", tiling);
+        if (mat.HasProperty("_DecalTex")) mat.SetTextureScale("_DecalTex", tiling);
+        if (mat.HasProperty("Base_Map")) mat.SetTextureScale("Base_Map", tiling);
+
+        if (mat.HasProperty("_BaseMap_ST")) mat.SetVector("_BaseMap_ST", new Vector4(scale, scale, 0f, 0f));
+        if (mat.HasProperty("_MainTex_ST")) mat.SetVector("_MainTex_ST", new Vector4(scale, scale, 0f, 0f));
+        if (mat.HasProperty("_DecalTex_ST")) mat.SetVector("_DecalTex_ST", new Vector4(scale, scale, 0f, 0f));
+        if (mat.HasProperty("Base_Map_ST")) mat.SetVector("Base_Map_ST", new Vector4(scale, scale, 0f, 0f));
     }
 
     private void TryApplyPhysicsImpact(RaycastHit hitInfo, Vector3 shotDirection)
