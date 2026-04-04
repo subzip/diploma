@@ -12,6 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d8fc551f1c8193841a3b99caa0a288bc, type: 3}
   m_Name: AssaultRifle
   m_EditorClassIdentifier: 
+  ammoType: 1
+  startReserveAmmo: 60
+  maxReserveAmmo: 180
   weaponName: Assault Rifle
   damage: 15
   range: 100

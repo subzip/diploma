@@ -34,6 +34,7 @@ public abstract class BaseWeapon : MonoBehaviour
     [SerializeField] private Transform muzzlePoint;
 
     protected int currentAmmo;
+    protected int reserveAmmo;
     protected float nextFireTime;
     protected bool isReloading;
     protected Vector3 recoilOffset = Vector3.zero;
@@ -50,11 +51,15 @@ public abstract class BaseWeapon : MonoBehaviour
     public bool CanShoot => !isReloading && currentAmmo > 0 && Time.time >= nextFireTime;
     public bool IsReloading => isReloading;
     public int CurrentAmmo => currentAmmo;
+    public int ReserveAmmo => reserveAmmo;
     protected virtual float SpreadMultiplier => 1f;
 
     public virtual void Initialize()
     {
         currentAmmo = stats != null ? stats.magazineSize : 0;
+        reserveAmmo = stats != null ? Mathf.Max(0, stats.startReserveAmmo) : 0;
+        if (stats != null && stats.maxReserveAmmo > 0)
+            reserveAmmo = Mathf.Min(reserveAmmo, stats.maxReserveAmmo);
         currentBloom = 0f;
     }
 
@@ -71,7 +76,7 @@ public abstract class BaseWeapon : MonoBehaviour
 
     private void Update()
     {
-        if (ammoText != null) ammoText.text = currentAmmo.ToString();
+        if (ammoText != null) ammoText.text = $"{currentAmmo} / {reserveAmmo}";
         RecoverBloom(Time.deltaTime);
     }
 
@@ -172,6 +177,7 @@ public abstract class BaseWeapon : MonoBehaviour
     {
         if (stats == null) return;
         if (isReloading || currentAmmo >= stats.magazineSize) return;
+        if (reserveAmmo <= 0) return;
         isReloading = true;
 
         if (stats.reloadSound != null) audioSource.PlayOneShot(stats.reloadSound);
@@ -187,7 +193,10 @@ public abstract class BaseWeapon : MonoBehaviour
             return;
         }
 
-        currentAmmo = stats.magazineSize;
+        int needed = Mathf.Max(0, stats.magazineSize - currentAmmo);
+        int toLoad = Mathf.Min(needed, reserveAmmo);
+        currentAmmo += toLoad;
+        reserveAmmo -= toLoad;
         isReloading = false;
     }
 
@@ -199,6 +208,18 @@ public abstract class BaseWeapon : MonoBehaviour
     }
 
     public Vector3 GetRecoilOffset() => recoilOffset;
+
+    public int AddReserveAmmo(int amount)
+    {
+        if (stats == null || amount <= 0) return 0;
+
+        int maxReserve = Mathf.Max(0, stats.maxReserveAmmo);
+        if (maxReserve == 0) return 0;
+
+        int before = reserveAmmo;
+        reserveAmmo = Mathf.Clamp(reserveAmmo + amount, 0, maxReserve);
+        return reserveAmmo - before;
+    }
 
     private Vector3 ApplySpread(Vector3 forward, Transform cameraTransform)
     {

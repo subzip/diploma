@@ -12,6 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d8fc551f1c8193841a3b99caa0a288bc, type: 3}
   m_Name: Pistol
   m_EditorClassIdentifier: 
+  ammoType: 1
+  startReserveAmmo: 24
+  maxReserveAmmo: 48
   weaponName: Pistol
   damage: 20
   range: 100

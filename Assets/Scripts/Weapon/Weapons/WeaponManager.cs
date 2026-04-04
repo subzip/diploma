@@ -172,6 +172,24 @@ public class WeaponManager : MonoBehaviour
 
     public Vector3 GetRecoilOffset() => CurrentWeapon?.GetRecoilOffset() ?? Vector3.zero;
 
+    public bool AddAmmo(AmmoType ammoType, int amount)
+    {
+        if (amount <= 0) return false;
+
+        bool addedAny = false;
+        for (int i = 0; i < weapons.Count; i++)
+        {
+            BaseWeapon weapon = weapons[i];
+            if (weapon == null || weapon.stats == null) continue;
+            if (weapon.stats.ammoType != ammoType) continue;
+
+            int added = weapon.AddReserveAmmo(amount);
+            if (added > 0) addedAny = true;
+        }
+
+        return addedAny;
+    }
+
     public void PickupWeapon(GameObject weaponPrefab)
     {
         if (weaponPrefab == null || weaponSlots.Length == 0) return;

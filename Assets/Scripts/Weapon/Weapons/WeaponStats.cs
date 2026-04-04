@@ -4,6 +4,11 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "WeaponStats", menuName = "Weapons/Weapon Stats", order = 1)]
 public class WeaponStats : ScriptableObject
 {
+    [Header("Ammo")]
+    public AmmoType ammoType = AmmoType.Rifle;
+    [Min(0)] public int startReserveAmmo = 90;
+    [Min(0)] public int maxReserveAmmo = 180;
+
     [Header("General")]
     public string weaponName = "Assault Rifle";
     public float damage = 25f;
@@ -62,4 +67,10 @@ public enum FireMode
 {
     SemiAuto,
     Auto
+}
+
+public enum AmmoType
+{
+    Pistol,
+    Rifle
 }
