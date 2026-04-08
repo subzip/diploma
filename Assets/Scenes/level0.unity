@@ -1373,6 +1373,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mainMenuSceneName: StartGame
   persistAcrossScenes: 0
+  uniqueId: 
 --- !u!114 &54208293
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11389,6 +11390,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mainMenuSceneName: StartGame
   persistAcrossScenes: 0
+  uniqueId: 
 --- !u!114 &670762219
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -19462,6 +19464,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   staminaSlider: {fileID: 1212458116}
+  staminaSliderObjectName: Stamina
 --- !u!114 &1059110637
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -19510,6 +19513,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e63a61bb0a865cb46bb19a516205d762, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  mainMenuSceneName: StartGame
 --- !u!114 &1059110641
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -19524,6 +19528,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxHealth: 100
   healthSlider: {fileID: 1296827371}
+  healthSliderObjectName: Health
   bloodSplatUI: {fileID: 561957309}
 --- !u!136 &1059110642
 CapsuleCollider:
@@ -20590,6 +20595,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mainMenuSceneName: StartGame
   persistAcrossScenes: 0
+  uniqueId: 
 --- !u!1001 &1126233053
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -21274,6 +21280,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mainMenuSceneName: StartGame
   persistAcrossScenes: 0
+  uniqueId: 
 --- !u!4 &1181901999 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 599560312440526923, guid: fc8042c18949d8a4c8a3df4cdbcdaee0, type: 3}
@@ -24825,7 +24832,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   respawnPoint: {fileID: 1377790459}
-  oneTime: 0
+  oneTime: 1
   checkpointId: checkpoint
   debugLog: 1
 --- !u!65 &1377790461
@@ -30850,6 +30857,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mainMenuSceneName: StartGame
   persistAcrossScenes: 0
+  uniqueId: 
 --- !u!1001 &1751040875
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -31905,6 +31913,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mainMenuSceneName: StartGame
   persistAcrossScenes: 0
+  uniqueId: 
 --- !u!1001 &1800568511
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -34877,6 +34886,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mainMenuSceneName: StartGame
   persistAcrossScenes: 0
+  uniqueId: 
 --- !u!1001 &1950441493
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -37175,6 +37185,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mainMenuSceneName: StartGame
   persistAcrossScenes: 0
+  uniqueId: 
 --- !u!1001 &2024962717
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -39097,6 +39108,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mainMenuSceneName: StartGame
   persistAcrossScenes: 0
+  uniqueId: 
 --- !u!1001 &2094009736
 PrefabInstance:
   m_ObjectHideFlags: 0
