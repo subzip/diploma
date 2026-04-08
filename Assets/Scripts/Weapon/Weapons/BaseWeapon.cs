@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
+using UnityEngine.SceneManagement;
 
 public abstract class BaseWeapon : MonoBehaviour
 {
@@ -8,6 +9,7 @@ public abstract class BaseWeapon : MonoBehaviour
 
     [Header("UI")]
     [SerializeField] private TMP_Text ammoText;
+    [SerializeField] private string ammoTextObjectName = "Bullets";
 
     [Header("Effects")]
     [SerializeField] private float tracerFadeOut = 0.04f;
@@ -72,11 +74,29 @@ public abstract class BaseWeapon : MonoBehaviour
 
         movement = GetComponentInParent<PlayerMovement>();
         aimController = GetComponentInParent<AimController>();
+        ResolveAmmoTextIfNeeded();
+    }
+
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+        ResolveAmmoTextIfNeeded();
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        ResolveAmmoTextIfNeeded(force: true);
     }
 
     private void Update()
     {
-        if (ammoText != null) ammoText.text = $"{currentAmmo} / {reserveAmmo}";
+        ResolveAmmoTextIfNeeded();
+        UpdateAmmoUi();
         RecoverBloom(Time.deltaTime);
     }
 
@@ -199,6 +219,23 @@ public abstract class BaseWeapon : MonoBehaviour
     }
 
     public Vector3 GetRecoilOffset() => recoilOffset;
+
+    public void ResetForRespawn(bool refillAmmoToDefaults)
+    {
+        CancelReload();
+        nextFireTime = 0f;
+        recoilOffset = Vector3.zero;
+        recoilCurrent = Vector2.zero;
+        recoilVelocity = Vector2.zero;
+        currentBloom = 0f;
+
+        if (refillAmmoToDefaults)
+        {
+            Initialize();
+        }
+
+        RefreshAmmoUiBindingAndValue();
+    }
 
     public int AddReserveAmmo(int amount)
     {
@@ -439,5 +476,113 @@ public abstract class BaseWeapon : MonoBehaviour
             stats.tracerMaterial,
             tracerFadeOut
         );
+    }
+
+    private void UpdateAmmoUi()
+    {
+        if (ammoText != null) ammoText.text = $"{currentAmmo} / {reserveAmmo}";
+    }
+
+    public void RefreshAmmoUiBindingAndValue()
+    {
+        ResolveAmmoTextIfNeeded(force: true);
+        UpdateAmmoUi();
+    }
+
+    private void ResolveAmmoTextIfNeeded(bool force = false)
+    {
+        if (!force && ammoText != null) return;
+
+        TMP_Text[] allTexts = FindObjectsOfType<TMP_Text>(true);
+        TMP_Text exactActiveDd = null;
+        TMP_Text exactActive = null;
+        TMP_Text exactAnyDd = null;
+        TMP_Text exactAny = null;
+        TMP_Text ammoActive = null;
+        TMP_Text bulletActive = null;
+        TMP_Text fallback = null;
+
+        for (int i = 0; i < allTexts.Length; i++)
+        {
+            TMP_Text text = allTexts[i];
+            if (text == null) continue;
+
+            string lower = text.name.ToLowerInvariant();
+            bool active = text.gameObject.activeInHierarchy;
+            bool inDdol = text.gameObject.scene.IsValid() && text.gameObject.scene.name == "DontDestroyOnLoad";
+
+            if (lower == "bullets")
+            {
+                if (active && inDdol && exactActiveDd == null) exactActiveDd = text;
+                if (active && exactActive == null) exactActive = text;
+                if (inDdol && exactAnyDd == null) exactAnyDd = text;
+                if (exactAny == null) exactAny = text;
+                continue;
+            }
+
+            if (lower.Contains("ammo"))
+            {
+                if (active && ammoActive == null) ammoActive = text;
+                if (fallback == null) fallback = text;
+                continue;
+            }
+
+            if (lower.Contains("bullet"))
+            {
+                if (active && bulletActive == null) bulletActive = text;
+                if (fallback == null) fallback = text;
+            }
+        }
+
+        if (exactActiveDd != null)
+        {
+            ammoText = exactActiveDd;
+            return;
+        }
+
+        if (exactActive != null)
+        {
+            ammoText = exactActive;
+            return;
+        }
+
+        if (exactAnyDd != null)
+        {
+            ammoText = exactAnyDd;
+            return;
+        }
+
+        if (exactAny != null)
+        {
+            ammoText = exactAny;
+            return;
+        }
+
+        if (ammoActive != null)
+        {
+            ammoText = ammoActive;
+            return;
+        }
+
+        if (bulletActive != null)
+        {
+            ammoText = bulletActive;
+            return;
+        }
+
+        if (fallback != null)
+        {
+            ammoText = fallback;
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(ammoTextObjectName))
+        {
+            GameObject named = GameObject.Find(ammoTextObjectName);
+            if (named != null)
+            {
+                ammoText = named.GetComponent<TMP_Text>();
+            }
+        }
     }
 }

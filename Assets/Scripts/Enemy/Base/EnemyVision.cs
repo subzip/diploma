@@ -13,11 +13,12 @@ public class EnemyVision : MonoBehaviour
 
     private void Start()
     {
-        player = GameObject.FindGameObjectWithTag("Player")?.transform;
+        ResolvePlayerRef(force: true);
     }
 
     public bool CanSeePlayer()
     {
+        ResolvePlayerRef();
         if (player == null) return false;
 
         Vector3 direction = player.position - transform.position;
@@ -38,4 +39,11 @@ public class EnemyVision : MonoBehaviour
     }
 
     public bool SeenRecently(float graceSeconds) => Time.time - lastSeenTime <= graceSeconds;
+
+    private void ResolvePlayerRef(bool force = false)
+    {
+        if (!force && player != null) return;
+        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+        player = playerObj != null ? playerObj.transform : null;
+    }
 }

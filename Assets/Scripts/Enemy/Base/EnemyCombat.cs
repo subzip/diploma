@@ -15,7 +15,7 @@ public class EnemyCombat : MonoBehaviour
 
     protected void Start()
     {
-        player = GameObject.FindGameObjectWithTag("Player")?.transform;
+        ResolvePlayerRef(force: true);
         agent = GetComponent<NavMeshAgent>();
         if (agent == null)
         {
@@ -25,6 +25,9 @@ public class EnemyCombat : MonoBehaviour
 
     public void UpdateChase()
     {
+        if (DeathScreen.GlobalDeathActive) return;
+        ResolvePlayerRef();
+
         if (player != null && agent != null)
         {
             if (agent.destination != player.position)
@@ -34,6 +37,9 @@ public class EnemyCombat : MonoBehaviour
 
     public virtual void Attack()
     {
+        if (DeathScreen.GlobalDeathActive) return;
+        ResolvePlayerRef();
+
         if (Time.time >= lastAttackTime + attackCooldown)
         {
             lastAttackTime = Time.time;
@@ -52,7 +58,15 @@ public class EnemyCombat : MonoBehaviour
 
     public virtual bool IsInAttackRange()
     {
+        ResolvePlayerRef();
         if (player == null) return false;
         return Vector3.Distance(transform.position, player.position) <= attackRange;
+    }
+
+    protected void ResolvePlayerRef(bool force = false)
+    {
+        if (!force && player != null) return;
+        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+        player = playerObj != null ? playerObj.transform : null;
     }
 }

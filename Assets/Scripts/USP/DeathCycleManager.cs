@@ -12,6 +12,12 @@ public enum DeathKind
 public class DeathCycleManager : MonoBehaviour
 {
     private static DeathCycleManager instance;
+    private static bool snapshotValid;
+    private static int snapshotCycleCount;
+    private static int snapshotVariantIndex;
+    private static int snapshotEntropy;
+    private static string snapshotLastZoneId = string.Empty;
+    private static float snapshotLastDeathTime = -999f;
     public static DeathCycleManager Instance => instance;
 
     [Header("Config")]
@@ -51,6 +57,15 @@ public class DeathCycleManager : MonoBehaviour
 
         instance = this;
         DontDestroyOnLoad(gameObject);
+
+        if (snapshotValid)
+        {
+            cycleCount = snapshotCycleCount;
+            currentVariantIndex = snapshotVariantIndex;
+            entropy = snapshotEntropy;
+            lastDeathZoneId = snapshotLastZoneId;
+            lastDeathTime = snapshotLastDeathTime;
+        }
 
         if (config == null)
         {
@@ -105,6 +120,7 @@ public class DeathCycleManager : MonoBehaviour
             Debug.Log($"[DeathCycle] death={deathKind}, zone='{zoneId}', +entropy={penalty}, entropy={entropy}, tier={EntropyTier}, variant={currentVariantIndex}, cycles={cycleCount}");
         }
 
+        StoreSnapshot();
         OnCycleStateChanged?.Invoke(cycleCount, currentVariantIndex, entropy, EntropyTier);
     }
 
@@ -118,6 +134,7 @@ public class DeathCycleManager : MonoBehaviour
             Debug.Log($"[DeathCycle] major progress: -{reward} entropy => {entropy}");
         }
 
+        StoreSnapshot();
         OnCycleStateChanged?.Invoke(cycleCount, currentVariantIndex, entropy, EntropyTier);
     }
 
@@ -134,6 +151,7 @@ public class DeathCycleManager : MonoBehaviour
             Debug.Log("[DeathCycle] run state reset");
         }
 
+        StoreSnapshot();
         OnCycleStateChanged?.Invoke(cycleCount, currentVariantIndex, entropy, EntropyTier);
     }
 
@@ -174,5 +192,24 @@ public class DeathCycleManager : MonoBehaviour
         }
 
         return config.GetTier(entropyValue);
+    }
+
+    private void OnDestroy()
+    {
+        if (instance == this)
+        {
+            StoreSnapshot();
+            instance = null;
+        }
+    }
+
+    private void StoreSnapshot()
+    {
+        snapshotValid = true;
+        snapshotCycleCount = cycleCount;
+        snapshotVariantIndex = currentVariantIndex;
+        snapshotEntropy = entropy;
+        snapshotLastZoneId = lastDeathZoneId;
+        snapshotLastDeathTime = lastDeathTime;
     }
 }

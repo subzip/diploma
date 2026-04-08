@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class PlayerHealth : MonoBehaviour, IDamageable
@@ -7,6 +8,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     [Header("Health Settings")]
     [SerializeField] private float maxHealth = 150f;
     [SerializeField] private Slider healthSlider;
+    [SerializeField] private string healthSliderObjectName = "Health";
 
     [Header("Damage Feedback")]
     [SerializeField] private BloodSplatUI bloodSplatUI;
@@ -25,7 +27,18 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     {
         currentHealth = maxHealth;
         if (bloodSplatUI == null) bloodSplatUI = FindObjectOfType<BloodSplatUI>();
+        ResolveHealthSliderIfNeeded();
         UpdateHealthUI();
+    }
+
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
     public void TakeDamage(float damage, Vector3 hitPoint)
@@ -59,8 +72,18 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         UpdateHealthUI();
     }
 
+    public void ResetForRespawn()
+    {
+        isDead = false;
+        currentHealth = maxHealth;
+        ResolveHealthSliderIfNeeded(force: true);
+        UpdateHealthUI();
+    }
+
     private void UpdateHealthUI()
     {
+        ResolveHealthSliderIfNeeded();
+
         if (healthSlider != null)
         {
             healthSlider.maxValue = maxHealth;
@@ -81,16 +104,87 @@ public class PlayerHealth : MonoBehaviour, IDamageable
             cycleManager.RegisterDeath(DeathKind.Combat);
         }
 
-        DeathScreen deathScreen = FindObjectOfType<DeathScreen>();
+        DeathScreen deathScreen = DeathScreen.Instance;
+        if (deathScreen == null) deathScreen = FindObjectOfType<DeathScreen>();
+
         if (deathScreen != null)
         {
             deathScreen.ShowDeathScreen();
         }
         else
         {
-            Time.timeScale = 0f;
-            Cursor.visible = true;
-            Cursor.lockState = CursorLockMode.None;
+            ForceDeathFallbackWithoutUi();
         }
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        ResolveHealthSliderIfNeeded(force: true);
+        UpdateHealthUI();
+    }
+
+    private void ResolveHealthSliderIfNeeded(bool force = false)
+    {
+        if (!force && healthSlider != null) return;
+
+        Slider[] sliders = FindObjectsOfType<Slider>(true);
+        Slider fallback = null;
+
+        for (int i = 0; i < sliders.Length; i++)
+        {
+            Slider slider = sliders[i];
+            if (slider == null) continue;
+
+            string lower = slider.name.ToLowerInvariant();
+            if (lower == "health" || lower.Contains("health"))
+            {
+                healthSlider = slider;
+                return;
+            }
+
+            if (fallback == null && lower.Contains("hp"))
+            {
+                fallback = slider;
+            }
+        }
+
+        if (fallback != null)
+        {
+            healthSlider = fallback;
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(healthSliderObjectName))
+        {
+            GameObject byName = GameObject.Find(healthSliderObjectName);
+            if (byName != null)
+            {
+                healthSlider = byName.GetComponent<Slider>();
+            }
+        }
+    }
+
+    private void ForceDeathFallbackWithoutUi()
+    {
+        DeathScreen.SetGlobalDeathActive(true);
+        Time.timeScale = 1f;
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+
+        DisableBehaviour<PlayerMovement>();
+        DisableBehaviour<PlayerLook>();
+        DisableBehaviour<PlayerCrouch>();
+        DisableBehaviour<PlayerNeuroresist>();
+        DisableBehaviour<AimController>();
+        DisableBehaviour<SwayNBobScript>();
+
+        WeaponManager wm = GetComponentInChildren<WeaponManager>(true);
+        if (wm != null) wm.enabled = false;
+    }
+
+    private void DisableBehaviour<T>() where T : Behaviour
+    {
+        T component = GetComponentInChildren<T>(true);
+        if (component != null) component.enabled = false;
     }
 }

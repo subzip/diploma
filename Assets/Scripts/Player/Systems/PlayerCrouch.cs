@@ -42,6 +42,12 @@ public class PlayerCrouch : MonoBehaviour
         HandleCrouching();
     }
 
+    public void ForceStand()
+    {
+        isCrouching = false;
+        HandleCrouching();
+    }
+
     private void HandleCrouching()
     {
         float targetHeight = isCrouching ? crouchHeight : standHeight;

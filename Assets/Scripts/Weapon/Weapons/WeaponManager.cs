@@ -172,6 +172,50 @@ public class WeaponManager : MonoBehaviour
 
     public Vector3 GetRecoilOffset() => CurrentWeapon?.GetRecoilOffset() ?? Vector3.zero;
 
+    public void ResetForRespawn(bool refillAmmoToDefaults)
+    {
+        if (weaponSlots == null || weaponSlots.Length == 0) return;
+
+        fireHeld = false;
+        isSwitching = false;
+
+        for (int i = 0; i < weapons.Count; i++)
+        {
+            BaseWeapon weapon = weapons[i];
+            if (weapon == null) continue;
+
+            weapon.CancelReload();
+            weapon.ResetForRespawn(refillAmmoToDefaults);
+            weapon.gameObject.SetActive(false);
+        }
+
+        int targetIndex = Mathf.Clamp(currentWeaponIndex, 0, weapons.Count - 1);
+        if (targetIndex < 0 || targetIndex >= weapons.Count || weapons[targetIndex] == null)
+        {
+            targetIndex = FindFirstExistingWeapon();
+        }
+
+        if (targetIndex >= 0 && targetIndex < weapons.Count && weapons[targetIndex] != null)
+        {
+            currentWeaponIndex = targetIndex;
+            BaseWeapon current = weapons[currentWeaponIndex];
+            current.gameObject.SetActive(true);
+            current.transform.SetParent(weaponSlots[Mathf.Clamp(currentWeaponIndex, 0, weaponSlots.Length - 1)]);
+            current.transform.localPosition = Vector3.zero;
+            current.transform.localRotation = Quaternion.identity;
+            UpdateIKTargets(current.transform);
+            current.RefreshAmmoUiBindingAndValue();
+        }
+
+        // One extra pass to guarantee HUD sync after scene reload.
+        for (int i = 0; i < weapons.Count; i++)
+        {
+            BaseWeapon weapon = weapons[i];
+            if (weapon == null) continue;
+            weapon.RefreshAmmoUiBindingAndValue();
+        }
+    }
+
     public bool AddAmmo(AmmoType ammoType, int amount)
     {
         if (amount <= 0) return false;

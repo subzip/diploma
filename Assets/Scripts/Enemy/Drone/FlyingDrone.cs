@@ -39,7 +39,7 @@ public class FlyingDrone : MonoBehaviour, IDamageable
     private void Awake()
     {
         currentHealth = maxHealth;
-        player = GameObject.FindGameObjectWithTag("Player")?.transform;
+        ResolvePlayerRef(force: true);
 
         if (patrolPoints.Length > 0)
             currentTarget = patrolPoints[0].position;
@@ -47,6 +47,8 @@ public class FlyingDrone : MonoBehaviour, IDamageable
 
     private void Update()
     {
+        if (DeathScreen.GlobalDeathActive) return;
+        ResolvePlayerRef();
         if (player == null) return;
 
         bool canSeePlayer = CanSeePlayer();
@@ -124,6 +126,10 @@ public class FlyingDrone : MonoBehaviour, IDamageable
 
     private void AttackPlayer()
     {
+        if (DeathScreen.GlobalDeathActive) return;
+        ResolvePlayerRef();
+        if (player == null) return;
+
         if (Time.time >= lastAttackTime + fireRate)
         {
             lastAttackTime = Time.time;
@@ -152,5 +158,12 @@ public class FlyingDrone : MonoBehaviour, IDamageable
     {
         Debug.Log("DroneDead!");
         Destroy(gameObject);
+    }
+
+    private void ResolvePlayerRef(bool force = false)
+    {
+        if (!force && player != null) return;
+        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+        player = playerObj != null ? playerObj.transform : null;
     }
 }
