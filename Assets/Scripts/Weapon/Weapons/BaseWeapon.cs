@@ -10,7 +10,7 @@ public abstract class BaseWeapon : MonoBehaviour
     [SerializeField] private TMP_Text ammoText;
 
     [Header("Effects")]
-    [SerializeField] private float tracerDuration = 1f;
+    [SerializeField] private float tracerFadeOut = 0.04f;
     [SerializeField] private GameObject bulletHolePrefab;
     [SerializeField] private Transform casingEjectPoint;
     [SerializeField] private bool useDecalProjector = true;
@@ -106,12 +106,7 @@ public abstract class BaseWeapon : MonoBehaviour
         bool hit = Physics.Raycast(centerRay.origin, shotDirection, out RaycastHit hitInfo, stats.range, stats.hitLayers, QueryTriggerInteraction.Ignore);
         Vector3 tracerEnd = hit ? hitInfo.point : centerRay.origin + shotDirection * stats.range;
 
-        if (stats.tracerEffectPrefab != null)
-        {
-            Transform origin = muzzlePoint != null ? muzzlePoint : transform;
-            GameObject tracer = Instantiate(stats.tracerEffectPrefab, origin.position, Quaternion.LookRotation(tracerEnd - origin.position));
-            Destroy(tracer, tracerDuration);
-        }
+        SpawnTracer(tracerEnd);
 
         if (hit)
         {
@@ -133,11 +128,7 @@ public abstract class BaseWeapon : MonoBehaviour
             Debug.Log("[DecalDebug] Raycast MISS");
         }
 
-        if (muzzlePoint != null && stats.muzzlePrefab != null)
-        {
-            GameObject flash = Instantiate(stats.muzzlePrefab, muzzlePoint.position, muzzlePoint.rotation);
-            Destroy(flash, 2f);
-        }
+        SpawnMuzzleFlash();
 
         if (currentAmmo == 0)
         {
@@ -413,5 +404,40 @@ public abstract class BaseWeapon : MonoBehaviour
 
         GameObject impact = Instantiate(prefab, hitInfo.point, Quaternion.LookRotation(hitInfo.normal));
         Destroy(impact, 5f);
+    }
+
+    private void SpawnMuzzleFlash()
+    {
+        if (stats == null || stats.muzzlePrefab == null) return;
+        Transform origin = muzzlePoint != null ? muzzlePoint : transform;
+
+        GameObject flash = Instantiate(stats.muzzlePrefab, origin.position, origin.rotation, origin);
+        MuzzleFlashOneShot oneShot = flash.GetComponent<MuzzleFlashOneShot>();
+        if (oneShot == null) oneShot = flash.AddComponent<MuzzleFlashOneShot>();
+        oneShot.PlayAndAutoDestroy(stats.muzzleLifetime);
+    }
+
+    private void SpawnTracer(Vector3 tracerEnd)
+    {
+        if (stats == null) return;
+
+        Transform origin = muzzlePoint != null ? muzzlePoint : transform;
+        GameObject tracerObj = stats.tracerEffectPrefab != null
+            ? Instantiate(stats.tracerEffectPrefab, origin.position, Quaternion.identity)
+            : new GameObject("BulletTracer");
+
+        TracerVFX tracer = tracerObj.GetComponent<TracerVFX>();
+        if (tracer == null) tracer = tracerObj.AddComponent<TracerVFX>();
+
+        tracer.Initialize(
+            origin.position,
+            tracerEnd,
+            stats.tracerSpeed,
+            stats.tracerWidth,
+            stats.tracerLength,
+            stats.tracerColor,
+            stats.tracerMaterial,
+            tracerFadeOut
+        );
     }
 }

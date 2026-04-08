@@ -74,6 +74,13 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         isDead = true;
         if (healthSlider != null) healthSlider.value = 0f;
 
+        DeathCycleManager cycleManager = DeathCycleManager.Instance;
+        if (cycleManager == null) cycleManager = FindObjectOfType<DeathCycleManager>();
+        if (cycleManager != null)
+        {
+            cycleManager.RegisterDeath(DeathKind.Combat);
+        }
+
         DeathScreen deathScreen = FindObjectOfType<DeathScreen>();
         if (deathScreen != null)
         {

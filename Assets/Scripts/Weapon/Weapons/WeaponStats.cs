@@ -42,6 +42,12 @@ public class WeaponStats : ScriptableObject
     [Header("Effects")]
     public GameObject muzzlePrefab;
     public GameObject tracerEffectPrefab;
+    [Min(0.01f)] public float muzzleLifetime = 0.08f;
+    [Min(1f)] public float tracerSpeed = 260f;
+    [Min(0.001f)] public float tracerWidth = 0.02f;
+    [Min(0.01f)] public float tracerLength = 0.35f;
+    public Color tracerColor = new Color(1f, 0.95f, 0.75f, 0.95f);
+    public Material tracerMaterial;
     public GameObject impactDefaultPrefab;
     public GameObject impactFleshPrefab;
     public GameObject casingPrefab;

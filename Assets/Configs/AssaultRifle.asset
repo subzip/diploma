@@ -37,8 +37,14 @@ MonoBehaviour:
   recoilHorizontal: 0.25
   recoilRecoverySpeed: 5
   recoilSnap: 10
-  muzzlePrefab: {fileID: 0}
+  muzzlePrefab: {fileID: 7402772589111674848, guid: d225e46a95ff248409e8dc6f8b4afd21, type: 3}
   tracerEffectPrefab: {fileID: 0}
+  muzzleLifetime: 0.12
+  tracerSpeed: 160
+  tracerWidth: 0.02
+  tracerLength: 0.55
+  tracerColor: {r: 0.8773585, g: 0.60645384, b: 0.33521718, a: 0.95}
+  tracerMaterial: {fileID: 0}
   impactDefaultPrefab: {fileID: 0}
   impactFleshPrefab: {fileID: 0}
   casingPrefab: {fileID: 0}
