@@ -12,6 +12,7 @@ public class DamageVignetteUI : MonoBehaviour
     [SerializeField] private float fadeOutDuration = 0.45f;
 
     private Coroutine currentPulse;
+    private PlayerHealth cachedHealth;
 
     private void Awake()
     {
@@ -24,16 +25,16 @@ public class DamageVignetteUI : MonoBehaviour
 
     private void OnEnable()
     {
-        PlayerHealth health = FindObjectOfType<PlayerHealth>();
-        if (health != null)
-            health.OnDamaged += OnPlayerDamaged;
+        cachedHealth = FindObjectOfType<PlayerHealth>();
+        if (cachedHealth != null)
+            cachedHealth.OnDamaged += OnPlayerDamaged;
     }
 
     private void OnDisable()
     {
-        PlayerHealth health = FindObjectOfType<PlayerHealth>();
-        if (health != null)
-            health.OnDamaged -= OnPlayerDamaged;
+        if (cachedHealth != null)
+            cachedHealth.OnDamaged -= OnPlayerDamaged;
+        cachedHealth = null;
     }
 
     private void OnPlayerDamaged(float damage, Vector3 hitPoint)

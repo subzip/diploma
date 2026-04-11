@@ -118,7 +118,7 @@ TextureImporter:
         width: 504
         height: 121
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -127,6 +127,50 @@ TextureImporter:
       bones: []
       spriteID: 84c5d2cd03c7f2e479fc62318af8c31f
       internalID: 66097739
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: different-hud-elements-flat-frames-set_1
+      rect:
+        serializedVersion: 2
+        x: 44
+        y: 794
+        width: 317
+        height: 217
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ae883bd8195c74e4a846642def7ee0f2
+      internalID: 151968839
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: different-hud-elements-flat-frames-set_2
+      rect:
+        serializedVersion: 2
+        x: 1551
+        y: 832
+        width: 158
+        height: 145
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 5}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3206f980f6210bd4caabbb010575021e
+      internalID: 1759015172
       vertices: []
       indices: 
       edges: []
@@ -146,6 +190,8 @@ TextureImporter:
       entries: []
     nameFileIdTable:
       different-hud-elements-flat-frames-set_0: 66097739
+      different-hud-elements-flat-frames-set_1: 151968839
+      different-hud-elements-flat-frames-set_2: 1759015172
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

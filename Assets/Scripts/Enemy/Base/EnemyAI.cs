@@ -10,83 +10,182 @@ public class EnemyAI : MonoBehaviour
     [SerializeField] protected EnemyCombat combat;
     [SerializeField] protected EnemyHealth health;
     [SerializeField] protected EnemyAnimator animator;
-    [SerializeField] protected float lostSightGrace = 1.5f;
+
+    [Header("Behavior")]
+    [SerializeField] protected float reactionDelay = 0.15f;
+    [SerializeField] protected float lostSightGrace = 1.8f;
+    [SerializeField] protected float investigateDuration = 3.5f;
+    [SerializeField] protected float investigateReachDistance = 1.4f;
+    [SerializeField] protected float investigatePointRadius = 3.2f;
+    [SerializeField] protected int investigatePointsMax = 3;
 
     protected EnemyState currentState = EnemyState.Patrol;
-    protected bool isDying = false;
+    protected bool isDying;
     protected float groundOffset = 0.1f;
     protected Transform player;
     protected Vector3 lastKnownPlayerPosition;
+
+    private float canChaseAfterTime;
+    private float investigateEndTime;
+    private Vector3 currentInvestigatePoint;
+    private int investigatePointsVisited;
 
     public enum EnemyState
     {
         Patrol,
         Chase,
         Attack,
+        Investigate,
         Dead
     }
 
     protected void Awake()
     {
-        var playerObj = GameObject.FindGameObjectWithTag("Player");
-        if (playerObj != null)
-        {
-            player = playerObj.transform;
-            lastKnownPlayerPosition = player.position;
-        }
-        else
-        {
-            player = null;
-            lastKnownPlayerPosition = transform.position;
-        }
+        player = PlayerLocator.GetPlayerTransform(forceRefresh: true);
+        lastKnownPlayerPosition = player != null ? player.position : transform.position;
     }
 
     protected virtual void Start()
     {
-        SwitchState(EnemyState.Patrol);
+        if (patrol == null) patrol = GetComponent<EnemyPatrol>();
+        if (vision == null) vision = GetComponent<EnemyVision>();
+        if (combat == null) combat = GetComponent<EnemyCombat>();
+        if (health == null) health = GetComponent<EnemyHealth>();
+        if (animator == null) animator = GetComponent<EnemyAnimator>();
+
+        currentState = EnemyState.Patrol;
+        animator?.SetState(currentState);
     }
 
     protected void Update()
     {
         if (player == null)
         {
-            var playerObj = GameObject.FindGameObjectWithTag("Player");
-            if (playerObj != null) player = playerObj.transform;
+            player = PlayerLocator.GetPlayerTransform(forceRefresh: true);
         }
 
-        if (isDying)
+        if (isDying) MoveToGround();
+        if (health != null && health.IsDead) return;
+        if (DeathScreen.GlobalDeathActive) return;
+
+        bool canSee = vision != null && vision.CanSeePlayer();
+        bool canSense = vision != null && vision.CanSensePlayer(canSee);
+
+        if (canSee || canSense)
         {
-            MoveToGround();
+            if (vision != null) lastKnownPlayerPosition = vision.GetLastKnownPlayerPosition();
+            if (canChaseAfterTime <= 0f) canChaseAfterTime = Time.time + reactionDelay;
         }
-        if (health.IsDead) return;
+        else
+        {
+            canChaseAfterTime = 0f;
+        }
 
         switch (currentState)
         {
             case EnemyState.Patrol:
-                patrol.UpdatePatrol();
-                if (vision.CanSeePlayer()) SwitchState(EnemyState.Chase);
+                patrol?.UpdatePatrol();
+                if ((canSee || canSense) && Time.time >= canChaseAfterTime)
+                {
+                    SwitchState(EnemyState.Chase);
+                }
                 break;
 
             case EnemyState.Chase:
-                combat.UpdateChase();
-                if (combat.IsInAttackRange()) SwitchState(EnemyState.Attack);
-                else if (!vision.CanSeePlayer() && !vision.SeenRecently(lostSightGrace)) SwitchState(EnemyState.Patrol);
+                combat?.UpdateChase();
+                if (!canSee && vision != null && !vision.SeenRecently(lostSightGrace))
+                {
+                    EnterInvestigateState();
+                    break;
+                }
+
+                if (combat != null && combat.IsInAttackRange() && combat.HasLineOfSightToPlayer())
+                {
+                    SwitchState(EnemyState.Attack);
+                }
                 break;
 
             case EnemyState.Attack:
-                combat.Attack();
-                if (!combat.IsInAttackRange() && (vision.CanSeePlayer() || vision.SeenRecently(lostSightGrace)))
+                combat?.Attack();
+
+                bool canKeepPressure = canSee || (vision != null && vision.SeenRecently(lostSightGrace));
+                if (!canKeepPressure)
+                {
+                    EnterInvestigateState();
+                    break;
+                }
+
+                if (combat != null && (!combat.IsInAttackRange() || !combat.HasLineOfSightToPlayer()))
+                {
                     SwitchState(EnemyState.Chase);
-                else if (!vision.SeenRecently(lostSightGrace))
+                }
+                break;
+
+            case EnemyState.Investigate:
+                if (canSee || canSense)
+                {
+                    SwitchState(EnemyState.Chase);
+                    break;
+                }
+
+                combat?.MoveToPoint(currentInvestigatePoint);
+                bool reached = combat == null || combat.ReachedPoint(investigateReachDistance);
+                if (reached)
+                {
+                    investigatePointsVisited++;
+                    currentInvestigatePoint = PickInvestigatePoint();
+                }
+
+                bool searchExhausted = investigatePointsVisited >= Mathf.Max(1, investigatePointsMax);
+                if (Time.time >= investigateEndTime && (searchExhausted || reached))
+                {
                     SwitchState(EnemyState.Patrol);
+                }
                 break;
         }
     }
 
     public virtual void SwitchState(EnemyState newState)
     {
+        if (currentState == newState) return;
+
+        if (currentState == EnemyState.Attack)
+            combat?.OnExitAttackState();
+
         currentState = newState;
-        animator.SetState(currentState);
+
+        if (currentState == EnemyState.Attack)
+            combat?.OnEnterAttackState();
+
+        animator?.SetState(currentState);
+    }
+
+    private void EnterInvestigateState()
+    {
+        if (vision != null) lastKnownPlayerPosition = vision.GetLastKnownPlayerPosition();
+        investigateEndTime = Time.time + investigateDuration;
+        investigatePointsVisited = 0;
+        currentInvestigatePoint = PickInvestigatePoint();
+        SwitchState(EnemyState.Investigate);
+    }
+
+    private Vector3 PickInvestigatePoint()
+    {
+        Vector3 fallback = lastKnownPlayerPosition;
+        float radius = Mathf.Max(0.5f, investigatePointRadius);
+
+        for (int i = 0; i < 6; i++)
+        {
+            Vector2 circle = Random.insideUnitCircle * radius;
+            Vector3 candidate = lastKnownPlayerPosition + new Vector3(circle.x, 0f, circle.y);
+
+            if (NavMesh.SamplePosition(candidate, out NavMeshHit navHit, radius, NavMesh.AllAreas))
+            {
+                return navHit.position;
+            }
+        }
+
+        return fallback;
     }
 
     protected void MoveToGround()
@@ -108,21 +207,24 @@ public class EnemyAI : MonoBehaviour
 
     public void Die()
     {
-        if (!health.IsDead) return;
+        if (health == null || !health.IsDead) return;
         health.SetDead(true);
         isDying = true;
+        currentState = EnemyState.Dead;
 
         NavMeshAgent agent = GetComponent<NavMeshAgent>();
+        if (agent != null)
+        {
+            agent.isStopped = true;
+            agent.enabled = false;
+        }
 
-        Debug.Log("Dead");
-
-        if (agent != null) agent.isStopped = true;
-        if (agent != null) agent.enabled = false;
-
-        animator.animator.SetBool("IsDead", true);
+        if (animator != null && animator.animator != null)
+        {
+            animator.animator.SetBool("IsDead", true);
+        }
 
         Invoke(nameof(DisableCollider), 0.5f);
-        //Destroy(gameObject, 3f);
     }
 
     protected void DisableCollider()

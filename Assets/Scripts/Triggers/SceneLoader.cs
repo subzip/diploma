@@ -1,22 +1,21 @@
-// SceneLoader.cs
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using System.Collections;
 
 public class SceneLoader : MonoBehaviour
 {
     [Header("Settings")]
     [SerializeField] private string targetSceneName = "Level-1";
     [SerializeField] private QuestSystem questSystem;
+    [SerializeField] private string requiredQuestTitle = "Активировать дверь";
     [SerializeField] private Vector3 spawnPosition = new Vector3(27.331f, 7.086f, -23.299f);
-    //27.331 7.086 -23.299
+
     [Header("Transition")]
     [SerializeField] private Image fadeImage;
     [SerializeField] private float fadeDuration = 1f;
-   
 
-    private bool isTransitioning = false;
+    private bool isTransitioning;
 
     private void Start()
     {
@@ -27,11 +26,13 @@ public class SceneLoader : MonoBehaviour
     }
 
     private void OnTriggerEnter(Collider other)
-{
-    if (other.CompareTag("Player"))
     {
+        if (isTransitioning) return;
+        if (!ComponentSearch.IsPlayer(other)) return;
+        if (questSystem == null) return;
+
         QuestItem current = questSystem.GetCurrentQuest();
-        if (current != null && current.title == "Активировать дверь")
+        if (current != null && string.Equals(current.title, requiredQuestTitle, System.StringComparison.Ordinal))
         {
             StartCoroutine(LoadSceneWithFade());
         }
@@ -40,7 +41,6 @@ public class SceneLoader : MonoBehaviour
             Debug.Log("Card!");
         }
     }
-}
 
     private IEnumerator LoadSceneWithFade()
     {
@@ -56,10 +56,10 @@ public class SceneLoader : MonoBehaviour
         asyncLoad.allowSceneActivation = true;
         yield return asyncLoad;
 
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        Transform player = PlayerLocator.GetPlayerTransform(forceRefresh: true);
         if (player != null)
         {
-            player.transform.position = spawnPosition;
+            player.position = spawnPosition;
         }
 
         if (fadeImage != null)

@@ -31,8 +31,7 @@ public class PlayerVitalsHud : MonoBehaviour
 
     private void Awake()
     {
-        if (playerHealth == null) playerHealth = FindObjectOfType<PlayerHealth>();
-        if (playerMovement == null) playerMovement = FindObjectOfType<PlayerMovement>();
+        ResolveSources();
 
         if (playerHealth != null)
         {
@@ -53,6 +52,7 @@ public class PlayerVitalsHud : MonoBehaviour
 
     private void OnEnable()
     {
+        ResolveSources();
         if (playerHealth != null)
         {
             playerHealth.OnHealthChanged += OnHealthChanged;
@@ -69,6 +69,11 @@ public class PlayerVitalsHud : MonoBehaviour
 
     private void Update()
     {
+        if (playerHealth == null || playerMovement == null)
+        {
+            ResolveSources();
+        }
+
         if (playerMovement != null)
         {
             targetStaminaNormalized = Mathf.Clamp01(playerMovement.CurrentStamina / Mathf.Max(0.001f, playerMovement.MaxStamina));
@@ -123,5 +128,11 @@ public class PlayerVitalsHud : MonoBehaviour
                 ? $"{Mathf.RoundToInt(targetStaminaNormalized * 100f)}%"
                 : $"{Mathf.RoundToInt(playerMovement.CurrentStamina)}";
         }
+    }
+
+    private void ResolveSources()
+    {
+        if (playerHealth == null) playerHealth = FindObjectOfType<PlayerHealth>();
+        if (playerMovement == null) playerMovement = FindObjectOfType<PlayerMovement>();
     }
 }

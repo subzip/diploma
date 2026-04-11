@@ -114,6 +114,10 @@ public abstract class BaseWeapon : MonoBehaviour
 
         currentAmmo--;
         nextFireTime = Time.time + stats.fireRate;
+        CombatStimulusHub.RegisterGunshot(
+            transform.position,
+            Mathf.Clamp(stats.range * 0.3f, 8f, 30f)
+        );
 
         if (stats.shootSound != null) audioSource.PlayOneShot(stats.shootSound);
 

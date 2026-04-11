@@ -1,6 +1,7 @@
 // DroneCombat.cs
 using UnityEngine;
 
+[System.Obsolete("Legacy drone combat. Use FlyingDrone instead.")]
 public class DroneCombat : EnemyCombat
 {
     [Header("Drone Specific")]
@@ -11,6 +12,7 @@ public class DroneCombat : EnemyCombat
 
     private void Awake()
     {
+        Debug.LogWarning($"{name}: DroneCombat is legacy. Prefer FlyingDrone for active drone behavior.");
         attackRange = laserRange;
         attackCooldown = fireRate;
         attackDamage = Mathf.RoundToInt(laserDamage);

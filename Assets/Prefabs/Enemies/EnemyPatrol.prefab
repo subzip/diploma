@@ -10,7 +10,8 @@ GameObject:
   m_Component:
   - component: {fileID: 3076625009304661422}
   - component: {fileID: 3082254454413961722}
-  - component: {fileID: 5334368850428645028}
+  - component: {fileID: 7439474730531253794}
+  - component: {fileID: 2195106420421955414}
   m_Layer: 0
   m_Name: EnemyPatrol
   m_TagString: Untagged
@@ -55,7 +56,7 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 1.2
   m_Center: {x: 0, y: 0.3, z: 0}
---- !u!114 &5334368850428645028
+--- !u!114 &7439474730531253794
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -64,22 +65,66 @@ MonoBehaviour:
   m_GameObject: {fileID: 4257164606897095943}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 102a159518ed71e419d9095e2bc502dc, type: 3}
+  m_Script: {fileID: 11500000, guid: 1dd973d3200f5564d92775c030778635, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  patrolPoints: []
-  patrolSpeed: 2
-  waitTime: 2
-  detectionRange: 20
-  fieldOfView: 90
-  attackRange: 15
-  fireRate: 1
-  damage: 10
-  playerLayer:
-    serializedVersion: 2
-    m_Bits: 0
-  laserVFX: {fileID: 0}
+  eyePoint: {fileID: 3237894686209998883}
+  firePoint: {fileID: 3237894686209998883}
+  animator: {fileID: 2195106420421955414}
+  hitCollider: {fileID: 3082254454413961722}
   maxHealth: 50
+  fovDegrees: 180
+  visionRange: 30
+  obstacleMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  patrolPoints: []
+  idleMinSeconds: 1
+  idleMaxSeconds: 2
+  patrolWaitSeconds: 1.1
+  attackRange: 20
+  searchDurationSeconds: 8
+  reactionDelaySeconds: 0.22
+  fireInterval: 0.3
+  baseDamage: 12
+  aimSpreadDegrees: 1.4
+  moveSpeed: 5
+  rotateSpeed: 9
+  desiredHeightOffset: 1.8
+  minAttackDistance: 3
+  weaveAmplitude: 1.2
+  weaveFrequency: 2.2
+  minFacingDotToFire: 0.35
+  useEntropyScaling: 1
+  tier2DamageMult: 1.08
+  tier3DamageMult: 1.18
+  tier4DamageMult: 1.3
+  tier2FireRateMult: 0.92
+  tier3FireRateMult: 0.84
+  tier4FireRateMult: 0.76
+  debugState: 0
+--- !u!95 &2195106420421955414
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4257164606897095943}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 0}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1001 &1774593615699626390
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -154,5 +199,10 @@ PrefabInstance:
 --- !u!4 &2245649148773576317 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: bd3ba8acde8798d49976ef4e875dd2db, type: 3}
+  m_PrefabInstance: {fileID: 1774593615699626390}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &3237894686209998883 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -5453912534721508939, guid: bd3ba8acde8798d49976ef4e875dd2db, type: 3}
   m_PrefabInstance: {fileID: 1774593615699626390}
   m_PrefabAsset: {fileID: 0}

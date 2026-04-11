@@ -26,7 +26,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     private void Awake()
     {
         currentHealth = maxHealth;
-        if (bloodSplatUI == null) bloodSplatUI = FindObjectOfType<BloodSplatUI>();
+        ResolveReferences();
         ResolveHealthSliderIfNeeded();
         UpdateHealthUI();
     }
@@ -97,6 +97,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         isDead = true;
         if (healthSlider != null) healthSlider.value = 0f;
 
+        ResolveReferences();
         DeathCycleManager cycleManager = DeathCycleManager.Instance;
         if (cycleManager == null) cycleManager = FindObjectOfType<DeathCycleManager>();
         if (cycleManager != null)
@@ -119,8 +120,14 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        ResolveReferences();
         ResolveHealthSliderIfNeeded(force: true);
         UpdateHealthUI();
+    }
+
+    private void ResolveReferences()
+    {
+        if (bloodSplatUI == null) bloodSplatUI = FindObjectOfType<BloodSplatUI>();
     }
 
     private void ResolveHealthSliderIfNeeded(bool force = false)

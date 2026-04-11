@@ -198,16 +198,16 @@ public class DeathScreen : MonoBehaviour
     {
         disabledPlayerBehaviours.Clear();
 
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        Transform player = PlayerLocator.GetPlayerTransform(forceRefresh: true);
         if (player == null) return;
 
-        DisableBehaviours<PlayerMovement>(player);
-        DisableBehaviours<PlayerLook>(player);
-        DisableBehaviours<PlayerCrouch>(player);
-        DisableBehaviours<PlayerNeuroresist>(player);
-        DisableBehaviours<WeaponManager>(player);
-        DisableBehaviours<AimController>(player);
-        DisableBehaviours<SwayNBobScript>(player);
+        DisableBehaviours<PlayerMovement>(player.gameObject);
+        DisableBehaviours<PlayerLook>(player.gameObject);
+        DisableBehaviours<PlayerCrouch>(player.gameObject);
+        DisableBehaviours<PlayerNeuroresist>(player.gameObject);
+        DisableBehaviours<WeaponManager>(player.gameObject);
+        DisableBehaviours<AimController>(player.gameObject);
+        DisableBehaviours<SwayNBobScript>(player.gameObject);
     }
 
     private void RestorePlayerControlsIfNeeded()
