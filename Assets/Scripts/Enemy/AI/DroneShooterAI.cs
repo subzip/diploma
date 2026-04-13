@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.AI;
 
 [RequireComponent(typeof(Collider))]
 public class DroneShooterAI : MonoBehaviour, IDamageable
@@ -22,6 +23,7 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
     [SerializeField] private float idleMinSeconds = 1f;
     [SerializeField] private float idleMaxSeconds = 2f;
     [SerializeField] private float patrolWaitSeconds = 1.1f;
+    [SerializeField] private float patrolReachDistance = 0.7f;
 
     [Header("Attack")]
     [SerializeField] private float attackRange = 20f;
@@ -39,6 +41,16 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
     [SerializeField] private float weaveAmplitude = 1.2f;
     [SerializeField] private float weaveFrequency = 2.2f;
     [SerializeField, Range(-1f, 1f)] private float minFacingDotToFire = 0.35f;
+
+    [Header("Patrol Path (NavMesh)")]
+    [SerializeField] private float navMeshSampleDistance = 6f;
+    [SerializeField] private float pathRebuildInterval = 0.65f;
+    [SerializeField] private float cornerReachDistance = 0.75f;
+    [SerializeField] private float pointTimeoutSeconds = 6f;
+
+    [Header("Patrol Anti-Stuck")]
+    [SerializeField] private float stuckDistanceEpsilon = 0.12f;
+    [SerializeField] private float stuckTimeoutSeconds = 1.8f;
 
     [Header("Entropy Scaling")]
     [SerializeField] private bool useEntropyScaling = true;
@@ -66,6 +78,12 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
     private float fireReadyTime;
     private float attackAllowedAfter;
     private float weavePhase;
+    private float patrolStuckTimer;
+    private Vector3 lastPatrolPosition;
+    private float nextPathRebuildTime;
+    private float patrolPointElapsed;
+    private int patrolCornerIndex;
+    private NavMeshPath patrolPath;
 
     private IdleState idleState;
     private PatrolState patrolState;
@@ -86,6 +104,8 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
         currentHealth = maxHealth;
         stateMachine = new EnemyStateMachine();
         weavePhase = Random.value * 100f;
+        lastPatrolPosition = transform.position;
+        patrolPath = new NavMeshPath();
 
         idleState = new IdleState(this);
         patrolState = new PatrolState(this);
@@ -245,6 +265,67 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
         }
     }
 
+    private bool IsPatrolStuck(float deltaTime)
+    {
+        float moved = Vector3.Distance(transform.position, lastPatrolPosition);
+        if (moved <= stuckDistanceEpsilon)
+            patrolStuckTimer += deltaTime;
+        else
+            patrolStuckTimer = 0f;
+
+        lastPatrolPosition = transform.position;
+        return patrolStuckTimer >= stuckTimeoutSeconds;
+    }
+
+    private bool BuildPathToCurrentPatrolPoint()
+    {
+        if (patrolPoints == null || patrolPoints.Length == 0) return false;
+
+        Vector3 waypoint = patrolPoints[patrolIndex].position;
+        if (!TrySampleNavMesh(transform.position, out Vector3 from)) return false;
+        if (!TrySampleNavMesh(waypoint, out Vector3 to)) return false;
+
+        bool ok = NavMesh.CalculatePath(from, to, NavMesh.AllAreas, patrolPath);
+        if (!ok || patrolPath == null || patrolPath.status == NavMeshPathStatus.PathInvalid || patrolPath.corners == null || patrolPath.corners.Length == 0)
+            return false;
+
+        patrolCornerIndex = patrolPath.corners.Length > 1 ? 1 : 0;
+        nextPathRebuildTime = Time.time + Mathf.Max(0.1f, pathRebuildInterval);
+        return true;
+    }
+
+    private bool TryGetCurrentPathCorner(out Vector3 cornerTarget)
+    {
+        cornerTarget = default;
+        if (patrolPath == null || patrolPath.corners == null || patrolPath.corners.Length == 0) return false;
+        if (patrolCornerIndex < 0 || patrolCornerIndex >= patrolPath.corners.Length) return false;
+
+        Vector3 corner = patrolPath.corners[patrolCornerIndex];
+        cornerTarget = new Vector3(corner.x, corner.y + desiredHeightOffset, corner.z);
+        return true;
+    }
+
+    private bool TrySampleNavMesh(Vector3 world, out Vector3 sampled)
+    {
+        if (NavMesh.SamplePosition(world, out NavMeshHit hit, Mathf.Max(0.5f, navMeshSampleDistance), NavMesh.AllAreas))
+        {
+            sampled = hit.position;
+            return true;
+        }
+
+        sampled = default;
+        return false;
+    }
+
+    private void AdvancePatrolPoint()
+    {
+        if (patrolPoints == null || patrolPoints.Length == 0) return;
+        patrolIndex = (patrolIndex + 1) % patrolPoints.Length;
+        patrolPointElapsed = 0f;
+        patrolStuckTimer = 0f;
+        BuildPathToCurrentPatrolPoint();
+    }
+
     private void OnCycleChanged(int cycle, int variant, int entropy, int tier)
     {
         entropyTier = Mathf.Clamp(tier, 1, 4);
@@ -286,6 +367,10 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
             if (ai.patrolPoints != null && ai.patrolPoints.Length > 0)
                 ai.patrolIndex = (ai.patrolIndex + 1) % ai.patrolPoints.Length;
             ai.stateTimer = ai.patrolWaitSeconds;
+            ai.patrolStuckTimer = 0f;
+            ai.lastPatrolPosition = ai.transform.position;
+            ai.patrolPointElapsed = 0f;
+            ai.BuildPathToCurrentPatrolPoint();
         }
 
         public void Tick(float deltaTime)
@@ -299,11 +384,34 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
 
             if (ai.patrolPoints == null || ai.patrolPoints.Length == 0) return;
 
-            Vector3 target = ai.patrolPoints[ai.patrolIndex].position + Vector3.up * ai.desiredHeightOffset;
-            ai.MoveTowards(target);
-            ai.FaceTowards(target);
+            ai.patrolPointElapsed += deltaTime;
+            if (Time.time >= ai.nextPathRebuildTime)
+            {
+                ai.BuildPathToCurrentPatrolPoint();
+            }
 
-            if (Vector3.Distance(ai.transform.position, target) <= 0.35f)
+            Vector3 waypoint = ai.patrolPoints[ai.patrolIndex].position + Vector3.up * ai.desiredHeightOffset;
+            bool hasCorner = ai.TryGetCurrentPathCorner(out Vector3 cornerTarget);
+
+            if (hasCorner)
+            {
+                ai.MoveTowards(cornerTarget);
+                ai.FaceTowards(cornerTarget);
+
+                if (Vector3.Distance(ai.transform.position, cornerTarget) <= ai.cornerReachDistance)
+                {
+                    ai.patrolCornerIndex++;
+                }
+            }
+            else
+            {
+                // Fallback if path wasn't available this frame.
+                ai.MoveTowards(waypoint);
+                ai.FaceTowards(waypoint);
+            }
+
+            bool reached = Vector3.Distance(ai.transform.position, waypoint) <= Mathf.Max(0.2f, ai.patrolReachDistance);
+            if (reached)
             {
                 ai.stateTimer -= deltaTime;
                 if (ai.stateTimer <= 0f)
@@ -315,6 +423,25 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
             else
             {
                 ai.stateTimer = ai.patrolWaitSeconds;
+            }
+
+            // If drone is boxed by geometry/cornering, rebuild path first, then advance point.
+            if (ai.IsPatrolStuck(deltaTime))
+            {
+                if (!ai.BuildPathToCurrentPatrolPoint())
+                {
+                    ai.AdvancePatrolPoint();
+                }
+                else
+                {
+                    ai.patrolStuckTimer = 0f;
+                }
+            }
+
+            // Prevent infinite attempts on a blocked point.
+            if (ai.patrolPointElapsed >= ai.pointTimeoutSeconds)
+            {
+                ai.AdvancePatrolPoint();
             }
         }
 
