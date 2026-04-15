@@ -4,135 +4,192 @@ using UnityEngine.UI;
 
 public class PlayerVitalsHud : MonoBehaviour
 {
+    private enum NeuroMode
+    {
+        ActiveDurationOnly,
+        ReadinessAndDuration
+    }
+
+    [System.Serializable]
+    private class HudBar
+    {
+        public string label = "Bar";
+        public Image fillImage;
+        public RectTransform fillTransform;
+        public TMP_Text valueText;
+        public Image iconImage;
+    }
+
     [Header("Sources")]
     [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private PlayerMovement playerMovement;
+    [SerializeField] private PlayerNeuroresist playerNeuroresist;
 
-    [Header("Health Bar")]
-    [SerializeField] private Image healthFillImage;
-    [SerializeField] private RectTransform healthFillTransform;
-    [SerializeField] private TMP_Text healthText;
+    [Header("Bars (Left Bottom)")]
+    [SerializeField] private HudBar healthBar = new HudBar { label = "Health" };
+    [SerializeField] private HudBar staminaBar = new HudBar { label = "Stamina" };
+    [SerializeField] private HudBar neuroBar = new HudBar { label = "Neuro" };
 
-    [Header("Stamina Bar")]
-    [SerializeField] private Image staminaFillImage;
-    [SerializeField] private RectTransform staminaFillTransform;
-    [SerializeField] private TMP_Text staminaText;
+    [Header("Neuro Display")]
+    [SerializeField] private NeuroMode neuroMode = NeuroMode.ReadinessAndDuration;
+    [SerializeField] private bool hideNeuroWhenNotAvailable = false;
 
     [Header("Behavior")]
-    [SerializeField] private bool useImageFillAmount = false;
+    [SerializeField] private bool useImageFillAmount = true;
     [SerializeField] private float smoothSpeed = 10f;
     [SerializeField] private bool updateNumericText = true;
     [SerializeField] private bool percentText = false;
+    [SerializeField] private bool hideTextForFullBars = false;
 
-    private float currentHealthNormalized = 1f;
-    private float targetHealthNormalized = 1f;
-    private float currentStaminaNormalized = 1f;
-    private float targetStaminaNormalized = 1f;
+    private float currentHealth01 = 1f;
+    private float targetHealth01 = 1f;
+    private float currentStamina01 = 1f;
+    private float targetStamina01 = 1f;
+    private float currentNeuro01 = 1f;
+    private float targetNeuro01 = 1f;
 
     private void Awake()
     {
         ResolveSources();
-
-        if (playerHealth != null)
-        {
-            targetHealthNormalized = Mathf.Clamp01(playerHealth.CurrentHealth / Mathf.Max(0.001f, playerHealth.MaxHealth));
-            currentHealthNormalized = targetHealthNormalized;
-        }
-
-        if (playerMovement != null)
-        {
-            targetStaminaNormalized = Mathf.Clamp01(playerMovement.CurrentStamina / Mathf.Max(0.001f, playerMovement.MaxStamina));
-            currentStaminaNormalized = targetStaminaNormalized;
-        }
-
-        ApplyBarFill(healthFillImage, healthFillTransform, currentHealthNormalized);
-        ApplyBarFill(staminaFillImage, staminaFillTransform, currentStaminaNormalized);
-        UpdateTexts();
+        SyncInstantValues();
+        ApplyAllBarsInstant();
+        UpdateAllTexts();
     }
 
     private void OnEnable()
     {
         ResolveSources();
         if (playerHealth != null)
-        {
             playerHealth.OnHealthChanged += OnHealthChanged;
-        }
     }
 
     private void OnDisable()
     {
         if (playerHealth != null)
-        {
             playerHealth.OnHealthChanged -= OnHealthChanged;
-        }
     }
 
     private void Update()
     {
-        if (playerHealth == null || playerMovement == null)
-        {
+        if (playerHealth == null || playerMovement == null || playerNeuroresist == null)
             ResolveSources();
-        }
 
         if (playerMovement != null)
-        {
-            targetStaminaNormalized = Mathf.Clamp01(playerMovement.CurrentStamina / Mathf.Max(0.001f, playerMovement.MaxStamina));
-        }
+            targetStamina01 = Mathf.Clamp01(playerMovement.CurrentStamina / Mathf.Max(0.001f, playerMovement.MaxStamina));
+
+        if (playerNeuroresist != null)
+            targetNeuro01 = GetNeuroNormalized();
 
         float t = Mathf.Max(0f, smoothSpeed) * Time.unscaledDeltaTime;
-        currentHealthNormalized = Mathf.Lerp(currentHealthNormalized, targetHealthNormalized, t);
-        currentStaminaNormalized = Mathf.Lerp(currentStaminaNormalized, targetStaminaNormalized, t);
+        currentHealth01 = Mathf.Lerp(currentHealth01, targetHealth01, t);
+        currentStamina01 = Mathf.Lerp(currentStamina01, targetStamina01, t);
+        currentNeuro01 = Mathf.Lerp(currentNeuro01, targetNeuro01, t);
 
-        ApplyBarFill(healthFillImage, healthFillTransform, currentHealthNormalized);
-        ApplyBarFill(staminaFillImage, staminaFillTransform, currentStaminaNormalized);
-        UpdateTexts();
+        ApplyBar(healthBar, currentHealth01);
+        ApplyBar(staminaBar, currentStamina01);
+        ApplyBar(neuroBar, currentNeuro01);
+        UpdateAllTexts();
     }
 
     private void OnHealthChanged(float current, float max)
     {
-        targetHealthNormalized = Mathf.Clamp01(current / Mathf.Max(0.001f, max));
-    }
-
-    private void ApplyBarFill(Image fillImage, RectTransform fillTransform, float normalized)
-    {
-        normalized = Mathf.Clamp01(normalized);
-
-        if (useImageFillAmount && fillImage != null)
-        {
-            fillImage.fillAmount = normalized;
-            return;
-        }
-
-        if (fillTransform != null)
-        {
-            Vector3 scale = fillTransform.localScale;
-            scale.x = normalized;
-            fillTransform.localScale = scale;
-        }
-    }
-
-    private void UpdateTexts()
-    {
-        if (!updateNumericText) return;
-
-        if (healthText != null && playerHealth != null)
-        {
-            healthText.text = percentText
-                ? $"{Mathf.RoundToInt(targetHealthNormalized * 100f)}%"
-                : $"{Mathf.RoundToInt(playerHealth.CurrentHealth)}";
-        }
-
-        if (staminaText != null && playerMovement != null)
-        {
-            staminaText.text = percentText
-                ? $"{Mathf.RoundToInt(targetStaminaNormalized * 100f)}%"
-                : $"{Mathf.RoundToInt(playerMovement.CurrentStamina)}";
-        }
+        targetHealth01 = Mathf.Clamp01(current / Mathf.Max(0.001f, max));
     }
 
     private void ResolveSources()
     {
         if (playerHealth == null) playerHealth = FindObjectOfType<PlayerHealth>();
         if (playerMovement == null) playerMovement = FindObjectOfType<PlayerMovement>();
+        if (playerNeuroresist == null) playerNeuroresist = FindObjectOfType<PlayerNeuroresist>();
+    }
+
+    private void SyncInstantValues()
+    {
+        if (playerHealth != null)
+            targetHealth01 = currentHealth01 = Mathf.Clamp01(playerHealth.CurrentHealth / Mathf.Max(0.001f, playerHealth.MaxHealth));
+
+        if (playerMovement != null)
+            targetStamina01 = currentStamina01 = Mathf.Clamp01(playerMovement.CurrentStamina / Mathf.Max(0.001f, playerMovement.MaxStamina));
+
+        if (playerNeuroresist != null)
+            targetNeuro01 = currentNeuro01 = GetNeuroNormalized();
+    }
+
+    private float GetNeuroNormalized()
+    {
+        if (playerNeuroresist == null) return 0f;
+        return neuroMode == NeuroMode.ActiveDurationOnly
+            ? Mathf.Clamp01(playerNeuroresist.CurrentValue / Mathf.Max(0.001f, playerNeuroresist.MaxValue))
+            : Mathf.Clamp01(playerNeuroresist.Readiness01);
+    }
+
+    private void ApplyAllBarsInstant()
+    {
+        ApplyBar(healthBar, currentHealth01);
+        ApplyBar(staminaBar, currentStamina01);
+        ApplyBar(neuroBar, currentNeuro01);
+    }
+
+    private void ApplyBar(HudBar bar, float normalized)
+    {
+        if (bar == null) return;
+        normalized = Mathf.Clamp01(normalized);
+
+        if (useImageFillAmount && bar.fillImage != null)
+        {
+            bar.fillImage.fillAmount = normalized;
+        }
+        else if (bar.fillTransform != null)
+        {
+            Vector3 scale = bar.fillTransform.localScale;
+            scale.x = normalized;
+            bar.fillTransform.localScale = scale;
+        }
+
+        if (bar.iconImage != null)
+        {
+            float alpha = Mathf.Lerp(0.45f, 1f, normalized);
+            Color c = bar.iconImage.color;
+            c.a = alpha;
+            bar.iconImage.color = c;
+        }
+    }
+
+    private void UpdateAllTexts()
+    {
+        if (!updateNumericText) return;
+
+        UpdateBarText(healthBar, targetHealth01, playerHealth != null ? Mathf.RoundToInt(playerHealth.CurrentHealth).ToString() : "0");
+        UpdateBarText(staminaBar, targetStamina01, playerMovement != null ? Mathf.RoundToInt(playerMovement.CurrentStamina).ToString() : "0");
+
+        if (neuroBar != null && neuroBar.valueText != null)
+        {
+            if (hideNeuroWhenNotAvailable && playerNeuroresist != null && !playerNeuroresist.IsActive && playerNeuroresist.IsReady)
+            {
+                neuroBar.valueText.text = string.Empty;
+            }
+            else
+            {
+                string neuroRaw = playerNeuroresist != null
+                    ? Mathf.RoundToInt(playerNeuroresist.IsActive ? playerNeuroresist.CurrentValue : playerNeuroresist.CooldownRemaining).ToString()
+                    : "0";
+                UpdateBarText(neuroBar, targetNeuro01, neuroRaw);
+            }
+        }
+    }
+
+    private void UpdateBarText(HudBar bar, float normalized, string rawValue)
+    {
+        if (bar == null || bar.valueText == null) return;
+
+        if (hideTextForFullBars && normalized >= 0.999f)
+        {
+            bar.valueText.text = string.Empty;
+            return;
+        }
+
+        bar.valueText.text = percentText
+            ? $"{Mathf.RoundToInt(normalized * 100f)}%"
+            : rawValue;
     }
 }

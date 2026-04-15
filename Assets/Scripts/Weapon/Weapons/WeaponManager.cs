@@ -171,6 +171,7 @@ public class WeaponManager : MonoBehaviour
     }
 
     public Vector3 GetRecoilOffset() => CurrentWeapon?.GetRecoilOffset() ?? Vector3.zero;
+    public Vector2 ConsumeLookRecoil() => CurrentWeapon?.ConsumeLookRecoil() ?? Vector2.zero;
 
     public void ResetForRespawn(bool refillAmmoToDefaults)
     {

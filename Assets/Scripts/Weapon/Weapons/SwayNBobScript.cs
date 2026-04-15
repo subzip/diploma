@@ -6,6 +6,7 @@ public class SwayNBobScript : MonoBehaviour
     [Header("References")]
     [SerializeField] private PlayerMovement mover;
     [SerializeField] private AimController aimController;
+    [SerializeField] private WeaponManager weaponManager;
 
     [Header("Sway Position")]
     [SerializeField] private float step = 0.01f;
@@ -36,6 +37,10 @@ public class SwayNBobScript : MonoBehaviour
     [SerializeField] private float aimSwayMultiplier = 0.25f;
     [SerializeField] private float aimBobMultiplier = 0.15f;
 
+    [Header("Visual Recoil")]
+    [SerializeField] private float recoilPosZ = 0.035f;
+    [SerializeField] private float recoilRotPitch = 6f;
+
     private PlayerInputActions inputActions;
     private Vector2 walkInput;
     private Vector2 lookInput;
@@ -49,6 +54,7 @@ public class SwayNBobScript : MonoBehaviour
     {
         if (mover == null) mover = GetComponentInParent<PlayerMovement>();
         if (aimController == null) aimController = GetComponentInParent<AimController>();
+        if (weaponManager == null) weaponManager = GetComponentInParent<WeaponManager>();
 
         initialLocalPos = transform.localPosition;
         initialLocalRot = transform.localRotation;
@@ -157,9 +163,23 @@ public class SwayNBobScript : MonoBehaviour
         }
 
         Vector3 targetPos = initialLocalPos + swayPos * swayMul + bobPosition * bobMul;
+        Vector3 recoil = weaponManager != null ? weaponManager.GetRecoilOffset() : Vector3.zero;
+        Vector3 recoilPos = new Vector3(
+            0f,
+            0f,
+            -Mathf.Abs(recoil.y) * recoilPosZ
+        );
+        Vector3 recoilRot = new Vector3(
+            -Mathf.Abs(recoil.y) * recoilRotPitch,
+            0f,
+            0f
+        );
+        targetPos += recoilPos;
+
         Quaternion targetRot = initialLocalRot *
                                Quaternion.Euler(swayEulerRot * swayMul) *
-                               Quaternion.Euler(bobEulerRotation * bobMul);
+                               Quaternion.Euler(bobEulerRotation * bobMul) *
+                               Quaternion.Euler(recoilRot);
 
         transform.localPosition = Vector3.Lerp(transform.localPosition, targetPos, Time.deltaTime * smooth);
         transform.localRotation = Quaternion.Slerp(transform.localRotation, targetRot, Time.deltaTime * smoothRot);

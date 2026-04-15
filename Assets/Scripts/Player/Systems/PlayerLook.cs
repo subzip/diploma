@@ -25,6 +25,7 @@ public class PlayerLook : MonoBehaviour
     [SerializeField] private PlayerCrouch crouch;
     [SerializeField] private PlayerMovement movement;
     [SerializeField] private PlayerNeuroresist neuroresist;
+    [SerializeField] private AimController aimController;
 
     [Header("Headbob")]
     [SerializeField] private float bobAmplitudeWalk = 0.02f;
@@ -33,11 +34,24 @@ public class PlayerLook : MonoBehaviour
     [SerializeField] private float bobFrequencySprint = 11f;
     private float bobTimer = 0f;
 
+    [Header("Recoil (Shooter Style)")]
+    [SerializeField] private float recoilKickSnappiness = 22f;
+    [SerializeField] private float recoilReturnSpeed = 12f;
+    [SerializeField] private float maxRecoilPitch = 18f;
+    [SerializeField] private float maxRecoilYaw = 2.5f;
+    [SerializeField] private float adsRecoilMultiplier = 0.8f;
+    [SerializeField] private float recoilPitchMultiplier = 3.1f;
+    [SerializeField] private float recoilYawMultiplier = 0.45f;
+
+    private Vector2 recoilTarget;
+    private Vector2 recoilCurrent;
+
     private void Awake()
     {
         inputActions = GameInput.Instance.Actions;
         if (movement == null) movement = GetComponent<PlayerMovement>();
         if (neuroresist == null) neuroresist = GetComponent<PlayerNeuroresist>();
+        if (aimController == null) aimController = GetComponentInParent<AimController>();
     }
 
     private void OnEnable()
@@ -103,7 +117,7 @@ public class PlayerLook : MonoBehaviour
         cameraPivot.localPosition = new Vector3(bobOffsetX, currentHeight + bobOffsetY, cameraPivot.localPosition.z);
         cameraPivot.localRotation = Quaternion.Euler(xRotation, 0, 0);
 
-        Vector3 recoil = weaponManager?.GetRecoilOffset() ?? Vector3.zero;
+        ApplyLookRecoil(Time.deltaTime);
         float neuroJitter = 0f;
         if (neuroresist != null && neuroresist.CurrentValue > 0f)
         {
@@ -111,6 +125,41 @@ public class PlayerLook : MonoBehaviour
             float jitterFreq = 18f;
             neuroJitter = Mathf.Sin(Time.time * jitterFreq) * jitterAmp;
         }
-        cameraPivot.localRotation = Quaternion.Euler(xRotation + recoil.y + neuroJitter, recoil.x + bobOffsetX * 30f, 0);
+        cameraPivot.localRotation = Quaternion.Euler(
+            xRotation - recoilCurrent.y + neuroJitter,
+            recoilCurrent.x + bobOffsetX * 30f,
+            0f
+        );
+    }
+
+    private void ApplyLookRecoil(float deltaTime)
+    {
+        if (weaponManager == null) return;
+
+        float effectivePitchMul = Mathf.Max(2.8f, recoilPitchMultiplier);
+        float effectiveYawMul = Mathf.Max(0.25f, recoilYawMultiplier);
+        float effectiveMaxPitch = Mathf.Max(10f, maxRecoilPitch);
+        float effectiveMaxYaw = Mathf.Max(1.5f, maxRecoilYaw);
+        float effectiveReturn = Mathf.Max(8f, recoilReturnSpeed);
+        float effectiveSnap = Mathf.Max(18f, recoilKickSnappiness);
+
+        Vector2 impulse = weaponManager.ConsumeLookRecoil();
+        if (impulse.sqrMagnitude > 0f)
+        {
+            bool aiming = weaponManager.CurrentWeapon != null && aimController != null && aimController.IsAiming;
+
+            float adsMul = aiming ? adsRecoilMultiplier : 1f;
+            recoilTarget.x += impulse.x * effectiveYawMul * adsMul;
+            recoilTarget.y += impulse.y * effectivePitchMul * adsMul;
+        }
+
+        recoilTarget.x = Mathf.Clamp(recoilTarget.x, -effectiveMaxYaw, effectiveMaxYaw);
+        recoilTarget.y = Mathf.Clamp(recoilTarget.y, 0f, effectiveMaxPitch);
+
+        float returnT = 1f - Mathf.Exp(-effectiveReturn * deltaTime);
+        recoilTarget = Vector2.Lerp(recoilTarget, Vector2.zero, returnT);
+
+        float kickT = 1f - Mathf.Exp(-effectiveSnap * deltaTime);
+        recoilCurrent = Vector2.Lerp(recoilCurrent, recoilTarget, kickT);
     }
 }

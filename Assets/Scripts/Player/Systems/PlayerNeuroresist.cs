@@ -32,6 +32,23 @@ public class PlayerNeuroresist : MonoBehaviour
     public float CurrentValue => isActive ? Mathf.Max(0f, endTime - Time.time) : 0f;
     public float MaxValue => duration;
     public bool IsActive => isActive;
+    public float Cooldown => cooldown;
+    public float CooldownRemaining => Mathf.Max(0f, nextReadyTime - Time.time);
+    public bool IsReady => !isActive && Time.time >= nextReadyTime;
+    public float Readiness01
+    {
+        get
+        {
+            if (isActive)
+                return Mathf.Clamp01(CurrentValue / Mathf.Max(0.001f, duration));
+
+            if (Time.time >= nextReadyTime)
+                return 1f;
+
+            float remaining = Mathf.Max(0f, nextReadyTime - Time.time);
+            return Mathf.Clamp01(1f - remaining / Mathf.Max(0.001f, cooldown));
+        }
+    }
 
     private void Awake()
     {

@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System;
+using System.Reflection;
 
 /// <summary>
 /// ADS-контроллер: включает режим прицеливания, замедляет игрока, подводит текущее оружие в per-weapon позу.
@@ -15,6 +17,8 @@ public class AimController : MonoBehaviour
 
     [Header("Camera")]
     [SerializeField] private Camera playerCamera;
+    [Tooltip("Assign your active Cinemachine virtual camera component here (CinemachineVirtualCamera/CinemachineCamera/FreeLook).")]
+    [SerializeField] private Behaviour cinemachineVirtualCamera;
     [SerializeField] private float defaultAimFov = 55f;
 
     [Header("Gameplay")]
@@ -39,7 +43,10 @@ public class AimController : MonoBehaviour
         if (weaponHolder == null && weaponManager != null) weaponHolder = weaponManager.transform;
 
         if (playerCamera == null) playerCamera = Camera.main;
-        if (playerCamera != null) defaultFov = playerCamera.fieldOfView;
+        if (!TryGetCinemachineFov(out defaultFov))
+        {
+            if (playerCamera != null) defaultFov = playerCamera.fieldOfView;
+        }
 
         if (weaponHolder != null)
         {
@@ -145,8 +152,6 @@ public class AimController : MonoBehaviour
 
     private void UpdateFov()
     {
-        if (playerCamera == null) return;
-
         float targetFov = defaultFov;
         if (isAiming)
         {
@@ -158,6 +163,138 @@ public class AimController : MonoBehaviour
                 targetFov = defaultAimFov;
         }
 
+        if (TryGetCinemachineFov(out float currentCmFov))
+        {
+            float smoothed = Mathf.Lerp(currentCmFov, targetFov, Time.deltaTime * aimLerpSpeed);
+            TrySetCinemachineFov(smoothed);
+            return;
+        }
+
+        if (playerCamera == null) return;
         playerCamera.fieldOfView = Mathf.Lerp(playerCamera.fieldOfView, targetFov, Time.deltaTime * aimLerpSpeed);
+    }
+
+    private bool TryGetCinemachineFov(out float fov)
+    {
+        fov = 0f;
+        if (cinemachineVirtualCamera == null) return false;
+
+        object cameraObject = cinemachineVirtualCamera;
+        if (TryGetLensFieldOfView(cameraObject, out fov)) return true;
+
+        return false;
+    }
+
+    private bool TrySetCinemachineFov(float fov)
+    {
+        if (cinemachineVirtualCamera == null) return false;
+        object cameraObject = cinemachineVirtualCamera;
+        return TrySetLensFieldOfView(cameraObject, fov);
+    }
+
+    private bool TryGetLensFieldOfView(object target, out float fov)
+    {
+        fov = 0f;
+        if (target == null) return false;
+
+        Type t = target.GetType();
+        PropertyInfo lensProp = t.GetProperty("Lens");
+        if (lensProp != null)
+        {
+            object lens = lensProp.GetValue(target);
+            if (TryReadFieldOfViewFromLens(lens, out fov)) return true;
+        }
+
+        FieldInfo lensField = t.GetField("m_Lens", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (lensField != null)
+        {
+            object lens = lensField.GetValue(target);
+            if (TryReadFieldOfViewFromLens(lens, out fov)) return true;
+        }
+
+        return false;
+    }
+
+    private bool TrySetLensFieldOfView(object target, float fov)
+    {
+        if (target == null) return false;
+
+        Type t = target.GetType();
+        PropertyInfo lensProp = t.GetProperty("Lens");
+        if (lensProp != null && lensProp.CanRead && lensProp.CanWrite)
+        {
+            object lens = lensProp.GetValue(target);
+            if (TryWriteFieldOfViewToLens(ref lens, fov))
+            {
+                lensProp.SetValue(target, lens);
+                return true;
+            }
+        }
+
+        FieldInfo lensField = t.GetField("m_Lens", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (lensField != null)
+        {
+            object lens = lensField.GetValue(target);
+            if (TryWriteFieldOfViewToLens(ref lens, fov))
+            {
+                lensField.SetValue(target, lens);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool TryReadFieldOfViewFromLens(object lens, out float fov)
+    {
+        fov = 0f;
+        if (lens == null) return false;
+
+        Type lensType = lens.GetType();
+        PropertyInfo fovProp = lensType.GetProperty("FieldOfView");
+        if (fovProp != null && fovProp.CanRead)
+        {
+            object value = fovProp.GetValue(lens);
+            if (value is float floatValue)
+            {
+                fov = floatValue;
+                return true;
+            }
+        }
+
+        FieldInfo fovField = lensType.GetField("FieldOfView", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (fovField != null)
+        {
+            object value = fovField.GetValue(lens);
+            if (value is float floatFieldValue)
+            {
+                fov = floatFieldValue;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool TryWriteFieldOfViewToLens(ref object lens, float fov)
+    {
+        if (lens == null) return false;
+
+        Type lensType = lens.GetType();
+        PropertyInfo fovProp = lensType.GetProperty("FieldOfView");
+        if (fovProp != null && fovProp.CanWrite)
+        {
+            fovProp.SetValue(lens, fov);
+            return true;
+        }
+
+        FieldInfo fovField = lensType.GetField("FieldOfView", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (fovField != null)
+        {
+            fovField.SetValue(lens, fov);
+            return true;
+        }
+
+        return false;
     }
 }

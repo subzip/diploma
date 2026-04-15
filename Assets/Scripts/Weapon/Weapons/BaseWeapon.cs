@@ -10,6 +10,13 @@ public abstract class BaseWeapon : MonoBehaviour
     [Header("UI")]
     [SerializeField] private TMP_Text ammoText;
     [SerializeField] private string ammoTextObjectName = "Bullets";
+    [SerializeField] private TMP_Text ammoCurrentText;
+    [SerializeField] private string ammoCurrentObjectName = "BulletsCurrent";
+    [SerializeField] private TMP_Text ammoReserveText;
+    [SerializeField] private string ammoReserveObjectName = "BulletsReserve";
+    [SerializeField] private bool stylizedAmmoHud = true;
+    [SerializeField, Range(80, 220)] private int currentAmmoPercent = 150;
+    [SerializeField, Range(40, 140)] private int reserveAmmoPercent = 70;
 
     [Header("Effects")]
     [SerializeField] private float tracerFadeOut = 0.04f;
@@ -43,6 +50,9 @@ public abstract class BaseWeapon : MonoBehaviour
 
     private Vector2 recoilCurrent = Vector2.zero;
     private Vector2 recoilVelocity = Vector2.zero;
+    private Vector2 pendingLookRecoil = Vector2.zero;
+    private int shotChainCount;
+    private float lastShotTime;
     private float currentBloom;
 
     private AudioSource audioSource;
@@ -161,6 +171,7 @@ public abstract class BaseWeapon : MonoBehaviour
         }
 
         currentBloom = Mathf.Min(currentBloom + stats.bloomPerShot, stats.maxBloom);
+        UpdateShotChain();
         ApplyRecoil();
         EjectCasing();
     }
@@ -169,13 +180,29 @@ public abstract class BaseWeapon : MonoBehaviour
     {
         float kick = Random.Range(stats.recoilKickMin, stats.recoilKickMax);
         float horiz = Random.Range(-stats.recoilHorizontal, stats.recoilHorizontal);
-        recoilCurrent += new Vector2(horiz, -kick);
+        float chainFactor = 1f + Mathf.Min(shotChainCount * 0.08f, 0.65f);
+        kick *= chainFactor;
+        horiz *= Mathf.Lerp(1f, 1.3f, Mathf.Clamp01(shotChainCount / 10f));
+
+        // Weapon model recoil (smaller and smoother than camera kick).
+        recoilCurrent += new Vector2(horiz * 0.55f, -kick * 0.6f);
         recoilOffset = new Vector3(recoilCurrent.x, recoilCurrent.y, 0f);
+
+        // Camera recoil impulse: mostly vertical, slight horizontal drift.
+        float cameraKick = kick * 1.35f;
+        float cameraYaw = horiz * 0.35f;
+        pendingLookRecoil += new Vector2(cameraYaw, cameraKick);
     }
 
     public virtual void UpdateRecoil(float deltaTime)
     {
         if (stats == null) return;
+
+        float chainResetDelay = Mathf.Max(0.06f, stats.fireRate * 2.2f);
+        if (Time.time - lastShotTime > chainResetDelay)
+        {
+            shotChainCount = 0;
+        }
 
         recoilCurrent = Vector2.SmoothDamp(
             recoilCurrent,
@@ -224,6 +251,13 @@ public abstract class BaseWeapon : MonoBehaviour
 
     public Vector3 GetRecoilOffset() => recoilOffset;
 
+    public Vector2 ConsumeLookRecoil()
+    {
+        Vector2 kick = pendingLookRecoil;
+        pendingLookRecoil = Vector2.zero;
+        return kick;
+    }
+
     public void ResetForRespawn(bool refillAmmoToDefaults)
     {
         CancelReload();
@@ -231,6 +265,9 @@ public abstract class BaseWeapon : MonoBehaviour
         recoilOffset = Vector3.zero;
         recoilCurrent = Vector2.zero;
         recoilVelocity = Vector2.zero;
+        pendingLookRecoil = Vector2.zero;
+        shotChainCount = 0;
+        lastShotTime = 0f;
         currentBloom = 0f;
 
         if (refillAmmoToDefaults)
@@ -447,6 +484,16 @@ public abstract class BaseWeapon : MonoBehaviour
         Destroy(impact, 5f);
     }
 
+    private void UpdateShotChain()
+    {
+        float chainResetDelay = Mathf.Max(0.06f, stats.fireRate * 2.2f);
+        if (Time.time - lastShotTime > chainResetDelay)
+            shotChainCount = 0;
+
+        shotChainCount = Mathf.Min(shotChainCount + 1, 24);
+        lastShotTime = Time.time;
+    }
+
     private void SpawnMuzzleFlash()
     {
         if (stats == null || stats.muzzlePrefab == null) return;
@@ -484,7 +531,25 @@ public abstract class BaseWeapon : MonoBehaviour
 
     private void UpdateAmmoUi()
     {
-        if (ammoText != null) ammoText.text = $"{currentAmmo} / {reserveAmmo}";
+        // Preferred mode: two separate fields (current / reserve), no slash.
+        if (ammoCurrentText != null || ammoReserveText != null)
+        {
+            if (ammoCurrentText != null)
+                ammoCurrentText.text = currentAmmo.ToString();
+            if (ammoReserveText != null)
+                ammoReserveText.text = reserveAmmo.ToString();
+            return;
+        }
+
+        if (ammoText == null) return;
+
+        if (!stylizedAmmoHud)
+        {
+            ammoText.text = $"{currentAmmo} / {reserveAmmo}";
+            return;
+        }
+
+        ammoText.text = $"<size={currentAmmoPercent}%>{currentAmmo}</size> <size={reserveAmmoPercent}%>{reserveAmmo}</size>";
     }
 
     public void RefreshAmmoUiBindingAndValue()
@@ -495,6 +560,18 @@ public abstract class BaseWeapon : MonoBehaviour
 
     private void ResolveAmmoTextIfNeeded(bool force = false)
     {
+        if (!force && ammoText != null && ammoCurrentText != null && ammoReserveText != null) return;
+
+        if (force || ammoCurrentText == null)
+        {
+            ammoCurrentText = ResolveTextByName(ammoCurrentObjectName);
+        }
+
+        if (force || ammoReserveText == null)
+        {
+            ammoReserveText = ResolveTextByName(ammoReserveObjectName);
+        }
+
         if (!force && ammoText != null) return;
 
         TMP_Text[] allTexts = FindObjectsOfType<TMP_Text>(true);
@@ -588,5 +665,13 @@ public abstract class BaseWeapon : MonoBehaviour
                 ammoText = named.GetComponent<TMP_Text>();
             }
         }
+    }
+
+    private TMP_Text ResolveTextByName(string objectName)
+    {
+        if (string.IsNullOrWhiteSpace(objectName)) return null;
+        GameObject named = GameObject.Find(objectName);
+        if (named == null) return null;
+        return named.GetComponent<TMP_Text>();
     }
 }
