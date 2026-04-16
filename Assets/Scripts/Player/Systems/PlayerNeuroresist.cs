@@ -10,24 +10,29 @@ public class PlayerNeuroresist : MonoBehaviour
     [SerializeField] private float cooldown = 90f;
     [SerializeField] private float detectionRadius = 100f;
     [SerializeField] private LayerMask enemyLayer;
+    [SerializeField, Min(16)] private int detectionBufferSize = 256;
 
     [Header("Rendering")]
     [SerializeField] private string xrayLayerName = "XRay";
     [SerializeField] private NeuroresistPostProcess postProcess;
     [SerializeField] private Material xrayMaterialOverride;
+    [SerializeField] private Camera gameplayCamera;
+    [SerializeField] private bool disableOcclusionCullingWhileActive = true;
 
     private int xrayLayer;
     private bool isActive;
     private float endTime;
 
-    private readonly Collider[] detectedEnemies = new Collider[50];
+    private Collider[] detectedEnemies;
     private readonly List<Renderer> cachedRenderers = new();
-    private readonly List<int> cachedOriginalLayers = new();
-    private readonly List<Material[]> cachedOriginalMats = new();
+    private readonly Dictionary<Renderer, int> cachedOriginalLayers = new();
+    private readonly Dictionary<Renderer, Material[]> cachedOriginalMats = new();
 
     private PlayerInputActions input;
     private PlayerMovement movement;
     private float nextReadyTime = 0f;
+    private bool cachedOcclusionValue;
+    private bool cachedOcclusionInitialized;
 
     public float CurrentValue => isActive ? Mathf.Max(0f, endTime - Time.time) : 0f;
     public float MaxValue => duration;
@@ -52,8 +57,10 @@ public class PlayerNeuroresist : MonoBehaviour
 
     private void Awake()
     {
-        input = GameInput.Instance.Actions;
+        input = GameInput.Instance != null ? GameInput.Instance.Actions : null;
         movement = GetComponent<PlayerMovement>();
+        detectedEnemies = new Collider[Mathf.Max(16, detectionBufferSize)];
+        if (gameplayCamera == null) gameplayCamera = Camera.main;
         xrayLayer = LayerMask.NameToLayer(xrayLayerName);
         if (xrayLayer == -1)
         {
@@ -69,13 +76,19 @@ public class PlayerNeuroresist : MonoBehaviour
 
     private void OnEnable()
     {
+        if (input == null && GameInput.Instance != null)
+            input = GameInput.Instance.Actions;
+        if (input == null) return;
+
         input.Player.Neuroresist.performed += OnNeuroresist;
     }
 
     private void OnDisable()
     {
-        input.Player.Neuroresist.performed -= OnNeuroresist;
+        if (input != null)
+            input.Player.Neuroresist.performed -= OnNeuroresist;
         if (isActive) Deactivate();
+        else SetOcclusionCullingDuringNeuro(active: false);
     }
 
     private void Update()
@@ -99,8 +112,13 @@ public class PlayerNeuroresist : MonoBehaviour
         isActive = true;
         endTime = Time.time + duration;
         if (movement != null) movement.SetNeuroMultiplier(0.7f);
+        SetOcclusionCullingDuringNeuro(active: true);
 
         int count = Physics.OverlapSphereNonAlloc(transform.position, detectionRadius, detectedEnemies, enemyLayer);
+        if (count >= detectedEnemies.Length)
+        {
+            Debug.LogWarning($"PlayerNeuroresist: detection buffer is full ({detectedEnemies.Length}). Increase Detection Buffer Size.");
+        }
 
         cachedRenderers.Clear();
         cachedOriginalLayers.Clear();
@@ -113,9 +131,12 @@ public class PlayerNeuroresist : MonoBehaviour
             var rends = detectedEnemies[i].GetComponentsInChildren<Renderer>(true);
             foreach (var r in rends)
             {
+                if (r == null) continue;
+                if (cachedOriginalLayers.ContainsKey(r)) continue;
+
                 cachedRenderers.Add(r);
-                cachedOriginalLayers.Add(r.gameObject.layer);
-                cachedOriginalMats.Add(r.sharedMaterials);
+                cachedOriginalLayers[r] = r.gameObject.layer;
+                cachedOriginalMats[r] = r.sharedMaterials;
                 r.gameObject.layer = xrayLayer;
 
                 if (xrayMaterialOverride != null)
@@ -136,11 +157,14 @@ public class PlayerNeuroresist : MonoBehaviour
 
         for (int i = 0; i < cachedRenderers.Count; i++)
         {
-            if (cachedRenderers[i] != null)
+            Renderer renderer = cachedRenderers[i];
+            if (renderer != null)
             {
-                cachedRenderers[i].gameObject.layer = cachedOriginalLayers[i];
-                if (cachedOriginalMats.Count == cachedRenderers.Count && cachedOriginalMats[i] != null)
-                    cachedRenderers[i].sharedMaterials = cachedOriginalMats[i];
+                if (cachedOriginalLayers.TryGetValue(renderer, out int layer))
+                    renderer.gameObject.layer = layer;
+
+                if (cachedOriginalMats.TryGetValue(renderer, out Material[] mats) && mats != null)
+                    renderer.sharedMaterials = mats;
             }
         }
 
@@ -150,7 +174,30 @@ public class PlayerNeuroresist : MonoBehaviour
 
         if (postProcess != null) postProcess.EnableEffects(false);
         if (movement != null) movement.SetNeuroMultiplier(1f);
+        SetOcclusionCullingDuringNeuro(active: false);
 
         nextReadyTime = Time.time + cooldown;
+    }
+
+    private void SetOcclusionCullingDuringNeuro(bool active)
+    {
+        if (!disableOcclusionCullingWhileActive) return;
+        if (gameplayCamera == null) gameplayCamera = Camera.main;
+        if (gameplayCamera == null) return;
+
+        if (active)
+        {
+            if (!cachedOcclusionInitialized)
+            {
+                cachedOcclusionValue = gameplayCamera.useOcclusionCulling;
+                cachedOcclusionInitialized = true;
+            }
+            gameplayCamera.useOcclusionCulling = false;
+        }
+        else if (cachedOcclusionInitialized)
+        {
+            gameplayCamera.useOcclusionCulling = cachedOcclusionValue;
+            cachedOcclusionInitialized = false;
+        }
     }
 }

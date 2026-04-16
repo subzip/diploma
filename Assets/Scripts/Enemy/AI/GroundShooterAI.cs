@@ -198,27 +198,39 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
 
     private int GetScaledDamage()
     {
-        if (!useEntropyScaling) return baseDamage;
-        float mult = entropyTier switch
+        float mult = useEntropyScaling ? entropyTier switch
         {
             2 => tier2DamageMult,
             3 => tier3DamageMult,
             4 => tier4DamageMult,
             _ => 1f
-        };
+        } : 1f;
+
+        DeathCycleManager manager = DeathCycleManager.Instance;
+        if (manager != null)
+        {
+            mult *= manager.RecoveryDamageMultiplier;
+        }
+
         return Mathf.Max(1, Mathf.RoundToInt(baseDamage * mult));
     }
 
     private float GetScaledFireInterval()
     {
-        if (!useEntropyScaling) return fireInterval;
-        float mult = entropyTier switch
+        float mult = useEntropyScaling ? entropyTier switch
         {
             2 => tier2FireRateMult,
             3 => tier3FireRateMult,
             4 => tier4FireRateMult,
             _ => 1f
-        };
+        } : 1f;
+
+        DeathCycleManager manager = DeathCycleManager.Instance;
+        if (manager != null)
+        {
+            mult *= manager.RecoveryFireIntervalMultiplier;
+        }
+
         return Mathf.Max(0.05f, fireInterval * mult);
     }
 

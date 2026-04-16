@@ -25,7 +25,7 @@ public class WeaponManager : MonoBehaviour
 
     private void Awake()
     {
-        inputActions = GameInput.Instance.Actions;
+        ResolveInputActions();
 
         // Подхватываем оружие из детей слотов
         for (int i = 0; i < weaponSlots.Length; i++)
@@ -48,6 +48,9 @@ public class WeaponManager : MonoBehaviour
 
     private void OnEnable()
     {
+        ResolveInputActions();
+        if (inputActions == null) return;
+
         inputActions.Player.Shoot.performed += OnShoot;
         inputActions.Player.Shoot.canceled += OnShootCanceled;
         inputActions.Player.Reload.performed += OnReload;
@@ -69,6 +72,9 @@ public class WeaponManager : MonoBehaviour
 
     private void Update()
     {
+        if (inputActions == null && GameInput.Instance != null)
+            ResolveInputActions();
+
         if (!isSwitching && fireHeld && CurrentWeapon?.stats.fireMode == FireMode.Auto)
         {
             CurrentWeapon.Shoot();
@@ -233,6 +239,13 @@ public class WeaponManager : MonoBehaviour
         }
 
         return addedAny;
+    }
+
+    private void ResolveInputActions()
+    {
+        if (inputActions != null) return;
+        if (GameInput.Instance == null) return;
+        inputActions = GameInput.Instance.Actions;
     }
 
     public void PickupWeapon(GameObject weaponPrefab)

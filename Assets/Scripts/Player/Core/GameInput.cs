@@ -25,12 +25,17 @@ public class GameInput : MonoBehaviour
 
     private void OnEnable()
     {
+        if (Actions == null)
+            Actions = new PlayerInputActions();
+
         Actions?.Player.Enable();
+        Actions?.UI.Enable();
     }
 
     private void OnDisable()
     {
         Actions?.Player.Disable();
+        Actions?.UI.Disable();
     }
 
     private void OnDestroy()

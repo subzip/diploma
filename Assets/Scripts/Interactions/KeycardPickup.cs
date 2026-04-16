@@ -24,6 +24,7 @@ public class KeycardPickup : MonoBehaviour
     [SerializeField] private float pulseSpeed = 3f;
     private MaterialPropertyBlock mpb;
     private bool consumed = false;
+    private float nextResolveRefTime;
 
     private void Start()
     {
@@ -32,7 +33,7 @@ public class KeycardPickup : MonoBehaviour
         {
             Debug.LogError("Camera");
         }
-        playerTransform = GameObject.FindGameObjectWithTag("Player")?.transform;
+        playerTransform = PlayerLocator.GetPlayerTransform(forceRefresh: true);
         if (renderersToHighlight == null || renderersToHighlight.Length == 0)
             renderersToHighlight = GetComponentsInChildren<MeshRenderer>(true);
         mpb = new MaterialPropertyBlock();
@@ -54,9 +55,11 @@ public class KeycardPickup : MonoBehaviour
 
     private void CheckProximity()
     {
-        if (playerTransform == null)
+        if (playerTransform == null && Time.time >= nextResolveRefTime)
         {
-            playerTransform = GameObject.FindGameObjectWithTag("Player")?.transform;
+            playerTransform = PlayerLocator.GetPlayerTransform(forceRefresh: true);
+            if (playerCamera == null) playerCamera = Camera.main?.transform;
+            nextResolveRefTime = Time.time + 0.5f;
         }
 
         if (playerTransform != null)
@@ -108,7 +111,8 @@ public class KeycardPickup : MonoBehaviour
 
     private void OnEnable()
     {
-        inputActions = GameInput.Instance.Actions;
+        ResolveInputActions();
+        if (inputActions == null) return;
         inputActions.Player.PickUp.performed += OnPickup;
     }
 
@@ -155,5 +159,12 @@ public class KeycardPickup : MonoBehaviour
             mpb.SetColor("_EmissionColor", Color.black);
             r.SetPropertyBlock(mpb);
         }
+    }
+
+    private void ResolveInputActions()
+    {
+        if (inputActions != null) return;
+        if (GameInput.Instance == null) return;
+        inputActions = GameInput.Instance.Actions;
     }
 }

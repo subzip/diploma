@@ -5,6 +5,18 @@ using UnityEngine.Rendering.Universal;
 [RequireComponent(typeof(Volume))]
 public class NeuroresistPostProcess : MonoBehaviour
 {
+    [Header("Effect Tuning")]
+    [SerializeField, Range(0f, 1f)] private float activeVignette = 0.35f;
+    [SerializeField, Range(0f, 1f)] private float activeVignetteSmoothness = 0.45f;
+    [SerializeField, Range(0f, 1f)] private float activeChromatic = 0.12f;
+    [SerializeField, Range(0f, 1f)] private float activeGrain = 0.14f;
+    [SerializeField, Range(0f, 1f)] private float activeGrainResponse = 0.8f;
+    [SerializeField, Range(-100f, 100f)] private float activeSaturation = -20f;
+    [SerializeField, Range(-100f, 100f)] private float activeContrast = 10f;
+    [SerializeField, Range(-5f, 5f)] private float activePostExposure = 0f;
+    [SerializeField] private bool useColorFilter = false;
+    [SerializeField] private Color activeColorFilter = Color.white;
+
     private Volume volume;
     private Vignette vignette;
     private ChromaticAberration chromatic;
@@ -14,6 +26,13 @@ public class NeuroresistPostProcess : MonoBehaviour
     private void Awake()
     {
         volume = GetComponent<Volume>();
+        if (volume == null || volume.profile == null)
+        {
+            Debug.LogWarning("NeuroresistPostProcess: Volume/Profile is missing.");
+            enabled = false;
+            return;
+        }
+
         volume.isGlobal = true;
         volume.weight = 1f;
 
@@ -35,30 +54,30 @@ public class NeuroresistPostProcess : MonoBehaviour
         if (vignette != null)
         {
             vignette.active = enabled;
-            vignette.intensity.value = enabled ? 0.65f : 0f;
-            vignette.smoothness.value = enabled ? 0.5f : 0.2f;
+            vignette.intensity.value = enabled ? activeVignette : 0f;
+            vignette.smoothness.value = enabled ? activeVignetteSmoothness : 0.2f;
         }
 
         if (chromatic != null)
         {
             chromatic.active = enabled;
-            chromatic.intensity.value = enabled ? 0.4f : 0f;
+            chromatic.intensity.value = enabled ? activeChromatic : 0f;
         }
 
         if (grain != null)
         {
             grain.active = enabled;
-            grain.intensity.value = enabled ? 0.45f : 0f;
-            grain.response.value = enabled ? 0.9f : 0f;
+            grain.intensity.value = enabled ? activeGrain : 0f;
+            grain.response.value = enabled ? activeGrainResponse : 0f;
         }
 
         if (colorAdjust != null)
         {
             colorAdjust.active = enabled;
-            colorAdjust.saturation.value = enabled ? -100f : 0f;
-            colorAdjust.postExposure.value = enabled ? -0.25f : 0f;
-            colorAdjust.contrast.value = enabled ? 25f : 0f;
-            colorAdjust.colorFilter.value = enabled ? new Color(0.2f, 0.6f, 1f, 1f) : Color.white;
+            colorAdjust.saturation.value = enabled ? activeSaturation : 0f;
+            colorAdjust.postExposure.value = enabled ? activePostExposure : 0f;
+            colorAdjust.contrast.value = enabled ? activeContrast : 0f;
+            colorAdjust.colorFilter.value = enabled && useColorFilter ? activeColorFilter : Color.white;
         }
     }
 }

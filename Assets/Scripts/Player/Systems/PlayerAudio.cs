@@ -16,6 +16,7 @@ public class PlayerAudio : MonoBehaviour
     private float lastSighTime = 0f;
     private float sighInterval = 20f;
     private bool wasMoving = false;
+    private PlayerMovement movement;
 
     private void Awake()
     {
@@ -23,11 +24,14 @@ public class PlayerAudio : MonoBehaviour
         audioSource.spatialBlend = 1f;
         audioSource.rolloffMode = AudioRolloffMode.Logarithmic;
         audioSource.maxDistance = 15f;
-        inputActions = GameInput.Instance.Actions;
+        ResolveInputActions();
+        movement = GetComponent<PlayerMovement>();
     }
 
     private void OnEnable()
     {
+        ResolveInputActions();
+        if (inputActions == null) return;
         inputActions.Player.Move.performed += OnMove;
         inputActions.Player.Move.canceled += OnMoveCancel;
     }
@@ -44,7 +48,7 @@ public class PlayerAudio : MonoBehaviour
 
     private void Update()
     {
-        if (!GetComponent<PlayerMovement>().IsGrounded) return;
+        if (movement == null || !movement.IsGrounded) return;
 
         bool isMoving = moveInput.magnitude > 0.1f;
 
@@ -69,5 +73,12 @@ public class PlayerAudio : MonoBehaviour
             audioSource.PlayOneShot(sighSound, 0.5f);
             lastSighTime = Time.time;
         }
+    }
+
+    private void ResolveInputActions()
+    {
+        if (inputActions != null) return;
+        if (GameInput.Instance == null) return;
+        inputActions = GameInput.Instance.Actions;
     }
 }

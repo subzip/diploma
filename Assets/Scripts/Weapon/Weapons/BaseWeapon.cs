@@ -59,6 +59,9 @@ public abstract class BaseWeapon : MonoBehaviour
     private PlayerMovement movement;
     private AimController aimController;
     private Material runtimeDecalMaterial;
+    private float nextAmmoUiResolveTime;
+    private Camera cachedPlayerCamera;
+    private float nextCameraResolveTime;
 
     public bool CanShoot => !isReloading && currentAmmo > 0 && Time.time >= nextFireTime;
     public bool IsReloading => isReloading;
@@ -84,7 +87,8 @@ public abstract class BaseWeapon : MonoBehaviour
 
         movement = GetComponentInParent<PlayerMovement>();
         aimController = GetComponentInParent<AimController>();
-        ResolveAmmoTextIfNeeded();
+        ResolvePlayerCamera(force: true);
+        ResolveAmmoTextIfNeeded(force: true);
     }
 
     private void OnEnable()
@@ -100,12 +104,16 @@ public abstract class BaseWeapon : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        ResolvePlayerCamera(force: true);
         ResolveAmmoTextIfNeeded(force: true);
     }
 
     private void Update()
     {
-        ResolveAmmoTextIfNeeded();
+        ResolvePlayerCamera();
+        if (NeedsAmmoUiResolve())
+            ResolveAmmoTextIfNeeded();
+
         UpdateAmmoUi();
         RecoverBloom(Time.deltaTime);
     }
@@ -131,7 +139,7 @@ public abstract class BaseWeapon : MonoBehaviour
 
         if (stats.shootSound != null) audioSource.PlayOneShot(stats.shootSound);
 
-        Camera playerCamera = Camera.main;
+        Camera playerCamera = cachedPlayerCamera;
         if (playerCamera == null) return;
 
         Ray centerRay = playerCamera.ViewportPointToRay(Vector2.one * 0.5f);
@@ -560,6 +568,8 @@ public abstract class BaseWeapon : MonoBehaviour
 
     private void ResolveAmmoTextIfNeeded(bool force = false)
     {
+        if (!force && Time.unscaledTime < nextAmmoUiResolveTime) return;
+
         if (!force && ammoText != null && ammoCurrentText != null && ammoReserveText != null) return;
 
         if (force || ammoCurrentText == null)
@@ -665,6 +675,12 @@ public abstract class BaseWeapon : MonoBehaviour
                 ammoText = named.GetComponent<TMP_Text>();
             }
         }
+
+        // If something is still missing, retry later without scanning each frame.
+        if (NeedsAmmoUiResolve())
+        {
+            nextAmmoUiResolveTime = Time.unscaledTime + 0.5f;
+        }
     }
 
     private TMP_Text ResolveTextByName(string objectName)
@@ -673,5 +689,24 @@ public abstract class BaseWeapon : MonoBehaviour
         GameObject named = GameObject.Find(objectName);
         if (named == null) return null;
         return named.GetComponent<TMP_Text>();
+    }
+
+    private bool NeedsAmmoUiResolve()
+    {
+        bool splitModeDetected = ammoCurrentText != null || ammoReserveText != null;
+        if (splitModeDetected)
+            return ammoCurrentText == null || ammoReserveText == null;
+
+        return ammoText == null;
+    }
+
+    private void ResolvePlayerCamera(bool force = false)
+    {
+        if (!force && cachedPlayerCamera != null) return;
+        if (!force && Time.unscaledTime < nextCameraResolveTime) return;
+
+        cachedPlayerCamera = Camera.main;
+        if (cachedPlayerCamera == null)
+            nextCameraResolveTime = Time.unscaledTime + 0.5f;
     }
 }

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Adds subtle visor-like tilt and movement to HUD root.
@@ -35,12 +36,12 @@ public class HudHelmetMotion : MonoBehaviour
     private float shakeTime;
     private Vector2 currentOffset;
     private Quaternion currentRotation;
+    private float nextResolveAttemptTime;
 
     private void Awake()
     {
         if (hudRoot == null) hudRoot = transform as RectTransform;
-        if (cameraTransform == null && Camera.main != null) cameraTransform = Camera.main.transform;
-        if (playerMovement == null) playerMovement = FindObjectOfType<PlayerMovement>();
+        ResolveReferences();
 
         if (hudRoot != null)
         {
@@ -51,11 +52,29 @@ public class HudHelmetMotion : MonoBehaviour
         }
     }
 
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        ResolveReferences(force: true);
+    }
+
     private void LateUpdate()
     {
         if (hudRoot == null) return;
-        if (cameraTransform == null && Camera.main != null) cameraTransform = Camera.main.transform;
-        if (playerMovement == null) playerMovement = FindObjectOfType<PlayerMovement>();
+        if ((cameraTransform == null || playerMovement == null) && Time.unscaledTime >= nextResolveAttemptTime)
+        {
+            ResolveReferences();
+            nextResolveAttemptTime = Time.unscaledTime + 0.5f;
+        }
 
         Vector2 lookDelta = GetCameraLookDelta();
         float move01 = 0f;
@@ -109,5 +128,11 @@ public class HudHelmetMotion : MonoBehaviour
         lastCameraEuler = currentEuler;
 
         return new Vector2(deltaYaw, deltaPitch) * 0.12f;
+    }
+
+    private void ResolveReferences(bool force = false)
+    {
+        if ((force || cameraTransform == null) && Camera.main != null) cameraTransform = Camera.main.transform;
+        if (force || playerMovement == null) playerMovement = FindObjectOfType<PlayerMovement>();
     }
 }

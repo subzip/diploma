@@ -29,6 +29,8 @@ public class PlayerPersistent : MonoBehaviour
         {
             instance = this;
             DontDestroyOnLoad(gameObject);
+            EnsureSingleAudioListener();
+            DisableLegacyStaminaUiIfVitalsHudExists();
         }
         else
         {
@@ -48,6 +50,9 @@ public class PlayerPersistent : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        EnsureSingleAudioListener();
+        DisableLegacyStaminaUiIfVitalsHudExists();
+
         if (!DeathScreen.GlobalDeathActive)
         {
             EnableGameplayComponents();
@@ -115,6 +120,37 @@ public class PlayerPersistent : MonoBehaviour
     {
         T component = GetComponentInChildren<T>(true);
         if (component != null) component.enabled = value;
+    }
+
+    private void EnsureSingleAudioListener()
+    {
+        AudioListener[] listeners = FindObjectsOfType<AudioListener>(true);
+        if (listeners == null || listeners.Length <= 1) return;
+
+        Camera mainCamera = Camera.main;
+        AudioListener preferred = null;
+        if (mainCamera != null)
+            preferred = mainCamera.GetComponent<AudioListener>();
+
+        if (preferred == null)
+            preferred = listeners[0];
+
+        for (int i = 0; i < listeners.Length; i++)
+        {
+            AudioListener listener = listeners[i];
+            if (listener == null) continue;
+            listener.enabled = listener == preferred;
+        }
+    }
+
+    private void DisableLegacyStaminaUiIfVitalsHudExists()
+    {
+        PlayerVitalsHud vitalsHud = FindObjectOfType<PlayerVitalsHud>();
+        if (vitalsHud == null) return;
+
+        PlayerStaminaUI staminaUi = FindObjectOfType<PlayerStaminaUI>();
+        if (staminaUi != null)
+            staminaUi.enabled = false;
     }
 
     // Intentionally no runtime duplicate-pruning here.

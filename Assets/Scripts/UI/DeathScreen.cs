@@ -51,6 +51,7 @@ public class DeathScreen : MonoBehaviour
 
     private void OnEnable()
     {
+        SceneManager.sceneLoaded += OnSceneLoaded;
         if (restartButton != null) restartButton.onClick.AddListener(RestartLevel);
         if (mainMenuButton != null) mainMenuButton.onClick.AddListener(ReturnToMainMenu);
         if (quitButton != null) quitButton.onClick.AddListener(QuitGame);
@@ -58,6 +59,7 @@ public class DeathScreen : MonoBehaviour
 
     private void OnDisable()
     {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
         if (restartButton != null) restartButton.onClick.RemoveListener(RestartLevel);
         if (mainMenuButton != null) mainMenuButton.onClick.RemoveListener(ReturnToMainMenu);
         if (quitButton != null) quitButton.onClick.RemoveListener(QuitGame);
@@ -68,10 +70,20 @@ public class DeathScreen : MonoBehaviour
         if (Instance == this) Instance = null;
     }
 
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        ResolveDeathPanelReference(force: true);
+        if (deathPanel != null && deathPanel.activeSelf)
+        {
+            EnsureDeathPanelVisible();
+            RebindButtons();
+        }
+    }
+
     public void ShowDeathScreen()
     {
         if (isDead) return;
-        ResolveDeathPanelReference(force: true);
+        ResolveDeathPanelReference(force: false);
 
         if (deathPanel != null)
         {

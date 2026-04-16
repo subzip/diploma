@@ -38,7 +38,7 @@ public class CheckpointTrigger : MonoBehaviour
 
         Transform point = respawnPoint != null ? respawnPoint : transform;
         string scene = SceneManager.GetActiveScene().name;
-        RespawnCheckpointState.SetCheckpoint(scene, point.position, point.rotation);
+        RespawnCheckpointState.SetCheckpoint(scene, point.position, point.rotation, checkpointId);
 
         if (debugLog)
         {
@@ -51,4 +51,3 @@ public class CheckpointTrigger : MonoBehaviour
         }
     }
 }
-

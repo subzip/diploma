@@ -18,6 +18,8 @@ public class DeathCycleManager : MonoBehaviour
     private static int snapshotEntropy;
     private static string snapshotLastZoneId = string.Empty;
     private static float snapshotLastDeathTime = -999f;
+    private static float snapshotRecoveryUntilTime = -999f;
+    private static int snapshotRepeatDeathsInZone;
     public static DeathCycleManager Instance => instance;
 
     [Header("Config")]
@@ -27,6 +29,8 @@ public class DeathCycleManager : MonoBehaviour
     [SerializeField] private int cycleCount;
     [SerializeField] private int currentVariantIndex;
     [SerializeField] private int entropy;
+    [SerializeField] private float recoveryUntilTime = -999f;
+    [SerializeField] private int repeatDeathsInSameZone;
 
     [Header("Debug")]
     [SerializeField] private bool debugLogs = true;
@@ -40,6 +44,9 @@ public class DeathCycleManager : MonoBehaviour
     public int Entropy => entropy;
     public int EntropyTier => GetTier(entropy);
     public FractureLoopConfig Config => config;
+    public bool IsRecoveryActive => config != null && config.enableRecovery && Time.time <= recoveryUntilTime;
+    public float RecoveryDamageMultiplier => IsRecoveryActive ? Mathf.Clamp01(config.recoveryDamageMultiplier) : 1f;
+    public float RecoveryFireIntervalMultiplier => IsRecoveryActive ? 1f / Mathf.Max(0.05f, config.recoveryDamageMultiplier) : 1f;
 
     public event Action<int, int, int, int> OnCycleStateChanged;
 
@@ -65,6 +72,8 @@ public class DeathCycleManager : MonoBehaviour
             entropy = snapshotEntropy;
             lastDeathZoneId = snapshotLastZoneId;
             lastDeathTime = snapshotLastDeathTime;
+            recoveryUntilTime = snapshotRecoveryUntilTime;
+            repeatDeathsInSameZone = snapshotRepeatDeathsInZone;
         }
 
         if (config == null)
@@ -106,6 +115,11 @@ public class DeathCycleManager : MonoBehaviour
         {
             int repeatPenalty = config != null ? config.repeatZoneDeathPenalty : 25;
             penalty = Mathf.Max(penalty, repeatPenalty);
+            repeatDeathsInSameZone++;
+        }
+        else
+        {
+            repeatDeathsInSameZone = 1;
         }
 
         entropy = Mathf.Clamp(entropy + Mathf.Max(0, penalty), 0, cap);
@@ -114,10 +128,12 @@ public class DeathCycleManager : MonoBehaviour
 
         lastDeathZoneId = zoneId;
         lastDeathTime = Time.time;
+        TryActivateRecoveryIfNeeded(sameZoneRepeat);
 
         if (debugLogs)
         {
-            Debug.Log($"[DeathCycle] death={deathKind}, zone='{zoneId}', +entropy={penalty}, entropy={entropy}, tier={EntropyTier}, variant={currentVariantIndex}, cycles={cycleCount}");
+            string recoveryInfo = IsRecoveryActive ? $", recovery=ON({Mathf.Max(0f, recoveryUntilTime - Time.time):0.0}s)" : ", recovery=off";
+            Debug.Log($"[DeathCycle] death={deathKind}, zone='{zoneId}', +entropy={penalty}, entropy={entropy}, tier={EntropyTier}, variant={currentVariantIndex}, cycles={cycleCount}{recoveryInfo}");
         }
 
         StoreSnapshot();
@@ -145,6 +161,8 @@ public class DeathCycleManager : MonoBehaviour
         entropy = 0;
         lastDeathZoneId = string.Empty;
         lastDeathTime = -999f;
+        recoveryUntilTime = -999f;
+        repeatDeathsInSameZone = 0;
 
         if (debugLogs)
         {
@@ -211,5 +229,18 @@ public class DeathCycleManager : MonoBehaviour
         snapshotEntropy = entropy;
         snapshotLastZoneId = lastDeathZoneId;
         snapshotLastDeathTime = lastDeathTime;
+        snapshotRecoveryUntilTime = recoveryUntilTime;
+        snapshotRepeatDeathsInZone = repeatDeathsInSameZone;
+    }
+
+    private void TryActivateRecoveryIfNeeded(bool sameZoneRepeat)
+    {
+        if (config == null || !config.enableRecovery) return;
+        if (!sameZoneRepeat) return;
+
+        int requiredDeaths = Mathf.Max(1, config.stuckDeathsRequired);
+        if (repeatDeathsInSameZone < requiredDeaths) return;
+
+        recoveryUntilTime = Time.time + Mathf.Max(1f, config.recoveryWindowSeconds);
     }
 }

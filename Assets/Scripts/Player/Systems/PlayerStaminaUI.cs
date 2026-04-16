@@ -11,6 +11,12 @@ public class PlayerStaminaUI : MonoBehaviour
 
     private void Awake()
     {
+        if (FindObjectOfType<PlayerVitalsHud>() != null)
+        {
+            enabled = false;
+            return;
+        }
+
         playerMovement = GetComponent<PlayerMovement>();
         ResolveSliderIfNeeded();
     }

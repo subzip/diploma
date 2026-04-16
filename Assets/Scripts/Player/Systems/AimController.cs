@@ -33,12 +33,15 @@ public class AimController : MonoBehaviour
     private float defaultFov;
     private PlayerMovement movement;
     private bool isAiming;
+    private PlayerInputActions inputActions;
     private CanvasGroup aimOverlayGroup;
 
     public bool IsAiming => isAiming;
 
     private void Awake()
     {
+        inputActions = GameInput.Instance != null ? GameInput.Instance.Actions : null;
+
         if (weaponManager == null) weaponManager = GetComponentInChildren<WeaponManager>();
         if (weaponHolder == null && weaponManager != null) weaponHolder = weaponManager.transform;
 
@@ -73,11 +76,22 @@ public class AimController : MonoBehaviour
         movement = GetComponent<PlayerMovement>();
     }
 
+    private void OnEnable()
+    {
+        if (inputActions == null && GameInput.Instance != null)
+            inputActions = GameInput.Instance.Actions;
+    }
+
+    private void OnDisable()
+    {
+        if (isAiming && movement != null)
+            movement.SetAimMultiplier(1f);
+        isAiming = false;
+    }
+
     private void Update()
     {
-        if (Mouse.current == null) return;
-
-        bool aimPressed = Mouse.current.rightButton.isPressed;
+        bool aimPressed = IsAimPressed();
         if (aimPressed != isAiming)
         {
             isAiming = aimPressed;
@@ -87,6 +101,15 @@ public class AimController : MonoBehaviour
         UpdateAimOverlay();
         UpdateTransforms();
         UpdateFov();
+    }
+
+    private bool IsAimPressed()
+    {
+        if (inputActions == null && GameInput.Instance != null)
+            inputActions = GameInput.Instance.Actions;
+        if (inputActions == null) return false;
+
+        return inputActions.UI.RightClick.IsPressed();
     }
 
     private void UpdateAimOverlay()

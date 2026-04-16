@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Pulses ammo HUD on each shot (scale + color + tiny jitter).
@@ -30,10 +31,11 @@ public class AmmoHudPulse : MonoBehaviour
     private float pulseTimer;
     private int lastAmmoInMag = -1;
     private BaseWeapon lastWeapon;
+    private float nextResolveAttemptTime;
 
     private void Awake()
     {
-        if (weaponManager == null) weaponManager = FindObjectOfType<WeaponManager>();
+        ResolveReferences();
 
         if (currentAmmoRoot != null)
         {
@@ -49,9 +51,32 @@ public class AmmoHudPulse : MonoBehaviour
         ApplyIdleVisual();
     }
 
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        ResolveReferences(force: true);
+        lastWeapon = null;
+        lastAmmoInMag = -1;
+        pulseTimer = 0f;
+        ApplyIdleVisual();
+    }
+
     private void Update()
     {
-        if (weaponManager == null) weaponManager = FindObjectOfType<WeaponManager>();
+        if (weaponManager == null && Time.unscaledTime >= nextResolveAttemptTime)
+        {
+            ResolveReferences();
+            nextResolveAttemptTime = Time.unscaledTime + 0.5f;
+        }
         BaseWeapon weapon = weaponManager != null ? weaponManager.CurrentWeapon : null;
 
         if (weapon != lastWeapon)
@@ -128,5 +153,11 @@ public class AmmoHudPulse : MonoBehaviour
 
         if (currentAmmoText != null) currentAmmoText.color = idleCurrentColor;
         if (reserveAmmoText != null) reserveAmmoText.color = idleReserveColor;
+    }
+
+    private void ResolveReferences(bool force = false)
+    {
+        if (!force && weaponManager != null) return;
+        weaponManager = FindObjectOfType<WeaponManager>();
     }
 }

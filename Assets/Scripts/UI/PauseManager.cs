@@ -13,7 +13,8 @@ public class PauseManager : MonoBehaviour
 
     private void OnEnable()
     {
-        inputActions = GameInput.Instance.Actions;
+        ResolveInputActions();
+        if (inputActions == null) return;
         inputActions.Player.Pause.performed += OnPausePerformed;
     }
 
@@ -48,7 +49,7 @@ public class PauseManager : MonoBehaviour
         // it means game is paused by another system (e.g. death). Do not unpause from here.
         if (Time.timeScale == 0f && (pausePanel == null || !pausePanel.activeSelf)) return;
 
-        DeathScreen deathScreen = FindObjectOfType<DeathScreen>();
+        DeathScreen deathScreen = DeathScreen.Instance;
         if (deathScreen != null && deathScreen.IsDeathScreenActive) return;
 
         if(pausePanel != null)
@@ -77,5 +78,12 @@ public class PauseManager : MonoBehaviour
 
         Time.timeScale = 1f;
         isPaused = false;
+    }
+
+    private void ResolveInputActions()
+    {
+        if (inputActions != null) return;
+        if (GameInput.Instance == null) return;
+        inputActions = GameInput.Instance.Actions;
     }
 }

@@ -15,6 +15,10 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
     private float currentHealth;
     private bool isDead;
+    private DeathCycleManager cycleManager;
+    private DeathScreen deathScreen;
+    private float nextReferenceResolveTime;
+    private float nextHealthSliderResolveTime;
 
     public float CurrentHealth => currentHealth;
     public float MaxHealth => maxHealth;
@@ -26,7 +30,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     private void Awake()
     {
         currentHealth = maxHealth;
-        ResolveReferences();
+        ResolveReferences(force: true);
         ResolveHealthSliderIfNeeded();
         UpdateHealthUI();
     }
@@ -97,16 +101,11 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         isDead = true;
         if (healthSlider != null) healthSlider.value = 0f;
 
-        ResolveReferences();
-        DeathCycleManager cycleManager = DeathCycleManager.Instance;
-        if (cycleManager == null) cycleManager = FindObjectOfType<DeathCycleManager>();
+        ResolveReferences(force: true);
         if (cycleManager != null)
         {
-            cycleManager.RegisterDeath(DeathKind.Combat);
+            cycleManager.RegisterDeath(DeathKind.Combat, GetDeathZoneId());
         }
-
-        DeathScreen deathScreen = DeathScreen.Instance;
-        if (deathScreen == null) deathScreen = FindObjectOfType<DeathScreen>();
 
         if (deathScreen != null)
         {
@@ -120,18 +119,25 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        ResolveReferences();
+        ResolveReferences(force: true);
         ResolveHealthSliderIfNeeded(force: true);
         UpdateHealthUI();
     }
 
-    private void ResolveReferences()
+    private void ResolveReferences(bool force = false)
     {
-        if (bloodSplatUI == null) bloodSplatUI = FindObjectOfType<BloodSplatUI>();
+        if (!force && Time.unscaledTime < nextReferenceResolveTime) return;
+
+        if (bloodSplatUI == null || force) bloodSplatUI = FindObjectOfType<BloodSplatUI>();
+        if (cycleManager == null || force) cycleManager = DeathCycleManager.Instance != null ? DeathCycleManager.Instance : FindObjectOfType<DeathCycleManager>();
+        if (deathScreen == null || force) deathScreen = DeathScreen.Instance != null ? DeathScreen.Instance : FindObjectOfType<DeathScreen>();
+
+        nextReferenceResolveTime = Time.unscaledTime + 0.5f;
     }
 
     private void ResolveHealthSliderIfNeeded(bool force = false)
     {
+        if (!force && healthSlider == null && Time.unscaledTime < nextHealthSliderResolveTime) return;
         if (!force && healthSlider != null) return;
 
         Slider[] sliders = FindObjectsOfType<Slider>(true);
@@ -146,6 +152,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
             if (lower == "health" || lower.Contains("health"))
             {
                 healthSlider = slider;
+                nextHealthSliderResolveTime = 0f;
                 return;
             }
 
@@ -158,6 +165,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         if (fallback != null)
         {
             healthSlider = fallback;
+            nextHealthSliderResolveTime = 0f;
             return;
         }
 
@@ -169,6 +177,9 @@ public class PlayerHealth : MonoBehaviour, IDamageable
                 healthSlider = byName.GetComponent<Slider>();
             }
         }
+
+        if (healthSlider == null)
+            nextHealthSliderResolveTime = Time.unscaledTime + 0.5f;
     }
 
     private void ForceDeathFallbackWithoutUi()
@@ -193,5 +204,13 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     {
         T component = GetComponentInChildren<T>(true);
         if (component != null) component.enabled = false;
+    }
+
+    private string GetDeathZoneId()
+    {
+        string scene = SceneManager.GetActiveScene().name;
+        string id = RespawnCheckpointState.GetCheckpointId(scene);
+        if (!string.IsNullOrWhiteSpace(id)) return id;
+        return scene;
     }
 }

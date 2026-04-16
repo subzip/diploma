@@ -163,7 +163,8 @@ public class RealityVariantController : MonoBehaviour
         RespawnCheckpointState.SetCheckpoint(
             scene,
             binding.respawnPoint.position,
-            binding.respawnPoint.rotation
+            binding.respawnPoint.rotation,
+            $"variant_{index}"
         );
     }
 
@@ -179,10 +180,10 @@ public class RealityVariantController : MonoBehaviour
         for (int i = 0; i < variants.Length; i++)
         {
             RealityVariantBinding binding = variants[i];
-            if (binding == null || binding.navMeshRoot == null) continue;
+            if (binding == null) continue;
 
             bool shouldBeActive = i == activeIndex;
-            CollectNavMeshSurfaces(binding.navMeshRoot, cachedNavSurfaces);
+            CollectVariantNavMeshSurfaces(binding, cachedNavSurfaces);
             for (int s = 0; s < cachedNavSurfaces.Count; s++)
             {
                 Component surface = cachedNavSurfaces[s];
@@ -204,9 +205,46 @@ public class RealityVariantController : MonoBehaviour
         }
     }
 
+    private static void CollectVariantNavMeshSurfaces(RealityVariantBinding binding, List<Component> output)
+    {
+        output.Clear();
+        if (binding == null) return;
+
+        // Preferred explicit root.
+        if (binding.navMeshRoot != null)
+        {
+            CollectNavMeshSurfaces(binding.navMeshRoot, output);
+            return;
+        }
+
+        // Fallback: detect surfaces under active layout/enemy roots.
+        if (binding.layoutRoot != null)
+            CollectNavMeshSurfacesAppend(binding.layoutRoot, output);
+
+        if (binding.enemiesRoot != null)
+            CollectNavMeshSurfacesAppend(binding.enemiesRoot, output);
+    }
+
     private static void CollectNavMeshSurfaces(GameObject root, List<Component> output)
     {
         output.Clear();
+        if (root == null) return;
+
+        Component[] components = root.GetComponentsInChildren<Component>(true);
+        for (int i = 0; i < components.Length; i++)
+        {
+            Component c = components[i];
+            if (c == null) continue;
+            string typeName = c.GetType().Name;
+            if (typeName == "NavMeshSurface")
+            {
+                output.Add(c);
+            }
+        }
+    }
+
+    private static void CollectNavMeshSurfacesAppend(GameObject root, List<Component> output)
+    {
         if (root == null) return;
 
         Component[] components = root.GetComponentsInChildren<Component>(true);

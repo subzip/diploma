@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class PlayerVitalsHud : MonoBehaviour
@@ -47,10 +48,13 @@ public class PlayerVitalsHud : MonoBehaviour
     private float targetStamina01 = 1f;
     private float currentNeuro01 = 1f;
     private float targetNeuro01 = 1f;
+    private float nextResolveAttemptTime;
+    private PlayerHealth boundHealth;
 
     private void Awake()
     {
         ResolveSources();
+        BindHealthEvents();
         SyncInstantValues();
         ApplyAllBarsInstant();
         UpdateAllTexts();
@@ -59,20 +63,27 @@ public class PlayerVitalsHud : MonoBehaviour
     private void OnEnable()
     {
         ResolveSources();
-        if (playerHealth != null)
-            playerHealth.OnHealthChanged += OnHealthChanged;
+        BindHealthEvents();
+        SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
     private void OnDisable()
     {
-        if (playerHealth != null)
-            playerHealth.OnHealthChanged -= OnHealthChanged;
+        UnbindHealthEvents();
+        SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
     private void Update()
     {
         if (playerHealth == null || playerMovement == null || playerNeuroresist == null)
-            ResolveSources();
+        {
+            if (Time.unscaledTime >= nextResolveAttemptTime)
+            {
+                ResolveSources();
+                BindHealthEvents();
+                nextResolveAttemptTime = Time.unscaledTime + 0.5f;
+            }
+        }
 
         if (playerMovement != null)
             targetStamina01 = Mathf.Clamp01(playerMovement.CurrentStamina / Mathf.Max(0.001f, playerMovement.MaxStamina));
@@ -101,6 +112,38 @@ public class PlayerVitalsHud : MonoBehaviour
         if (playerHealth == null) playerHealth = FindObjectOfType<PlayerHealth>();
         if (playerMovement == null) playerMovement = FindObjectOfType<PlayerMovement>();
         if (playerNeuroresist == null) playerNeuroresist = FindObjectOfType<PlayerNeuroresist>();
+    }
+
+    private void BindHealthEvents()
+    {
+        if (boundHealth != null && boundHealth != playerHealth)
+            boundHealth.OnHealthChanged -= OnHealthChanged;
+
+        if (playerHealth == null)
+        {
+            boundHealth = null;
+            return;
+        }
+
+        playerHealth.OnHealthChanged -= OnHealthChanged;
+        playerHealth.OnHealthChanged += OnHealthChanged;
+        boundHealth = playerHealth;
+    }
+
+    private void UnbindHealthEvents()
+    {
+        if (boundHealth == null) return;
+        boundHealth.OnHealthChanged -= OnHealthChanged;
+        boundHealth = null;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        ResolveSources();
+        BindHealthEvents();
+        SyncInstantValues();
+        ApplyAllBarsInstant();
+        UpdateAllTexts();
     }
 
     private void SyncInstantValues()
