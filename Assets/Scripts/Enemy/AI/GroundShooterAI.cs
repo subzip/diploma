@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.AI;
+using System.Collections;
 
 [RequireComponent(typeof(NavMeshAgent))]
 public class GroundShooterAI : MonoBehaviour, IDamageable
@@ -12,6 +13,15 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
 
     [Header("Health")]
     [SerializeField] private float maxHealth = 100f;
+    
+    [Header("Death")]
+    [SerializeField] private string deathStateName = "Death_Anim";
+    [SerializeField] private string deathStateFullPath = "Base Layer.Death_Anim";
+    [SerializeField] private float deathCrossfadeDuration = 0.05f;
+    [SerializeField] private float deathAnimLockSeconds = 1.2f;
+    [SerializeField] private bool freezeOnDeathLastFrame = false;
+    [SerializeField] private bool destroyOnDeath = false;
+    [SerializeField] private float destroyDelaySeconds = 8f;
 
     [Header("Perception")]
     [SerializeField, Range(30f, 180f)] private float fovDegrees = 180f;
@@ -50,6 +60,7 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
 
     [Header("Debug")]
     [SerializeField] private bool debugState;
+    [SerializeField] private bool debugDeathAnimation;
 
     private NavMeshAgent agent;
     private Transform player;
@@ -83,6 +94,8 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
+        agent.updateRotation = true;
+        agent.updatePosition = true;
         if (animator == null) animator = GetComponentInChildren<Animator>();
         if (hitCollider == null) hitCollider = GetComponent<Collider>();
         if (eyePoint == null) eyePoint = transform;
@@ -140,23 +153,139 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
 
     private void Die()
     {
+        if (dead) return;
         dead = true;
-        agent.isStopped = true;
-        agent.enabled = false;
+        currentHealth = 0f;
+        if (debugDeathAnimation) Debug.Log($"{name}: Die() called");
+        SetAgentStoppedSafe(true);
+        if (agent != null) agent.enabled = false;
         if (hitCollider != null) hitCollider.enabled = false;
-        if (animator != null) animator.SetBool(IsDeadHash, true);
+
+        // Prevent legacy/parallel combat scripts on the same object from continuing to fire.
+        DisableSiblingBehaviours();
+
+        if (animator != null)
+        {
+            animator.SetFloat(SpeedHash, 0f);
+            animator.SetBool(IsAimingHash, false);
+            animator.SetBool(IsInCoverHash, false);
+            animator.SetBool(IsPeekingHash, false);
+            animator.SetBool(IsDeadHash, true);
+            animator.speed = 1f;
+            animator.applyRootMotion = false;
+            TryForcePlayDeath();
+            StartCoroutine(LockDeathPoseAfterDelay());
+        }
+
+        // Keep corpse by default. Optional auto-cleanup can be enabled in inspector.
+        if (destroyOnDeath && destroyDelaySeconds > 0f)
+        {
+            Destroy(gameObject, destroyDelaySeconds);
+        }
+
+        // Disable this AI logic after death lock is applied.
         enabled = false;
-        Destroy(gameObject, 2f);
+    }
+
+    private void TryForcePlayDeath()
+    {
+        if (animator == null) return;
+
+        bool played = false;
+        float fade = Mathf.Max(0f, deathCrossfadeDuration);
+
+        if (!string.IsNullOrWhiteSpace(deathStateFullPath))
+        {
+            int fullPathHash = Animator.StringToHash(deathStateFullPath);
+            if (animator.HasState(0, fullPathHash))
+            {
+                animator.Play(fullPathHash, 0, 0f);
+                animator.CrossFadeInFixedTime(fullPathHash, fade, 0, 0f);
+                played = true;
+                if (debugDeathAnimation) Debug.Log($"{name}: death by fullPath '{deathStateFullPath}'");
+            }
+        }
+
+        if (!played && !string.IsNullOrWhiteSpace(deathStateName))
+        {
+            int nameHash = Animator.StringToHash(deathStateName);
+            if (animator.HasState(0, nameHash))
+            {
+                animator.Play(nameHash, 0, 0f);
+                animator.CrossFadeInFixedTime(nameHash, fade, 0, 0f);
+                played = true;
+                if (debugDeathAnimation) Debug.Log($"{name}: death by stateName '{deathStateName}' on layer 0");
+            }
+        }
+
+        if (!played && !string.IsNullOrWhiteSpace(deathStateName))
+        {
+            for (int layer = 0; layer < animator.layerCount; layer++)
+            {
+                string layerPath = $"{animator.GetLayerName(layer)}.{deathStateName}";
+                int hash = Animator.StringToHash(layerPath);
+                if (!animator.HasState(layer, hash)) continue;
+
+                animator.Play(hash, layer, 0f);
+                animator.CrossFadeInFixedTime(hash, fade, layer, 0f);
+                played = true;
+                if (debugDeathAnimation) Debug.Log($"{name}: death by layerPath '{layerPath}'");
+                break;
+            }
+        }
+
+        if (!played)
+        {
+            Debug.LogWarning($"{name}: failed to force death state. Check Animator state name/path. deathStateName='{deathStateName}', deathStateFullPath='{deathStateFullPath}'");
+        }
+    }
+
+    private IEnumerator LockDeathPoseAfterDelay()
+    {
+        if (animator == null) yield break;
+        yield return new WaitForSeconds(Mathf.Max(0.05f, deathAnimLockSeconds));
+        if (freezeOnDeathLastFrame && animator != null)
+        {
+            animator.speed = 0f;
+        }
+    }
+
+    private void DisableSiblingBehaviours()
+    {
+        MonoBehaviour[] behaviours = GetComponents<MonoBehaviour>();
+        for (int i = 0; i < behaviours.Length; i++)
+        {
+            MonoBehaviour b = behaviours[i];
+            if (b == null || b == this) continue;
+            b.enabled = false;
+        }
     }
 
     private void UpdateAnimator()
     {
         if (animator == null) return;
-        float speed = agent != null && agent.enabled ? agent.velocity.magnitude : 0f;
+        float speed = HasValidAgent() ? agent.velocity.magnitude : 0f;
         animator.SetFloat(SpeedHash, speed);
         animator.SetBool(IsAimingHash, stateMachine.CurrentState == attackState);
         animator.SetBool(IsInCoverHash, currentCover != null);
         animator.SetBool(IsPeekingHash, peeking);
+    }
+
+    private bool HasValidAgent()
+    {
+        return agent != null && agent.enabled && agent.isOnNavMesh;
+    }
+
+    private void SetAgentStoppedSafe(bool value)
+    {
+        if (!HasValidAgent()) return;
+        agent.isStopped = value;
+    }
+
+    private bool SetAgentDestinationSafe(Vector3 destination)
+    {
+        if (!HasValidAgent()) return false;
+        return agent.SetDestination(destination);
     }
 
     private bool CanSeePlayer()
@@ -308,7 +437,7 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
         public void Enter()
         {
             ai.stateTimer = Random.Range(ai.idleMinSeconds, ai.idleMaxSeconds);
-            ai.agent.isStopped = true;
+            ai.SetAgentStoppedSafe(true);
             ai.peeking = false;
             if (ai.debugState) Debug.Log($"{ai.name}: Idle");
         }
@@ -329,7 +458,7 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
 
         public void Exit()
         {
-            ai.agent.isStopped = false;
+            ai.SetAgentStoppedSafe(false);
         }
     }
 
@@ -357,6 +486,7 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
             }
 
             if (ai.patrolPoints == null || ai.patrolPoints.Length == 0) return;
+            if (!ai.HasValidAgent()) return;
             if (ai.agent.pathPending) return;
 
             if (ai.agent.remainingDistance <= Mathf.Max(ai.agent.stoppingDistance, 0.3f))
@@ -379,7 +509,7 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
         {
             if (ai.patrolPoints == null || ai.patrolPoints.Length == 0) return;
             ai.patrolIndex = (ai.patrolIndex + 1) % ai.patrolPoints.Length;
-            ai.agent.SetDestination(ai.patrolPoints[ai.patrolIndex].position);
+            ai.SetAgentDestinationSafe(ai.patrolPoints[ai.patrolIndex].position);
             ai.stateTimer = ai.patrolWaitSeconds;
         }
     }
@@ -434,7 +564,7 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
 
         public void Exit()
         {
-            ai.agent.isStopped = false;
+            ai.SetAgentStoppedSafe(false);
             ai.peeking = false;
         }
 
@@ -445,14 +575,14 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
 
             if (movingToCover)
             {
-                ai.agent.isStopped = false;
-                ai.agent.SetDestination(hidePos);
-                if (!ai.agent.pathPending && ai.agent.remainingDistance <= Mathf.Max(ai.agent.stoppingDistance, 0.25f))
+                ai.SetAgentStoppedSafe(false);
+                ai.SetAgentDestinationSafe(hidePos);
+                if (ai.HasValidAgent() && !ai.agent.pathPending && ai.agent.remainingDistance <= Mathf.Max(ai.agent.stoppingDistance, 0.25f))
                 {
                     movingToCover = false;
                     hiding = true;
                     ai.stateTimer = ai.coverHoldSeconds;
-                    ai.agent.isStopped = true;
+                    ai.SetAgentStoppedSafe(true);
                 }
                 return;
             }
@@ -466,17 +596,17 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
                     hiding = false;
                     ai.peeking = true;
                     ai.stateTimer = ai.peekSeconds;
-                    ai.agent.isStopped = false;
-                    ai.agent.SetDestination(peekPos);
+                    ai.SetAgentStoppedSafe(false);
+                    ai.SetAgentDestinationSafe(peekPos);
                 }
                 return;
             }
 
-            ai.agent.isStopped = false;
-            ai.agent.SetDestination(peekPos);
+            ai.SetAgentStoppedSafe(false);
+            ai.SetAgentDestinationSafe(peekPos);
             ai.FacePlayer(12f);
 
-            if (!ai.agent.pathPending && ai.agent.remainingDistance <= Mathf.Max(ai.agent.stoppingDistance, 0.2f))
+            if (ai.HasValidAgent() && !ai.agent.pathPending && ai.agent.remainingDistance <= Mathf.Max(ai.agent.stoppingDistance, 0.2f))
             {
                 if (hasVision && Time.time >= ai.attackAllowedAfter)
                 {
@@ -490,23 +620,27 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
                 ai.peeking = false;
                 hiding = true;
                 ai.stateTimer = ai.coverHoldSeconds;
-                ai.agent.SetDestination(hidePos);
+                ai.SetAgentDestinationSafe(hidePos);
             }
         }
 
         private void TickFallbackCombat(bool hasVision)
         {
-            ai.agent.isStopped = false;
+            ai.SetAgentStoppedSafe(false);
             Vector3 target = hasVision ? ai.player.position : ai.lastKnownPlayerPosition;
             Vector3 toTarget = target - ai.transform.position;
             float distance = toTarget.magnitude;
 
             if (distance > ai.preferredDistance)
-                ai.agent.SetDestination(target);
+                ai.SetAgentDestinationSafe(target);
             else
-                ai.agent.SetDestination(ai.transform.position - toTarget.normalized * 2f);
+                ai.SetAgentDestinationSafe(ai.transform.position - toTarget.normalized * 2f);
 
-            ai.FacePlayer(12f);
+            // Let NavMeshAgent control facing while moving to avoid sideways sliding.
+            if (!ai.HasValidAgent() || ai.agent.velocity.sqrMagnitude < 0.04f)
+            {
+                ai.FacePlayer(12f);
+            }
             if (hasVision && distance <= ai.attackRange && Time.time >= ai.attackAllowedAfter)
             {
                 ai.TryShootAtPlayer();
