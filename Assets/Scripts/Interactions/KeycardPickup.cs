@@ -1,4 +1,4 @@
-// KeycardPickup.cs
+﻿
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -7,11 +7,13 @@ public class KeycardPickup : MonoBehaviour
     [Header("Interaction")]
     [SerializeField] private float pickupRange = 2f;
     [SerializeField] private float viewAngle = 30f;
-    [SerializeField] private string promptText = "Подберите карту";
+    [SerializeField] private string promptText = "РџРѕРґР±РµСЂРёС‚Рµ РєР°СЂС‚Сѓ";
 
     [Header("Quest System")]
     [SerializeField] private QuestSystem questSystem;
     [SerializeField] private QuestUI questUI;
+    [SerializeField] private bool autoResolveQuestReferences = true;
+    [SerializeField] private float promptRefreshInterval = 0.08f;
     private bool isInRange = false;
     private bool isLookingAt = false;
     private Transform playerCamera;
@@ -22,9 +24,12 @@ public class KeycardPickup : MonoBehaviour
     [SerializeField] private MeshRenderer[] renderersToHighlight;
     [SerializeField] private Color emissionColor = new Color(0.3f, 0.8f, 0.2f);
     [SerializeField] private float pulseSpeed = 3f;
+    [SerializeField] private float highlightRefreshInterval = 1.5f;
     private MaterialPropertyBlock mpb;
     private bool consumed = false;
     private float nextResolveRefTime;
+    private float nextHighlightRefreshTime;
+    private float nextPromptTime;
 
     private void Start()
     {
@@ -38,6 +43,7 @@ public class KeycardPickup : MonoBehaviour
             renderersToHighlight = GetComponentsInChildren<MeshRenderer>(true);
         mpb = new MaterialPropertyBlock();
         EnableEmission();
+        ResolveQuestReferences();
     }
 
     private void Update()
@@ -85,7 +91,14 @@ public class KeycardPickup : MonoBehaviour
 
     private void ShowPrompt()
     {
-        questUI.ShowHint(promptText);
+        if (Time.unscaledTime < nextPromptTime) return;
+        nextPromptTime = Time.unscaledTime + Mathf.Max(0.03f, promptRefreshInterval);
+
+        if ((questUI == null || questSystem == null) && autoResolveQuestReferences)
+            ResolveQuestReferences();
+
+        if (questUI != null)
+            questUI.ShowHint(promptText);
     }
 
     private void OnPickup(InputAction.CallbackContext ctx)
@@ -101,9 +114,16 @@ public class KeycardPickup : MonoBehaviour
         consumed = true;
         DisableEmission();
 
+        if (questSystem == null && autoResolveQuestReferences)
+            ResolveQuestReferences();
+
         if (questSystem != null)
         {
             questSystem.CompleteCurrentQuest();
+        }
+        else
+        {
+            Debug.LogWarning($"{name}: QuestSystem reference missing, keycard picked but quest was not completed.");
         }
 
         Destroy(gameObject);
@@ -125,12 +145,20 @@ public class KeycardPickup : MonoBehaviour
     private void LateUpdate()
     {
         if (consumed || renderersToHighlight == null) return;
-        float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * pulseSpeed);
+        if (Time.unscaledTime >= nextHighlightRefreshTime)
+        {
+            RefreshHighlightRenderersIfNeeded();
+            EnableEmission();
+            nextHighlightRefreshTime = Time.unscaledTime + Mathf.Max(0.25f, highlightRefreshInterval);
+        }
+
+        float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * pulseSpeed);
         foreach (var r in renderersToHighlight)
         {
             if (r == null) continue;
             r.GetPropertyBlock(mpb);
             mpb.SetColor("_EmissionColor", emissionColor * pulse);
+            mpb.SetColor("_EmissiveColor", emissionColor * pulse);
             r.SetPropertyBlock(mpb);
         }
     }
@@ -161,10 +189,43 @@ public class KeycardPickup : MonoBehaviour
         }
     }
 
+    private void RefreshHighlightRenderersIfNeeded()
+    {
+        bool needRefresh = renderersToHighlight == null || renderersToHighlight.Length == 0;
+        if (!needRefresh)
+        {
+            for (int i = 0; i < renderersToHighlight.Length; i++)
+            {
+                if (renderersToHighlight[i] == null)
+                {
+                    needRefresh = true;
+                    break;
+                }
+            }
+        }
+
+        if (needRefresh)
+            renderersToHighlight = GetComponentsInChildren<MeshRenderer>(true);
+    }
+
     private void ResolveInputActions()
     {
         if (inputActions != null) return;
         if (GameInput.Instance == null) return;
         inputActions = GameInput.Instance.Actions;
+    }
+
+    private void ResolveQuestReferences()
+    {
+        if (questSystem == null)
+            questSystem = FindObjectOfType<QuestSystem>(true);
+
+        if (questUI == null)
+        {
+            if (questSystem != null && questSystem.questUI != null)
+                questUI = questSystem.questUI;
+            else
+                questUI = FindObjectOfType<QuestUI>(true);
+        }
     }
 }

@@ -1,4 +1,4 @@
-// EnemyCombat.cs
+﻿
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -8,7 +8,7 @@ public class EnemyCombat : MonoBehaviour
     [SerializeField] protected float attackRange = 3f;
     [SerializeField] protected float attackCooldown = 1.5f;
     [SerializeField] protected int attackDamage = 25;
-    [SerializeField] protected LayerMask playerLayer = ~0; // kept for prefab compatibility
+    [SerializeField] protected LayerMask playerLayer = ~0; 
     [SerializeField] private float attackFacingSpeed = 8f;
     [SerializeField] private float attackAimDelay = 0.3f;
     [SerializeField] private bool holdPositionWhileAttacking = true;
@@ -59,13 +59,13 @@ public class EnemyCombat : MonoBehaviour
         float distance = toPlayer.magnitude;
         Vector3 destination = player.position;
 
-        // Too close: step back for better firing profile.
+        
         if (distance < retreatDistance && distance > 0.01f)
         {
             Vector3 retreatDir = -toPlayer.normalized;
             destination = transform.position + retreatDir * (retreatDistance - distance + 0.7f);
         }
-        // In close combat range: strafe around player.
+        
         else if (enableStrafe && distance <= attackRange * 1.3f)
         {
             if (Time.time >= nextStrafeSwitchTime)

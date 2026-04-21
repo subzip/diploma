@@ -1,9 +1,9 @@
-using UnityEngine;
+﻿using UnityEngine;
 
-/// <summary>
-/// Единый провайдер PlayerInputActions для всех компонентов игрока.
-/// Создаёт один экземпляр, включает/выключает карту и корректно освобождает ресурсы.
-/// </summary>
+
+
+
+
 [DefaultExecutionOrder(-200)]
 public class GameInput : MonoBehaviour
 {

@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Serialization;
 
 [RequireComponent(typeof(Collider))]
@@ -32,7 +32,7 @@ public class FlyingDrone : MonoBehaviour, IDamageable
     [SerializeField] private int damage = 12;
     [SerializeField] private float attackAimDelay = 0.2f;
     [FormerlySerializedAs("playerLayer")]
-    [SerializeField] private LayerMask playerLayer = ~0; // kept for prefab compatibility
+    [SerializeField] private LayerMask playerLayer = ~0; 
     [SerializeField] private ParticleSystem laserVFX;
 
     [Header("Movement")]
@@ -180,7 +180,7 @@ public class FlyingDrone : MonoBehaviour, IDamageable
     {
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
-        // If too close, step back first to avoid spinning around the player.
+        
         if (distanceToPlayer < minAttackDistance)
         {
             Vector3 away = (transform.position - player.position);

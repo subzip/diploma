@@ -1,18 +1,18 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.InputSystem;
 using System;
 using System.Reflection;
 
-/// <summary>
-/// ADS-контроллер: включает режим прицеливания, замедляет игрока, подводит текущее оружие в per-weapon позу.
-/// </summary>
+
+
+
 public class AimController : MonoBehaviour
 {
-    [SerializeField] private Transform weaponHolder; // WeaponSlots
+    [SerializeField] private Transform weaponHolder; 
     [SerializeField] private WeaponManager weaponManager;
     [SerializeField] private float aimLerpSpeed = 10f;
 
-    [Header("Fallback ADS (когда нет WeaponStats)")]
+    [Header("Fallback ADS (РєРѕРіРґР° РЅРµС‚ WeaponStats)")]
     [SerializeField] private Vector3 fallbackAimOffset = new Vector3(0.05f, -0.05f, 0.1f);
 
     [Header("Camera")]
@@ -23,6 +23,7 @@ public class AimController : MonoBehaviour
 
     [Header("Gameplay")]
     [SerializeField] private GameObject aimOverlay;
+    [SerializeField] private GameObject hipCrosshair;
     [SerializeField] private float aimSlowMultiplier = 0.7f;
     [SerializeField] private float aimOverlayFadeSpeed = 8f;
     [SerializeField] private float overlayPositionTolerance = 0.015f;
@@ -45,7 +46,7 @@ public class AimController : MonoBehaviour
         if (weaponManager == null) weaponManager = GetComponentInChildren<WeaponManager>();
         if (weaponHolder == null && weaponManager != null) weaponHolder = weaponManager.transform;
 
-        if (playerCamera == null) playerCamera = Camera.main;
+        ResolvePlayerCamera();
         if (!TryGetCinemachineFov(out defaultFov))
         {
             if (playerCamera != null) defaultFov = playerCamera.fieldOfView;
@@ -99,6 +100,7 @@ public class AimController : MonoBehaviour
         }
 
         UpdateAimOverlay();
+        UpdateCrosshairVisibility();
         UpdateTransforms();
         UpdateFov();
     }
@@ -140,6 +142,18 @@ public class AimController : MonoBehaviour
         {
             aimOverlay.SetActive(allowOverlay);
         }
+    }
+
+    private void UpdateCrosshairVisibility()
+    {
+        if (hipCrosshair == null) return;
+
+        BaseWeapon currentWeapon = weaponManager != null ? weaponManager.CurrentWeapon : null;
+        WeaponStats stats = currentWeapon != null ? currentWeapon.stats : null;
+
+        
+        bool hideHipCrosshair = isAiming && stats != null && stats.useAimOverlay;
+        hipCrosshair.SetActive(!hideHipCrosshair);
     }
 
     private void UpdateTransforms()
@@ -186,15 +200,48 @@ public class AimController : MonoBehaviour
                 targetFov = defaultAimFov;
         }
 
+        bool fovApplied = false;
         if (TryGetCinemachineFov(out float currentCmFov))
         {
             float smoothed = Mathf.Lerp(currentCmFov, targetFov, Time.deltaTime * aimLerpSpeed);
-            TrySetCinemachineFov(smoothed);
+            fovApplied = TrySetCinemachineFov(smoothed);
+        }
+
+        if (fovApplied) return;
+
+        if (playerCamera == null) ResolvePlayerCamera();
+        if (playerCamera == null) return;
+        playerCamera.fieldOfView = Mathf.Lerp(playerCamera.fieldOfView, targetFov, Time.deltaTime * aimLerpSpeed);
+    }
+
+    private void ResolvePlayerCamera()
+    {
+        if (playerCamera != null) return;
+
+        Camera[] cameras = GetComponentsInChildren<Camera>(true);
+        Camera fallback = null;
+        for (int i = 0; i < cameras.Length; i++)
+        {
+            Camera cam = cameras[i];
+            if (cam == null) continue;
+
+            string lowerName = cam.name.ToLowerInvariant();
+            if (lowerName.Contains("fp camera") || lowerName == "fpcamera" || lowerName.Contains("first"))
+            {
+                playerCamera = cam;
+                return;
+            }
+
+            if (fallback == null) fallback = cam;
+        }
+
+        if (fallback != null)
+        {
+            playerCamera = fallback;
             return;
         }
 
-        if (playerCamera == null) return;
-        playerCamera.fieldOfView = Mathf.Lerp(playerCamera.fieldOfView, targetFov, Time.deltaTime * aimLerpSpeed);
+        playerCamera = Camera.main;
     }
 
     private bool TryGetCinemachineFov(out float fov)
@@ -221,6 +268,11 @@ public class AimController : MonoBehaviour
         if (target == null) return false;
 
         Type t = target.GetType();
+
+        
+        if (TryReadLensMember(t, target, "Lens", out fov)) return true;
+        if (TryReadLensMember(t, target, "m_Lens", out fov)) return true;
+
         PropertyInfo lensProp = t.GetProperty("Lens");
         if (lensProp != null)
         {
@@ -243,6 +295,11 @@ public class AimController : MonoBehaviour
         if (target == null) return false;
 
         Type t = target.GetType();
+
+        
+        if (TryWriteLensMember(t, target, "Lens", fov)) return true;
+        if (TryWriteLensMember(t, target, "m_Lens", fov)) return true;
+
         PropertyInfo lensProp = t.GetProperty("Lens");
         if (lensProp != null && lensProp.CanRead && lensProp.CanWrite)
         {
@@ -296,6 +353,18 @@ public class AimController : MonoBehaviour
             }
         }
 
+        
+        FieldInfo altField = lensType.GetField("fieldOfView", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (altField != null)
+        {
+            object value = altField.GetValue(lens);
+            if (value is float floatAltValue)
+            {
+                fov = floatAltValue;
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -316,6 +385,61 @@ public class AimController : MonoBehaviour
         {
             fovField.SetValue(lens, fov);
             return true;
+        }
+
+        FieldInfo altField = lensType.GetField("fieldOfView", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (altField != null)
+        {
+            altField.SetValue(lens, fov);
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool TryReadLensMember(Type targetType, object target, string memberName, out float fov)
+    {
+        fov = 0f;
+
+        PropertyInfo prop = targetType.GetProperty(memberName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (prop != null && prop.CanRead)
+        {
+            object lens = prop.GetValue(target);
+            if (TryReadFieldOfViewFromLens(lens, out fov)) return true;
+        }
+
+        FieldInfo field = targetType.GetField(memberName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (field != null)
+        {
+            object lens = field.GetValue(target);
+            if (TryReadFieldOfViewFromLens(lens, out fov)) return true;
+        }
+
+        return false;
+    }
+
+    private bool TryWriteLensMember(Type targetType, object target, string memberName, float fov)
+    {
+        PropertyInfo prop = targetType.GetProperty(memberName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (prop != null && prop.CanRead && prop.CanWrite)
+        {
+            object lens = prop.GetValue(target);
+            if (TryWriteFieldOfViewToLens(ref lens, fov))
+            {
+                prop.SetValue(target, lens);
+                return true;
+            }
+        }
+
+        FieldInfo field = targetType.GetField(memberName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (field != null)
+        {
+            object lens = field.GetValue(target);
+            if (TryWriteFieldOfViewToLens(ref lens, fov))
+            {
+                field.SetValue(target, lens);
+                return true;
+            }
         }
 
         return false;

@@ -1,4 +1,4 @@
-// PlayerLook.cs
+﻿
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -28,11 +28,16 @@ public class PlayerLook : MonoBehaviour
     [SerializeField] private AimController aimController;
 
     [Header("Headbob")]
-    [SerializeField] private float bobAmplitudeWalk = 0.02f;
-    [SerializeField] private float bobAmplitudeSprint = 0.035f;
+    [SerializeField] private float bobAmplitudeWalk = 0.01f;
+    [SerializeField] private float bobAmplitudeSprint = 0.018f;
     [SerializeField] private float bobFrequencyWalk = 8f;
     [SerializeField] private float bobFrequencySprint = 11f;
+    [SerializeField] private float walkReferenceSpeed = 5f;
+    [SerializeField] private float sprintReferenceSpeed = 8f;
+    [SerializeField] private float bobBlendInSpeed = 8f;
+    [SerializeField] private float bobBlendOutSpeed = 10f;
     private float bobTimer = 0f;
+    private float bobWeight = 0f;
 
     [Header("Recoil (Shooter Style)")]
     [SerializeField] private float recoilKickSnappiness = 22f;
@@ -96,26 +101,25 @@ public class PlayerLook : MonoBehaviour
             cameraSmoothTime
         );
 
-        // headbob
+        
         float speed = movement != null ? movement.GetMoveSpeed() : 0f;
-        bool grounded = movement != null ? movement.IsGrounded : true;
-        float bobOffsetY = 0f;
-        float bobOffsetX = 0f;
-        if (grounded && speed > 0.1f)
-        {
-            bool sprinting = movement.IsSprinting;
-            bobTimer += Time.deltaTime * (sprinting ? bobFrequencySprint : bobFrequencyWalk);
-            float amp = sprinting ? bobAmplitudeSprint : bobAmplitudeWalk;
-            bobOffsetY = Mathf.Sin(bobTimer) * amp;
-            bobOffsetX = Mathf.Cos(bobTimer * 0.5f) * amp * 0.5f;
-        }
-        else
-        {
-            bobTimer = 0f;
-        }
+        bool grounded = movement != null && movement.IsGrounded;
+        bool sprinting = movement != null && movement.IsSprinting;
 
-        cameraPivot.localPosition = new Vector3(bobOffsetX, currentHeight + bobOffsetY, cameraPivot.localPosition.z);
-        cameraPivot.localRotation = Quaternion.Euler(xRotation, 0, 0);
+        float targetSpeed = sprinting
+            ? Mathf.Max(0.001f, sprintReferenceSpeed)
+            : Mathf.Max(0.001f, walkReferenceSpeed);
+        float normalizedSpeed = Mathf.Clamp01(speed / targetSpeed);
+        float targetBobWeight = grounded ? normalizedSpeed : 0f;
+        float bobBlend = (targetBobWeight > bobWeight ? bobBlendInSpeed : bobBlendOutSpeed) * Time.deltaTime;
+        bobWeight = Mathf.MoveTowards(bobWeight, targetBobWeight, bobBlend);
+
+        float freq = Mathf.Lerp(bobFrequencyWalk, bobFrequencySprint, sprinting ? 1f : 0f);
+        bobTimer += Time.deltaTime * Mathf.Lerp(0.5f, freq, bobWeight);
+
+        float amp = Mathf.Lerp(bobAmplitudeWalk, bobAmplitudeSprint, sprinting ? 1f : 0f);
+        float bobOffsetY = Mathf.Sin(bobTimer) * amp * bobWeight;
+        cameraPivot.localPosition = new Vector3(0f, currentHeight + bobOffsetY, cameraPivot.localPosition.z);
 
         ApplyLookRecoil(Time.deltaTime);
         float neuroJitter = 0f;
@@ -127,7 +131,7 @@ public class PlayerLook : MonoBehaviour
         }
         cameraPivot.localRotation = Quaternion.Euler(
             xRotation - recoilCurrent.y + neuroJitter,
-            recoilCurrent.x + bobOffsetX * 30f,
+            recoilCurrent.x,
             0f
         );
     }
@@ -147,10 +151,24 @@ public class PlayerLook : MonoBehaviour
         if (impulse.sqrMagnitude > 0f)
         {
             bool aiming = weaponManager.CurrentWeapon != null && aimController != null && aimController.IsAiming;
+            bool rifleHipfireStyle = weaponManager.CurrentWeapon != null &&
+                                     weaponManager.CurrentWeapon.stats != null &&
+                                     weaponManager.CurrentWeapon.stats.useAimOverlay &&
+                                     !aiming;
 
             float adsMul = aiming ? adsRecoilMultiplier : 1f;
-            recoilTarget.x += impulse.x * effectiveYawMul * adsMul;
+            recoilTarget.x += rifleHipfireStyle ? 0f : impulse.x * effectiveYawMul * adsMul;
             recoilTarget.y += impulse.y * effectivePitchMul * adsMul;
+        }
+
+        bool enforceVerticalRifleHipfire = weaponManager.CurrentWeapon != null &&
+                                           weaponManager.CurrentWeapon.stats != null &&
+                                           weaponManager.CurrentWeapon.stats.useAimOverlay &&
+                                           (aimController == null || !aimController.IsAiming);
+        if (enforceVerticalRifleHipfire)
+        {
+            recoilTarget.x = 0f;
+            recoilCurrent.x = 0f;
         }
 
         recoilTarget.x = Mathf.Clamp(recoilTarget.x, -effectiveMaxYaw, effectiveMaxYaw);

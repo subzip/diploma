@@ -9,13 +9,15 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
     [SerializeField] private Transform firePoint;
     [SerializeField] private Animator animator;
     [SerializeField] private Collider hitCollider;
+    [SerializeField] private Rigidbody rb;
+    [SerializeField] private Transform visualRoot;
 
     [Header("Health")]
-    [SerializeField] private float maxHealth = 50f;
+    [SerializeField] private float maxHealth = 55f;
 
     [Header("Perception")]
-    [SerializeField, Range(30f, 180f)] private float fovDegrees = 180f;
-    [SerializeField] private float visionRange = 30f;
+    [SerializeField, Range(30f, 180f)] private float fovDegrees = 165f;
+    [SerializeField] private float visionRange = 26f;
     [SerializeField] private LayerMask obstacleMask = ~0;
 
     [Header("Idle + Patrol")]
@@ -25,44 +27,62 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
     [SerializeField] private float patrolWaitSeconds = 1.1f;
     [SerializeField] private float patrolReachDistance = 0.7f;
 
+
     [Header("Attack")]
-    [SerializeField] private float attackRange = 20f;
-    [SerializeField] private float searchDurationSeconds = 8f;
-    [SerializeField] private float reactionDelaySeconds = 0.22f;
-    [SerializeField] private float fireInterval = 0.3f;
-    [SerializeField] private int baseDamage = 12;
-    [SerializeField] private float aimSpreadDegrees = 1.4f;
+    [SerializeField] private float attackRange = 17f;
+    [SerializeField] private float searchDurationSeconds = 8.5f;
+    [SerializeField] private float reactionDelaySeconds = 0.32f;
+    [SerializeField] private float fireInterval = 0.42f;
+    [SerializeField] private int baseDamage = 7;
+    [SerializeField] private float aimSpreadDegrees = 2.6f;
+
+    [Header("Shoot VFX")]
+    [SerializeField] private GameObject muzzlePrefab;
+    [SerializeField] private float muzzleLifetime = 0.07f;
+    [SerializeField] private GameObject tracerEffectPrefab;
+    [SerializeField] private float tracerSpeed = 240f;
+    [SerializeField] private float tracerWidth = 0.014f;
+    [SerializeField] private float tracerLength = 0.28f;
+    [SerializeField] private Color tracerColor = new Color(1f, 0.2f, 0.2f, 0.95f);
+    [SerializeField] private Material tracerMaterial;
+    [SerializeField] private float tracerFadeOut = 0.03f;
 
     [Header("Movement")]
-    [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private float rotateSpeed = 9f;
-    [SerializeField] private float desiredHeightOffset = 1.8f;
-    [SerializeField] private float minAttackDistance = 3f;
-    [SerializeField] private float weaveAmplitude = 1.2f;
-    [SerializeField] private float weaveFrequency = 2.2f;
-    [SerializeField, Range(-1f, 1f)] private float minFacingDotToFire = 0.35f;
+    [SerializeField] private float moveSpeed = 3.9f;
+    [SerializeField] private float rotateSpeed = 8f;
+    [SerializeField] private float lookYawOffset = 0f;
+    [SerializeField] private float desiredHeightOffset = 1.6f;
+    [SerializeField] private float minAttackDistance = 4f;
+    [SerializeField] private float weaveAmplitude = 0.55f;
+    [SerializeField] private float weaveFrequency = 1.45f;
+    [SerializeField, Range(-1f, 1f)] private float minFacingDotToFire = 0.58f;
 
     [Header("Patrol Path (NavMesh)")]
-    [SerializeField] private float navMeshSampleDistance = 6f;
-    [SerializeField] private float pathRebuildInterval = 0.65f;
-    [SerializeField] private float cornerReachDistance = 0.75f;
-    [SerializeField] private float pointTimeoutSeconds = 6f;
+    [SerializeField] private float navMeshSampleDistance = 5f;
+    [SerializeField] private float pathRebuildInterval = 0.75f;
+    [SerializeField] private float cornerReachDistance = 0.85f;
+    [SerializeField] private float pointTimeoutSeconds = 5f;
 
     [Header("Patrol Anti-Stuck")]
     [SerializeField] private float stuckDistanceEpsilon = 0.12f;
-    [SerializeField] private float stuckTimeoutSeconds = 1.8f;
+    [SerializeField] private float stuckTimeoutSeconds = 1.5f;
 
     [Header("Entropy Scaling")]
     [SerializeField] private bool useEntropyScaling = true;
-    [SerializeField] private float tier2DamageMult = 1.08f;
-    [SerializeField] private float tier3DamageMult = 1.18f;
-    [SerializeField] private float tier4DamageMult = 1.3f;
-    [SerializeField] private float tier2FireRateMult = 0.92f;
-    [SerializeField] private float tier3FireRateMult = 0.84f;
-    [SerializeField] private float tier4FireRateMult = 0.76f;
+    [SerializeField] private float tier2DamageMult = 1.07f;
+    [SerializeField] private float tier3DamageMult = 1.14f;
+    [SerializeField] private float tier4DamageMult = 1.22f;
+    [SerializeField] private float tier2FireRateMult = 0.95f;
+    [SerializeField] private float tier3FireRateMult = 0.9f;
+    [SerializeField] private float tier4FireRateMult = 0.85f;
 
     [Header("Debug")]
     [SerializeField] private bool debugState;
+
+    [Header("Death")]
+    [SerializeField] private bool settleOnGroundAfterDeath = true;
+    [SerializeField] private float deathSettleSpeed = 6f;
+    [SerializeField] private float deathGroundOffset = 0.08f;
 
     private Transform player;
     private EnemyStateMachine stateMachine;
@@ -84,6 +104,7 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
     private float patrolPointElapsed;
     private int patrolCornerIndex;
     private NavMeshPath patrolPath;
+    private bool deathSettling;
 
     private IdleState idleState;
     private PatrolState patrolState;
@@ -99,6 +120,8 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
         if (firePoint == null) firePoint = eyePoint;
         if (animator == null) animator = GetComponentInChildren<Animator>();
         if (hitCollider == null) hitCollider = GetComponent<Collider>();
+        if (rb == null) rb = GetComponent<Rigidbody>();
+        if (visualRoot == null) visualRoot = transform;
 
         player = PlayerLocator.GetPlayerTransform(forceRefresh: true);
         currentHealth = maxHealth;
@@ -136,7 +159,12 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
 
     private void Update()
     {
-        if (dead || DeathScreen.GlobalDeathActive) return;
+        if (dead)
+        {
+            if (deathSettling) TickDeathSettling();
+            return;
+        }
+        if (DeathScreen.GlobalDeathActive) return;
         if (player == null) player = PlayerLocator.GetPlayerTransform(forceRefresh: true);
         stateMachine.Tick(Time.deltaTime);
         UpdateAnimator();
@@ -146,15 +174,90 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
     {
         if (dead) return;
         currentHealth -= Mathf.Max(0f, damage);
+        OnDamaged(hitPoint);
         if (currentHealth <= 0f) Die();
+    }
+
+    private void OnDamaged(Vector3 hitPoint)
+    {
+        if (player != null)
+        {
+            lastKnownPlayerPosition = player.position;
+            lastSeenTime = Time.time;
+        }
+        else
+        {
+            lastKnownPlayerPosition = hitPoint;
+            lastSeenTime = Time.time;
+        }
+
+        attackAllowedAfter = Time.time + reactionDelaySeconds * 0.5f;
+        if (stateMachine.CurrentState != attackState)
+        {
+            stateMachine.ChangeState(attackState);
+        }
     }
 
     private void Die()
     {
         dead = true;
-        if (hitCollider != null) hitCollider.enabled = false;
-        if (animator != null) animator.SetBool(IsDeadHash, true);
-        enabled = false;
+        SetDeathCollidersTrigger();
+        DisableSiblingBehaviours();
+        if (animator != null)
+        {
+            animator.applyRootMotion = false;
+            animator.SetBool(IsDeadHash, true);
+        }
+
+        if (rb != null)
+        {
+#if UNITY_6000_0_OR_NEWER
+            rb.linearVelocity = Vector3.zero;
+#else
+            rb.velocity = Vector3.zero;
+#endif
+            rb.angularVelocity = Vector3.zero;
+            rb.isKinematic = true;
+        }
+
+        deathSettling = settleOnGroundAfterDeath;
+    }
+
+    private void SetDeathCollidersTrigger()
+    {
+        Collider[] colliders = GetComponentsInChildren<Collider>(true);
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            Collider c = colliders[i];
+            if (c == null) continue;
+            c.enabled = true;
+            c.isTrigger = true;
+        }
+    }
+
+    private void TickDeathSettling()
+    {
+        if (!Physics.Raycast(transform.position + Vector3.up * 0.5f, Vector3.down, out RaycastHit hit, 30f))
+            return;
+
+        float targetY = hit.point.y + deathGroundOffset;
+        Vector3 current = transform.position;
+        float nextY = Mathf.MoveTowards(current.y, targetY, Mathf.Max(0.1f, deathSettleSpeed) * Time.deltaTime);
+        transform.position = new Vector3(current.x, nextY, current.z);
+
+        if (Mathf.Abs(nextY - targetY) <= 0.02f)
+            deathSettling = false;
+    }
+
+    private void DisableSiblingBehaviours()
+    {
+        MonoBehaviour[] behaviours = GetComponents<MonoBehaviour>();
+        for (int i = 0; i < behaviours.Length; i++)
+        {
+            MonoBehaviour b = behaviours[i];
+            if (b == null || b == this) continue;
+            b.enabled = false;
+        }
     }
 
     private void UpdateAnimator()
@@ -202,6 +305,12 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
         if (dir.sqrMagnitude < 0.0001f) return;
         Quaternion q = Quaternion.LookRotation(dir.normalized, Vector3.up);
         transform.rotation = Quaternion.Slerp(transform.rotation, q, Time.deltaTime * rotateSpeed);
+
+        if (visualRoot != null && visualRoot != transform)
+        {
+            Quaternion visualTarget = transform.rotation * Quaternion.Euler(0f, lookYawOffset, 0f);
+            visualRoot.rotation = Quaternion.Slerp(visualRoot.rotation, visualTarget, Time.deltaTime * rotateSpeed);
+        }
     }
 
     private bool IsFacingPlayer()
@@ -257,14 +366,17 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
         if (Time.time < fireReadyTime) return;
         if (!IsFacingPlayer()) return;
         fireReadyTime = Time.time + GetScaledFireInterval();
+        SpawnMuzzleFlash();
 
         Vector3 from = firePoint.position;
         Vector3 to = player.position + Vector3.up * 1.1f;
         Vector3 dir = (to - from).normalized;
         dir = Quaternion.Euler(Random.Range(-aimSpreadDegrees, aimSpreadDegrees), Random.Range(-aimSpreadDegrees, aimSpreadDegrees), 0f) * dir;
 
+        Vector3 tracerEnd = from + dir * attackRange;
         if (Physics.Raycast(from, dir, out RaycastHit hit, attackRange, obstacleMask, QueryTriggerInteraction.Ignore))
         {
+            tracerEnd = hit.point;
             if (hit.collider.TryGetComponent<IDamageable>(out var target))
             {
                 target.TakeDamage(GetScaledDamage(), hit.point);
@@ -275,6 +387,37 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
                 if (target != null) target.TakeDamage(GetScaledDamage(), hit.point);
             }
         }
+
+        SpawnTracer(from, tracerEnd);
+    }
+
+    private void SpawnMuzzleFlash()
+    {
+        if (muzzlePrefab == null || firePoint == null) return;
+        GameObject flash = Instantiate(muzzlePrefab, firePoint.position, firePoint.rotation, firePoint);
+        MuzzleFlashOneShot oneShot = flash.GetComponent<MuzzleFlashOneShot>();
+        if (oneShot == null) oneShot = flash.AddComponent<MuzzleFlashOneShot>();
+        oneShot.PlayAndAutoDestroy(muzzleLifetime);
+    }
+
+    private void SpawnTracer(Vector3 from, Vector3 to)
+    {
+        GameObject tracerObj = tracerEffectPrefab != null
+            ? Instantiate(tracerEffectPrefab, from, Quaternion.identity)
+            : new GameObject("DroneLaserTracer");
+
+        TracerVFX tracer = tracerObj.GetComponent<TracerVFX>();
+        if (tracer == null) tracer = tracerObj.AddComponent<TracerVFX>();
+        tracer.Initialize(
+            from,
+            to,
+            tracerSpeed,
+            tracerWidth,
+            tracerLength,
+            tracerColor,
+            tracerMaterial,
+            tracerFadeOut
+        );
     }
 
     private bool IsPatrolStuck(float deltaTime)
@@ -417,7 +560,6 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
             }
             else
             {
-                // Fallback if path wasn't available this frame.
                 ai.MoveTowards(waypoint);
                 ai.FaceTowards(waypoint);
             }
@@ -437,7 +579,6 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
                 ai.stateTimer = ai.patrolWaitSeconds;
             }
 
-            // If drone is boxed by geometry/cornering, rebuild path first, then advance point.
             if (ai.IsPatrolStuck(deltaTime))
             {
                 if (!ai.BuildPathToCurrentPatrolPoint())
@@ -450,7 +591,6 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
                 }
             }
 
-            // Prevent infinite attempts on a blocked point.
             if (ai.patrolPointElapsed >= ai.pointTimeoutSeconds)
             {
                 ai.AdvancePatrolPoint();

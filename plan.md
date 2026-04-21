@@ -55,6 +55,26 @@
 - Fill test tables and implementation notes for sections 3/4/5.
 - Ensure thesis wording matches actual implemented behavior.
 
+## 2026-04-19..20 (Added Backlog — Final Gameplay/Balancing Pass)
+- Add world models for pickups:
+  - medkit world model prefab,
+  - ammo world model prefabs (pistol/rifle),
+  - visual readability pass (silhouette + emissive + interaction distance).
+- Place pickups with balance intent (not random scatter):
+  - low-risk areas: light sustain,
+  - high-risk branches: reward pickups,
+  - no infinite sustain routes.
+- Deep enemy balance pass with measurable table:
+  - GroundShooter and Drone TTK/DPS tuning,
+  - strafe/approach pressure normalization for drone,
+  - define acceptable kill windows for average player.
+- Add 3 selectable difficulty configs at game start:
+  - Easy / Normal / Hard,
+  - each profile controls enemy damage/fire interval/accuracy + pickup density multipliers.
+- Keep Level 1 (generator + elevator objective chain) as the final implementation block after balance lock.
+- Prepare final 4–5+ minute gameplay capture route:
+  - intro -> level 0 objective -> transition -> level 1 objective step -> outro.
+
 ## Narrative Gameplay Plan (First 2 Locations, 5+ Minutes)
 
 ## Level 0 — Lab Entry (Objective: obtain keycard and reach transition door)
@@ -132,6 +152,13 @@
    - intro text appears before level-0 control,
    - level-1 generator objective gates elevator,
    - elevator outro text appears at finish.
+6. Balance/progression:
+   - player can clear default route on Normal without perfect aim,
+   - drone no longer deletes player in ~3–4 seconds unless player makes repeated high-risk errors,
+   - medkit/ammo placement supports intended pacing, not abuse.
+7. Difficulty presets:
+   - Easy/Normal/Hard selectable in menu,
+   - each preset produces clearly different pressure level.
 
 ## Bug Priority Policy
 - Blocker: breaks progression/demo.
@@ -139,3 +166,37 @@
 - Medium: polish-only or low-frequency issue.
 - Freeze window rule: fix Blocker/High only.
 
+## 2026-04-20..21 (Added Backlog — HL-inspired Feel Pass)
+- Player movement + camera feel pass (priority high):
+  - tighten acceleration/deceleration feel,
+  - reduce unwanted sliding feeling,
+  - improve look responsiveness and consistency under combat stress.
+- Weapon handling baseline animations (must-have):
+  - weapon swap animation (hide down -> pull from below),
+  - reload animation baseline (at least for primary weapon),
+  - keep implementation lightweight and stable for demo.
+- Enemy encounter layout pass (pragmatic design over complex AI):
+  - use small patrol zones for enemies,
+  - place enemies so player naturally collides with patrol routes,
+  - rely on patrol + attack states as core behavior for release version.
+- Enemy animation integration pass:
+  - ensure patrol/combat/death clips are wired and visually coherent,
+  - avoid high-risk AI rewrites before freeze.
+
+## Immediate Finish Window (target: tomorrow / max day-after)
+1. Lock movement/camera feel.
+2. Lock swap/reload baseline animations.
+3. Lock enemy placement and patrol zones in level 0 + variants.
+4. Run full 5+ minute route smoke test for capture readiness.
+
+## Status Update — 2026-04-21
+- [DONE] Level 1 elevator flow finalized:
+  - elevator door logic with safe close/anti-crush behavior,
+  - end-of-level trigger sequence after door is fully closed,
+  - player control/audio lock,
+  - black narrative screen with typewriter text (prototype finale).
+
+## Status Update — 2026-04-21 (Animation)
+- [IN PROGRESS ~50%] Player animation pass:
+  - implemented: code-based weapon swap animation, movement feel improvements, weapon vertical bob.
+  - pending: full reload/sprint/advanced hands animation set and final polish pass.

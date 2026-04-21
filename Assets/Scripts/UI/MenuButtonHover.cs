@@ -1,4 +1,4 @@
-using TMPro;
+﻿using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -81,7 +81,7 @@ public class MenuButtonHover : MonoBehaviour, IPointerEnterHandler, IPointerExit
         if (button != null)
             button.onClick.AddListener(OnClicked);
 
-        // Start from idle visuals.
+        
         currentScale = idleScale;
         currentBgAlpha = idleBgAlpha;
         currentStrokeAlpha = idleStrokeAlpha;

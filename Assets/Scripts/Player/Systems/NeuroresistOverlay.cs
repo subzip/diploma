@@ -1,4 +1,4 @@
-// NeuroresistOverlay.cs
+﻿
 using UnityEngine;
 
 public class NeuroresistOverlay : MonoBehaviour
@@ -17,7 +17,7 @@ public class NeuroresistOverlay : MonoBehaviour
         {
             if (silhouetteCount >= activeSilhouettes.Length) break;
 
-            // Создаём силуэт на позиции врага
+            
             GameObject sil = Instantiate(silhouettePrefab, col.transform.position, col.transform.rotation);
             sil.transform.localScale = col.transform.lossyScale;
             activeSilhouettes[silhouetteCount] = sil;

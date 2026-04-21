@@ -1,4 +1,4 @@
-// WeaponSway.cs
+﻿
 using UnityEngine;
 
 public class WeaponSway : MonoBehaviour

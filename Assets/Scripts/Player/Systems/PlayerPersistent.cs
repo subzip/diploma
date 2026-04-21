@@ -1,6 +1,7 @@
-
+﻿
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Collections;
 
 public class PlayerPersistent : MonoBehaviour
 {
@@ -8,7 +9,7 @@ public class PlayerPersistent : MonoBehaviour
     [SerializeField] private string mainMenuSceneName = "StartGame";
 
     public static PlayerPersistent Instance
-    {
+    { 
         get
         {
             if (instance == null)
@@ -16,7 +17,7 @@ public class PlayerPersistent : MonoBehaviour
                 instance = FindObjectOfType<PlayerPersistent>();
                 if (instance == null)
                 {
-                    Debug.LogError("PlayerPersistent: объект не найден на сцене!");
+                    Debug.LogError("PlayerPersistent: РѕР±СЉРµРєС‚ РЅРµ РЅР°Р№РґРµРЅ РЅР° СЃС†РµРЅРµ!");
                 }
             }
             return instance;
@@ -68,6 +69,8 @@ public class PlayerPersistent : MonoBehaviour
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
         }
+
+        StartCoroutine(ApplyPendingSceneEntrySpawn(scene.name));
     }
 
     private void ApplyHardRespawn(string sceneName)
@@ -153,6 +156,26 @@ public class PlayerPersistent : MonoBehaviour
             staminaUi.enabled = false;
     }
 
-    // Intentionally no runtime duplicate-pruning here.
-    // DontDestroyObj handles duplicate prevention in Awake before persisting objects.
+    private IEnumerator ApplyPendingSceneEntrySpawn(string sceneName)
+    {
+        yield return null;
+        yield return new WaitForEndOfFrame();
+
+        if (!SceneEntrySpawnState.TryConsume(sceneName, out Vector3 spawnPos, out Quaternion spawnRot, out bool shouldRegisterCheckpoint, out string checkpointId))
+            yield break;
+
+        PlayerMovement movement = GetComponent<PlayerMovement>();
+        if (movement != null)
+            movement.ResetForRespawnAt(spawnPos, spawnRot, resetStaminaToMax: false);
+        else
+            transform.SetPositionAndRotation(spawnPos, spawnRot);
+
+        if (shouldRegisterCheckpoint)
+            RespawnCheckpointState.SetCheckpoint(sceneName, spawnPos, spawnRot, checkpointId);
+
+        Debug.Log($"[PlayerPersistent] Consumed pending scene-entry spawn for '{sceneName}' at {spawnPos}");
+    }
+
+    
+    
 }

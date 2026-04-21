@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -118,9 +118,9 @@ public class BloodSplatUI : MonoBehaviour
         float halfH = rect.height * 0.5f - edgePadding.y;
         float edgePick = Random.value;
 
-        if (edgePick < 0.25f) return new Vector2(Random.Range(-halfW, halfW), halfH);          // top
-        if (edgePick < 0.5f) return new Vector2(Random.Range(-halfW, halfW), -halfH);          // bottom
-        if (edgePick < 0.75f) return new Vector2(-halfW, Random.Range(-halfH, halfH));         // left
-        return new Vector2(halfW, Random.Range(-halfH, halfH));                                  // right
+        if (edgePick < 0.25f) return new Vector2(Random.Range(-halfW, halfW), halfH);          
+        if (edgePick < 0.5f) return new Vector2(Random.Range(-halfW, halfW), -halfH);          
+        if (edgePick < 0.75f) return new Vector2(-halfW, Random.Range(-halfH, halfH));         
+        return new Vector2(halfW, Random.Range(-halfH, halfH));                                  
     }
 }

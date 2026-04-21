@@ -1,4 +1,4 @@
-// EnemyAnimator.cs
+﻿
 using UnityEngine;
 
 public class EnemyAnimator : MonoBehaviour
@@ -10,7 +10,7 @@ public class EnemyAnimator : MonoBehaviour
         animator = GetComponent<Animator>();
         if (animator == null)
         {
-            Debug.LogError("Animator не найден на враге!");
+            Debug.LogError("Animator РЅРµ РЅР°Р№РґРµРЅ РЅР° РІСЂР°РіРµ!");
         }
     }
 

@@ -1,11 +1,11 @@
-using TMPro;
+﻿using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-/// <summary>
-/// Pulses ammo HUD on each shot (scale + color + tiny jitter).
-/// Put this on Bullets root.
-/// </summary>
+
+
+
+
 public class AmmoHudPulse : MonoBehaviour
 {
     [Header("References")]

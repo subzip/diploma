@@ -1,4 +1,4 @@
-// DontDestroyObj.cs
+﻿
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
@@ -6,8 +6,8 @@ using System.Collections.Generic;
 public class DontDestroyObj : MonoBehaviour
 {
     [SerializeField] private string mainMenuSceneName = "StartGame";
-    // Legacy field kept only for inspector compatibility.
-    // Persistence is now always enabled for objects that have this component.
+    
+    
     [SerializeField] private bool persistAcrossScenes = true;
     [SerializeField] private string uniqueId;
 

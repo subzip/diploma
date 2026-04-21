@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class SwayNBobScript : MonoBehaviour
@@ -29,6 +29,18 @@ public class SwayNBobScript : MonoBehaviour
     [SerializeField] private float bobExaggeration = 1f;
     private Vector3 bobPosition;
 
+    [Header("Vertical Weapon Bob (Walk/Sprint)")]
+    [SerializeField] private float walkVerticalBobAmplitude = 0.008f;
+    [SerializeField] private float sprintVerticalBobAmplitude = 0.014f;
+    [SerializeField] private float walkVerticalBobFrequency = 8.5f;
+    [SerializeField] private float sprintVerticalBobFrequency = 11.5f;
+    [SerializeField] private float verticalBobBlendInSpeed = 8f;
+    [SerializeField] private float verticalBobBlendOutSpeed = 10f;
+    private float verticalBobTimer;
+    private float verticalBobWeight;
+    
+    private float verticalBobOffsetY;
+
     [Header("Bobbing Rotation")]
     [SerializeField] private Vector3 multiplier = new Vector3(1f, 1f, 1f);
     private Vector3 bobEulerRotation;
@@ -36,6 +48,7 @@ public class SwayNBobScript : MonoBehaviour
     [Header("Aim Tuning")]
     [SerializeField] private float aimSwayMultiplier = 0.25f;
     [SerializeField] private float aimBobMultiplier = 0.15f;
+    [SerializeField] private bool lockRifleHipfireRoll = true;
 
     [Header("Visual Recoil")]
     [SerializeField] private float recoilPosZ = 0.035f;
@@ -135,12 +148,23 @@ public class SwayNBobScript : MonoBehaviour
     {
         bool grounded = mover != null && mover.IsGrounded;
         float movementAmount = Mathf.Clamp01(Mathf.Abs(walkInput.x) + Mathf.Abs(walkInput.y));
+        bool sprinting = mover != null && mover.IsSprinting;
 
         speedCurve += Time.deltaTime * ((grounded ? movementAmount : 1f) * bobExaggeration + 0.01f);
 
         bobPosition.x = (CurveCos * bobLimit.x * (grounded ? 1f : 0f)) - (walkInput.x * travelLimit.x);
         bobPosition.y = (CurveSin * bobLimit.y) - (walkInput.y * travelLimit.y);
         bobPosition.z = -(walkInput.y * travelLimit.z);
+
+        
+        float targetWeight = grounded ? movementAmount : 0f;
+        float blend = (targetWeight > verticalBobWeight ? verticalBobBlendInSpeed : verticalBobBlendOutSpeed) * Time.deltaTime;
+        verticalBobWeight = Mathf.MoveTowards(verticalBobWeight, targetWeight, blend);
+
+        float freq = sprinting ? sprintVerticalBobFrequency : walkVerticalBobFrequency;
+        float amp = sprinting ? sprintVerticalBobAmplitude : walkVerticalBobAmplitude;
+        verticalBobTimer += Time.deltaTime * Mathf.Lerp(0.6f, freq, verticalBobWeight);
+        verticalBobOffsetY = Mathf.Sin(verticalBobTimer) * amp * verticalBobWeight;
     }
 
     private void BobRotation()
@@ -163,23 +187,65 @@ public class SwayNBobScript : MonoBehaviour
         }
 
         Vector3 targetPos = initialLocalPos + swayPos * swayMul + bobPosition * bobMul;
+        targetPos.y += verticalBobOffsetY * bobMul;
         Vector3 recoil = weaponManager != null ? weaponManager.GetRecoilOffset() : Vector3.zero;
+        bool aimingRifleStyle = aimController != null &&
+                                aimController.IsAiming &&
+                                weaponManager != null &&
+                                weaponManager.CurrentWeapon != null &&
+                                weaponManager.CurrentWeapon.stats != null &&
+                                weaponManager.CurrentWeapon.stats.useAimOverlay;
+        bool rifleHipfireStyle = !aimingRifleStyle &&
+                                 weaponManager != null &&
+                                 weaponManager.CurrentWeapon != null &&
+                                 weaponManager.CurrentWeapon.stats != null &&
+                                 weaponManager.CurrentWeapon.stats.useAimOverlay;
+        float rifleHipTiltComp = 1f;
+        if (rifleHipfireStyle)
+        {
+            Vector3 hipEuler = weaponManager.CurrentWeapon.stats.hipLocalEuler;
+            float yaw = Mathf.Abs(Mathf.DeltaAngle(0f, hipEuler.y));
+            float roll = Mathf.Abs(Mathf.DeltaAngle(0f, hipEuler.z));
+            float tilt = yaw * 0.6f + roll;
+            float t = Mathf.Clamp01(tilt / 28f);
+            rifleHipTiltComp = Mathf.Lerp(1f, 0.65f, t);
+        }
+
+        float recoilZScale = aimingRifleStyle ? 0f : (rifleHipfireStyle ? 0.45f * rifleHipTiltComp : 1f);
         Vector3 recoilPos = new Vector3(
             0f,
             0f,
-            -Mathf.Abs(recoil.y) * recoilPosZ
+            -Mathf.Abs(recoil.y) * recoilPosZ * recoilZScale
         );
         Vector3 recoilRot = new Vector3(
-            -Mathf.Abs(recoil.y) * recoilRotPitch,
+            aimingRifleStyle ? 0f : -Mathf.Abs(recoil.y) * recoilRotPitch,
             0f,
             0f
         );
         targetPos += recoilPos;
 
+        Vector3 swayRot = swayEulerRot * swayMul;
+        Vector3 bobRot = bobEulerRotation * bobMul;
+        if (rifleHipfireStyle)
+        {
+            
+            swayRot.y = 0f;
+            swayRot.z = 0f;
+            bobRot.y = 0f;
+            bobRot.z = 0f;
+        }
+
         Quaternion targetRot = initialLocalRot *
-                               Quaternion.Euler(swayEulerRot * swayMul) *
-                               Quaternion.Euler(bobEulerRotation * bobMul) *
+                               Quaternion.Euler(swayRot) *
+                               Quaternion.Euler(bobRot) *
                                Quaternion.Euler(recoilRot);
+
+        if (lockRifleHipfireRoll && rifleHipfireStyle)
+        {
+            Vector3 lockedEuler = targetRot.eulerAngles;
+            lockedEuler.z = initialLocalRot.eulerAngles.z;
+            targetRot = Quaternion.Euler(lockedEuler);
+        }
 
         transform.localPosition = Vector3.Lerp(transform.localPosition, targetPos, Time.deltaTime * smooth);
         transform.localRotation = Quaternion.Slerp(transform.localRotation, targetRot, Time.deltaTime * smoothRot);

@@ -72,9 +72,11 @@ MonoBehaviour:
   firePoint: {fileID: 3237894686209998883}
   animator: {fileID: 2195106420421955414}
   hitCollider: {fileID: 3082254454413961722}
-  maxHealth: 50
-  fovDegrees: 180
-  visionRange: 30
+  rb: {fileID: 0}
+  visualRoot: {fileID: 3237894686209998883}
+  maxHealth: 55
+  fovDegrees: 165
+  visionRange: 26
   obstacleMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -82,27 +84,47 @@ MonoBehaviour:
   idleMinSeconds: 1
   idleMaxSeconds: 2
   patrolWaitSeconds: 1.1
-  attackRange: 20
-  searchDurationSeconds: 8
-  reactionDelaySeconds: 0.22
-  fireInterval: 0.3
-  baseDamage: 12
-  aimSpreadDegrees: 1.4
-  moveSpeed: 5
-  rotateSpeed: 9
-  desiredHeightOffset: 1.8
-  minAttackDistance: 3
-  weaveAmplitude: 1.2
-  weaveFrequency: 2.2
-  minFacingDotToFire: 0.35
+  patrolReachDistance: 0.7
+  attackRange: 17
+  searchDurationSeconds: 8.5
+  reactionDelaySeconds: 0.32
+  fireInterval: 0.42
+  baseDamage: 7
+  aimSpreadDegrees: 2.6
+  muzzlePrefab: {fileID: 0}
+  muzzleLifetime: 0.15
+  tracerEffectPrefab: {fileID: 0}
+  tracerSpeed: 240
+  tracerWidth: 0.014
+  tracerLength: 0.28
+  tracerColor: {r: 1, g: 0.2, b: 0.2, a: 0.95}
+  tracerMaterial: {fileID: 2100000, guid: 5b58690ba587f044e82f74c76da4d479, type: 2}
+  tracerFadeOut: 0.06
+  moveSpeed: 3.9
+  rotateSpeed: 8
+  lookYawOffset: 0
+  desiredHeightOffset: 1.6
+  minAttackDistance: 4
+  weaveAmplitude: 0.55
+  weaveFrequency: 1.45
+  minFacingDotToFire: 0.58
+  navMeshSampleDistance: 5
+  pathRebuildInterval: 0.75
+  cornerReachDistance: 0.85
+  pointTimeoutSeconds: 5
+  stuckDistanceEpsilon: 0.12
+  stuckTimeoutSeconds: 1.5
   useEntropyScaling: 1
-  tier2DamageMult: 1.08
-  tier3DamageMult: 1.18
-  tier4DamageMult: 1.3
-  tier2FireRateMult: 0.92
-  tier3FireRateMult: 0.84
-  tier4FireRateMult: 0.76
+  tier2DamageMult: 1.07
+  tier3DamageMult: 1.14
+  tier4DamageMult: 1.22
+  tier2FireRateMult: 0.95
+  tier3FireRateMult: 0.9
+  tier4FireRateMult: 0.85
   debugState: 0
+  settleOnGroundAfterDeath: 1
+  deathSettleSpeed: 6
+  deathGroundOffset: 0.08
 --- !u!95 &2195106420421955414
 Animator:
   serializedVersion: 7

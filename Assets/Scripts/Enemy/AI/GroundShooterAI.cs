@@ -10,9 +10,10 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
     [SerializeField] private Transform firePoint;
     [SerializeField] private Animator animator;
     [SerializeField] private Collider hitCollider;
+    [SerializeField] private Transform visualRoot;
 
     [Header("Health")]
-    [SerializeField] private float maxHealth = 100f;
+    [SerializeField] private float maxHealth = 80f;
     
     [Header("Death")]
     [SerializeField] private string deathStateName = "Death_Anim";
@@ -24,8 +25,9 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
     [SerializeField] private float destroyDelaySeconds = 8f;
 
     [Header("Perception")]
-    [SerializeField, Range(30f, 180f)] private float fovDegrees = 180f;
-    [SerializeField] private float visionRange = 35f;
+    [SerializeField, Range(30f, 180f)] private float fovDegrees = 160f;
+    [SerializeField] private float visionRange = 30f;
+    [SerializeField] private float lookYawOffset = 0f;
     [SerializeField] private LayerMask obstacleMask = ~0;
 
     [Header("Idle + Patrol")]
@@ -35,28 +37,37 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
     [SerializeField] private float patrolWaitSeconds = 1.25f;
 
     [Header("Combat")]
-    [SerializeField] private float attackRange = 24f;
-    [SerializeField] private float preferredDistance = 14f;
-    [SerializeField] private float searchDurationSeconds = 8f;
-    [SerializeField] private float reactionDelaySeconds = 0.3f;
-    [SerializeField] private float fireInterval = 0.16f;
-    [SerializeField] private int baseDamage = 10;
-    [SerializeField] private float aimSpreadDegrees = 1.8f;
+    [SerializeField] private float attackRange = 20f;
+    [SerializeField] private float searchDurationSeconds = 9f;
+    [SerializeField] private float reactionDelaySeconds = 0.45f;
+    [SerializeField] private float fireInterval = 0.23f;
+    [SerializeField] private int baseDamage = 5;
+    [SerializeField] private float aimSpreadDegrees = 2.4f;
+    [SerializeField] private float burstMinSeconds = 2.0f;
+    [SerializeField] private float burstMaxSeconds = 3.0f;
+    [SerializeField] private float repositionMinSeconds = 0.8f;
+    [SerializeField] private float repositionMaxSeconds = 1.4f;
+    [SerializeField] private float repositionDistance = 3.5f;
 
-    [Header("Cover + Peek")]
-    [SerializeField] private float coverSearchRadius = 18f;
-    [SerializeField] private float coverRepositionCooldown = 2.2f;
-    [SerializeField] private float coverHoldSeconds = 1.0f;
-    [SerializeField] private float peekSeconds = 0.45f;
+    [Header("Shoot VFX")]
+    [SerializeField] private GameObject muzzlePrefab;
+    [SerializeField] private float muzzleLifetime = 0.08f;
+    [SerializeField] private GameObject tracerEffectPrefab;
+    [SerializeField] private float tracerSpeed = 200f;
+    [SerializeField] private float tracerWidth = 0.018f;
+    [SerializeField] private float tracerLength = 0.45f;
+    [SerializeField] private Color tracerColor = new Color(1f, 0.85f, 0.55f, 0.95f);
+    [SerializeField] private Material tracerMaterial;
+    [SerializeField] private float tracerFadeOut = 0.04f;
 
     [Header("Entropy Scaling")]
     [SerializeField] private bool useEntropyScaling = true;
-    [SerializeField] private float tier2DamageMult = 1.1f;
-    [SerializeField] private float tier3DamageMult = 1.22f;
-    [SerializeField] private float tier4DamageMult = 1.35f;
-    [SerializeField] private float tier2FireRateMult = 0.92f;
-    [SerializeField] private float tier3FireRateMult = 0.84f;
-    [SerializeField] private float tier4FireRateMult = 0.76f;
+    [SerializeField] private float tier2DamageMult = 1.08f;
+    [SerializeField] private float tier3DamageMult = 1.16f;
+    [SerializeField] private float tier4DamageMult = 1.25f;
+    [SerializeField] private float tier2FireRateMult = 0.95f;
+    [SerializeField] private float tier3FireRateMult = 0.89f;
+    [SerializeField] private float tier4FireRateMult = 0.83f;
 
     [Header("Debug")]
     [SerializeField] private bool debugState;
@@ -74,12 +85,8 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
     private float stateTimer;
     private float fireReadyTime;
     private float attackAllowedAfter;
-    private float lastCoverPickTime = -999f;
     private int patrolIndex;
     private int entropyTier = 1;
-
-    private CoverPoint currentCover;
-    private bool peeking;
 
     private IdleState idleState;
     private PatrolState patrolState;
@@ -87,8 +94,6 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
 
     private static readonly int SpeedHash = Animator.StringToHash("Speed");
     private static readonly int IsAimingHash = Animator.StringToHash("IsAiming");
-    private static readonly int IsInCoverHash = Animator.StringToHash("IsInCover");
-    private static readonly int IsPeekingHash = Animator.StringToHash("IsPeeking");
     private static readonly int IsDeadHash = Animator.StringToHash("IsDead");
 
     private void Awake()
@@ -100,6 +105,7 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
         if (hitCollider == null) hitCollider = GetComponent<Collider>();
         if (eyePoint == null) eyePoint = transform;
         if (firePoint == null) firePoint = eyePoint;
+        if (visualRoot == null) visualRoot = transform;
 
         player = PlayerLocator.GetPlayerTransform(forceRefresh: true);
         currentHealth = maxHealth;
@@ -145,9 +151,30 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
     {
         if (dead) return;
         currentHealth -= Mathf.Max(0f, damage);
+        OnDamaged(hitPoint);
         if (currentHealth <= 0f)
         {
             Die();
+        }
+    }
+
+    private void OnDamaged(Vector3 hitPoint)
+    {
+        if (player != null)
+        {
+            lastKnownPlayerPosition = player.position;
+            lastSeenTime = Time.time;
+        }
+        else
+        {
+            lastKnownPlayerPosition = hitPoint;
+            lastSeenTime = Time.time;
+        }
+
+        attackAllowedAfter = Time.time + reactionDelaySeconds * 0.5f;
+        if (stateMachine.CurrentState != attackState)
+        {
+            stateMachine.ChangeState(attackState);
         }
     }
 
@@ -159,32 +186,25 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
         if (debugDeathAnimation) Debug.Log($"{name}: Die() called");
         SetAgentStoppedSafe(true);
         if (agent != null) agent.enabled = false;
-        if (hitCollider != null) hitCollider.enabled = false;
-
-        // Prevent legacy/parallel combat scripts on the same object from continuing to fire.
-        DisableSiblingBehaviours();
+        SetDeathCollidersTrigger();
+        DisableSiblingCombatBehaviours();
 
         if (animator != null)
         {
+            animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
             animator.SetFloat(SpeedHash, 0f);
             animator.SetBool(IsAimingHash, false);
-            animator.SetBool(IsInCoverHash, false);
-            animator.SetBool(IsPeekingHash, false);
             animator.SetBool(IsDeadHash, true);
             animator.speed = 1f;
             animator.applyRootMotion = false;
             TryForcePlayDeath();
+            StartCoroutine(ClearDeathBoolAfterStateEnter());
             StartCoroutine(LockDeathPoseAfterDelay());
         }
-
-        // Keep corpse by default. Optional auto-cleanup can be enabled in inspector.
         if (destroyOnDeath && destroyDelaySeconds > 0f)
         {
             Destroy(gameObject, destroyDelaySeconds);
         }
-
-        // Disable this AI logic after death lock is applied.
-        enabled = false;
     }
 
     private void TryForcePlayDeath()
@@ -201,6 +221,7 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
             {
                 animator.Play(fullPathHash, 0, 0f);
                 animator.CrossFadeInFixedTime(fullPathHash, fade, 0, 0f);
+                animator.Update(0f);
                 played = true;
                 if (debugDeathAnimation) Debug.Log($"{name}: death by fullPath '{deathStateFullPath}'");
             }
@@ -213,6 +234,7 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
             {
                 animator.Play(nameHash, 0, 0f);
                 animator.CrossFadeInFixedTime(nameHash, fade, 0, 0f);
+                animator.Update(0f);
                 played = true;
                 if (debugDeathAnimation) Debug.Log($"{name}: death by stateName '{deathStateName}' on layer 0");
             }
@@ -228,6 +250,7 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
 
                 animator.Play(hash, layer, 0f);
                 animator.CrossFadeInFixedTime(hash, fade, layer, 0f);
+                animator.Update(0f);
                 played = true;
                 if (debugDeathAnimation) Debug.Log($"{name}: death by layerPath '{layerPath}'");
                 break;
@@ -250,14 +273,39 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
         }
     }
 
-    private void DisableSiblingBehaviours()
+    private IEnumerator ClearDeathBoolAfterStateEnter()
+    {
+        if (animator == null) yield break;
+        yield return null;
+        if (animator != null)
+        {
+            animator.SetBool(IsDeadHash, false);
+        }
+    }
+
+    private void DisableSiblingCombatBehaviours()
     {
         MonoBehaviour[] behaviours = GetComponents<MonoBehaviour>();
         for (int i = 0; i < behaviours.Length; i++)
         {
             MonoBehaviour b = behaviours[i];
             if (b == null || b == this) continue;
-            b.enabled = false;
+            if (b is EnemyCombat || b is EnemyAI || b is EnemyPatrol || b is EnemyVision || b is EnemyHealth || b is DroneAI || b is DroneCombat)
+            {
+                b.enabled = false;
+            }
+        }
+    }
+
+    private void SetDeathCollidersTrigger()
+    {
+        Collider[] colliders = GetComponentsInChildren<Collider>(true);
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            Collider c = colliders[i];
+            if (c == null) continue;
+            c.enabled = true;
+            c.isTrigger = true;
         }
     }
 
@@ -267,8 +315,6 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
         float speed = HasValidAgent() ? agent.velocity.magnitude : 0f;
         animator.SetFloat(SpeedHash, speed);
         animator.SetBool(IsAimingHash, stateMachine.CurrentState == attackState);
-        animator.SetBool(IsInCoverHash, currentCover != null);
-        animator.SetBool(IsPeekingHash, peeking);
     }
 
     private bool HasValidAgent()
@@ -286,6 +332,38 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
     {
         if (!HasValidAgent()) return false;
         return agent.SetDestination(destination);
+    }
+
+    private bool TryGetRepositionPoint(out Vector3 point)
+    {
+        point = transform.position;
+        Vector3 origin = transform.position;
+        Vector3 toPlayer = (lastKnownPlayerPosition - origin);
+        toPlayer.y = 0f;
+        if (toPlayer.sqrMagnitude < 0.05f) toPlayer = transform.forward;
+
+        Vector3 side = Vector3.Cross(Vector3.up, toPlayer.normalized);
+        if (Random.value < 0.5f) side = -side;
+        Vector3 desired = origin + side * repositionDistance;
+
+        if (NavMesh.SamplePosition(desired, out NavMeshHit hit, 2.5f, NavMesh.AllAreas))
+        {
+            point = hit.position;
+            return true;
+        }
+
+        for (int i = 0; i < 6; i++)
+        {
+            Vector2 rnd2 = Random.insideUnitCircle * repositionDistance;
+            Vector3 rnd = origin + new Vector3(rnd2.x, 0f, rnd2.y);
+            if (NavMesh.SamplePosition(rnd, out hit, 2f, NavMesh.AllAreas))
+            {
+                point = hit.position;
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private bool CanSeePlayer()
@@ -323,6 +401,12 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
         if (to.sqrMagnitude < 0.001f) return;
         Quaternion target = Quaternion.LookRotation(to.normalized, Vector3.up);
         transform.rotation = Quaternion.Slerp(transform.rotation, target, Time.deltaTime * speed);
+
+        if (visualRoot != null && visualRoot != transform)
+        {
+            Quaternion visualTarget = transform.rotation * Quaternion.Euler(0f, lookYawOffset, 0f);
+            visualRoot.rotation = Quaternion.Slerp(visualRoot.rotation, visualTarget, Time.deltaTime * speed);
+        }
     }
 
     private int GetScaledDamage()
@@ -368,54 +452,22 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
         entropyTier = Mathf.Clamp(tier, 1, 4);
     }
 
-    private bool TryFindBestCover(out CoverPoint best)
-    {
-        best = null;
-        if (player == null) return false;
-
-        float bestScore = float.MinValue;
-        Vector3 playerPos = player.position + Vector3.up * 1.1f;
-
-        foreach (CoverPoint cover in CoverPoint.Active)
-        {
-            if (cover == null) continue;
-            Vector3 hide = cover.HidePosition;
-            float distToEnemy = Vector3.Distance(transform.position, hide);
-            if (distToEnemy > coverSearchRadius) continue;
-
-            Vector3 playerToHide = hide - playerPos;
-            float playerDistance = playerToHide.magnitude;
-            if (playerDistance < 0.5f) continue;
-
-            bool blocked = Physics.Raycast(playerPos, playerToHide.normalized, out RaycastHit hit, playerDistance, obstacleMask, QueryTriggerInteraction.Ignore)
-                           && !hit.collider.CompareTag("Player")
-                           && !hit.collider.transform.root.CompareTag("Player");
-            if (!blocked) continue;
-
-            float score = -distToEnemy;
-            if (score > bestScore)
-            {
-                bestScore = score;
-                best = cover;
-            }
-        }
-
-        return best != null;
-    }
-
     private void TryShootAtPlayer()
     {
         if (player == null) return;
         if (Time.time < fireReadyTime) return;
         fireReadyTime = Time.time + GetScaledFireInterval();
+        SpawnMuzzleFlash();
 
         Vector3 from = firePoint.position;
         Vector3 to = player.position + Vector3.up * 1.1f;
         Vector3 dir = (to - from).normalized;
         dir = Quaternion.Euler(Random.Range(-aimSpreadDegrees, aimSpreadDegrees), Random.Range(-aimSpreadDegrees, aimSpreadDegrees), 0f) * dir;
 
+        Vector3 tracerEnd = from + dir * attackRange;
         if (Physics.Raycast(from, dir, out RaycastHit hit, attackRange, obstacleMask, QueryTriggerInteraction.Ignore))
         {
+            tracerEnd = hit.point;
             if (hit.collider.TryGetComponent<IDamageable>(out var target))
             {
                 target.TakeDamage(GetScaledDamage(), hit.point);
@@ -426,6 +478,37 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
                 if (target != null) target.TakeDamage(GetScaledDamage(), hit.point);
             }
         }
+
+        SpawnTracer(from, tracerEnd);
+    }
+
+    private void SpawnMuzzleFlash()
+    {
+        if (muzzlePrefab == null || firePoint == null) return;
+        GameObject flash = Instantiate(muzzlePrefab, firePoint.position, firePoint.rotation, firePoint);
+        MuzzleFlashOneShot oneShot = flash.GetComponent<MuzzleFlashOneShot>();
+        if (oneShot == null) oneShot = flash.AddComponent<MuzzleFlashOneShot>();
+        oneShot.PlayAndAutoDestroy(muzzleLifetime);
+    }
+
+    private void SpawnTracer(Vector3 from, Vector3 to)
+    {
+        GameObject tracerObj = tracerEffectPrefab != null
+            ? Instantiate(tracerEffectPrefab, from, Quaternion.identity)
+            : new GameObject("EnemyTracer");
+
+        TracerVFX tracer = tracerObj.GetComponent<TracerVFX>();
+        if (tracer == null) tracer = tracerObj.AddComponent<TracerVFX>();
+        tracer.Initialize(
+            from,
+            to,
+            tracerSpeed,
+            tracerWidth,
+            tracerLength,
+            tracerColor,
+            tracerMaterial,
+            tracerFadeOut
+        );
     }
 
     private sealed class IdleState : IAIState
@@ -438,7 +521,6 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
         {
             ai.stateTimer = Random.Range(ai.idleMinSeconds, ai.idleMaxSeconds);
             ai.SetAgentStoppedSafe(true);
-            ai.peeking = false;
             if (ai.debugState) Debug.Log($"{ai.name}: Idle");
         }
 
@@ -470,8 +552,6 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
 
         public void Enter()
         {
-            ai.peeking = false;
-            ai.currentCover = null;
             if (ai.debugState) Debug.Log($"{ai.name}: Patrol");
             MoveToNextPoint();
         }
@@ -517,18 +597,18 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
     private sealed class AttackState : IAIState
     {
         private readonly GroundShooterAI ai;
-        private bool movingToCover;
-        private bool hiding;
-        private bool peekingLeft;
+        private bool firingBurst;
+        private Vector3 repositionTarget;
         public string Name => "Attack";
         public AttackState(GroundShooterAI ai) => this.ai = ai;
 
         public void Enter()
         {
             if (ai.debugState) Debug.Log($"{ai.name}: Attack");
-            ai.peeking = false;
             ai.fireReadyTime = Time.time + ai.reactionDelaySeconds;
-            AcquireCover(force: true);
+            firingBurst = true;
+            ai.stateTimer = Random.Range(ai.burstMinSeconds, ai.burstMaxSeconds);
+            ai.SetAgentStoppedSafe(true);
         }
 
         public void Tick(float deltaTime)
@@ -538,7 +618,6 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
 
             if (!hasVision && !shouldSearch)
             {
-                ai.currentCover = null;
                 ai.stateMachine.ChangeState(ai.patrolState);
                 return;
             }
@@ -548,122 +627,47 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
                 ai.lastKnownPlayerPosition = ai.player.position;
             }
 
-            if (ai.currentCover == null || Time.time - ai.lastCoverPickTime >= ai.coverRepositionCooldown)
+            if (firingBurst)
             {
-                AcquireCover(force: ai.currentCover == null);
-            }
+                ai.SetAgentStoppedSafe(true);
+                ai.FacePlayer(12f);
+                if (hasVision && Time.time >= ai.attackAllowedAfter)
+                    ai.TryShootAtPlayer();
 
-            if (ai.currentCover != null)
-            {
-                TickCoverCombat(deltaTime, hasVision);
+                ai.stateTimer -= deltaTime;
+                if (ai.stateTimer <= 0f)
+                {
+                    firingBurst = false;
+                    ai.stateTimer = Random.Range(ai.repositionMinSeconds, ai.repositionMaxSeconds);
+                    if (!ai.TryGetRepositionPoint(out repositionTarget))
+                        repositionTarget = ai.transform.position;
+                    ai.SetAgentStoppedSafe(false);
+                    ai.SetAgentDestinationSafe(repositionTarget);
+                }
                 return;
             }
 
-            TickFallbackCombat(hasVision);
+            ai.SetAgentStoppedSafe(false);
+            ai.SetAgentDestinationSafe(repositionTarget);
+
+            if (!ai.HasValidAgent() || ai.agent.velocity.sqrMagnitude < 0.04f)
+                ai.FacePlayer(10f);
+
+            ai.stateTimer -= deltaTime;
+            bool reached = ai.HasValidAgent() &&
+                           !ai.agent.pathPending &&
+                           ai.agent.remainingDistance <= Mathf.Max(ai.agent.stoppingDistance, 0.3f);
+            if (reached || ai.stateTimer <= 0f)
+            {
+                firingBurst = true;
+                ai.stateTimer = Random.Range(ai.burstMinSeconds, ai.burstMaxSeconds);
+                ai.SetAgentStoppedSafe(true);
+            }
         }
 
         public void Exit()
         {
             ai.SetAgentStoppedSafe(false);
-            ai.peeking = false;
-        }
-
-        private void TickCoverCombat(float deltaTime, bool hasVision)
-        {
-            Vector3 hidePos = ai.currentCover.HidePosition;
-            Vector3 peekPos = peekingLeft ? ai.currentCover.PeekLeftPosition : ai.currentCover.PeekRightPosition;
-
-            if (movingToCover)
-            {
-                ai.SetAgentStoppedSafe(false);
-                ai.SetAgentDestinationSafe(hidePos);
-                if (ai.HasValidAgent() && !ai.agent.pathPending && ai.agent.remainingDistance <= Mathf.Max(ai.agent.stoppingDistance, 0.25f))
-                {
-                    movingToCover = false;
-                    hiding = true;
-                    ai.stateTimer = ai.coverHoldSeconds;
-                    ai.SetAgentStoppedSafe(true);
-                }
-                return;
-            }
-
-            if (hiding)
-            {
-                ai.FacePlayer(10f);
-                ai.stateTimer -= deltaTime;
-                if (ai.stateTimer <= 0f)
-                {
-                    hiding = false;
-                    ai.peeking = true;
-                    ai.stateTimer = ai.peekSeconds;
-                    ai.SetAgentStoppedSafe(false);
-                    ai.SetAgentDestinationSafe(peekPos);
-                }
-                return;
-            }
-
-            ai.SetAgentStoppedSafe(false);
-            ai.SetAgentDestinationSafe(peekPos);
-            ai.FacePlayer(12f);
-
-            if (ai.HasValidAgent() && !ai.agent.pathPending && ai.agent.remainingDistance <= Mathf.Max(ai.agent.stoppingDistance, 0.2f))
-            {
-                if (hasVision && Time.time >= ai.attackAllowedAfter)
-                {
-                    ai.TryShootAtPlayer();
-                }
-            }
-
-            ai.stateTimer -= deltaTime;
-            if (ai.stateTimer <= 0f)
-            {
-                ai.peeking = false;
-                hiding = true;
-                ai.stateTimer = ai.coverHoldSeconds;
-                ai.SetAgentDestinationSafe(hidePos);
-            }
-        }
-
-        private void TickFallbackCombat(bool hasVision)
-        {
-            ai.SetAgentStoppedSafe(false);
-            Vector3 target = hasVision ? ai.player.position : ai.lastKnownPlayerPosition;
-            Vector3 toTarget = target - ai.transform.position;
-            float distance = toTarget.magnitude;
-
-            if (distance > ai.preferredDistance)
-                ai.SetAgentDestinationSafe(target);
-            else
-                ai.SetAgentDestinationSafe(ai.transform.position - toTarget.normalized * 2f);
-
-            // Let NavMeshAgent control facing while moving to avoid sideways sliding.
-            if (!ai.HasValidAgent() || ai.agent.velocity.sqrMagnitude < 0.04f)
-            {
-                ai.FacePlayer(12f);
-            }
-            if (hasVision && distance <= ai.attackRange && Time.time >= ai.attackAllowedAfter)
-            {
-                ai.TryShootAtPlayer();
-            }
-        }
-
-        private void AcquireCover(bool force)
-        {
-            if (!force && ai.currentCover != null) return;
-            if (ai.TryFindBestCover(out CoverPoint cover))
-            {
-                ai.currentCover = cover;
-                ai.lastCoverPickTime = Time.time;
-                peekingLeft = Random.value > 0.5f;
-                movingToCover = true;
-                hiding = false;
-                ai.peeking = false;
-                return;
-            }
-
-            ai.currentCover = null;
-            movingToCover = false;
-            hiding = false;
         }
     }
 }

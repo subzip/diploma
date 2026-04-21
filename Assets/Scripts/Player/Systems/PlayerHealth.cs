@@ -19,6 +19,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     private DeathScreen deathScreen;
     private float nextReferenceResolveTime;
     private float nextHealthSliderResolveTime;
+    private string cachedHealthSliderScene;
 
     public float CurrentHealth => currentHealth;
     public float MaxHealth => maxHealth;
@@ -140,6 +141,25 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         if (!force && healthSlider == null && Time.unscaledTime < nextHealthSliderResolveTime) return;
         if (!force && healthSlider != null) return;
 
+        string activeScene = SceneManager.GetActiveScene().name;
+        if (!force && healthSlider != null && cachedHealthSliderScene == activeScene) return;
+
+        if (!string.IsNullOrWhiteSpace(healthSliderObjectName))
+        {
+            GameObject byName = GameObject.Find(healthSliderObjectName);
+            if (byName != null)
+            {
+                Slider namedSlider = byName.GetComponent<Slider>();
+                if (namedSlider != null)
+                {
+                    healthSlider = namedSlider;
+                    cachedHealthSliderScene = activeScene;
+                    nextHealthSliderResolveTime = 0f;
+                    return;
+                }
+            }
+        }
+
         Slider[] sliders = FindObjectsOfType<Slider>(true);
         Slider fallback = null;
 
@@ -152,6 +172,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
             if (lower == "health" || lower.Contains("health"))
             {
                 healthSlider = slider;
+                cachedHealthSliderScene = activeScene;
                 nextHealthSliderResolveTime = 0f;
                 return;
             }
@@ -165,17 +186,9 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         if (fallback != null)
         {
             healthSlider = fallback;
+            cachedHealthSliderScene = activeScene;
             nextHealthSliderResolveTime = 0f;
             return;
-        }
-
-        if (!string.IsNullOrWhiteSpace(healthSliderObjectName))
-        {
-            GameObject byName = GameObject.Find(healthSliderObjectName);
-            if (byName != null)
-            {
-                healthSlider = byName.GetComponent<Slider>();
-            }
         }
 
         if (healthSlider == null)

@@ -1,4 +1,4 @@
-// PlayerNeuroresist.cs
+﻿
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -64,7 +64,7 @@ public class PlayerNeuroresist : MonoBehaviour
         xrayLayer = LayerMask.NameToLayer(xrayLayerName);
         if (xrayLayer == -1)
         {
-            Debug.LogWarning($"Слой '{xrayLayerName}' не найден. Создай слой и привяжи его в Render Feature.");
+            Debug.LogWarning($"РЎР»РѕР№ '{xrayLayerName}' РЅРµ РЅР°Р№РґРµРЅ. РЎРѕР·РґР°Р№ СЃР»РѕР№ Рё РїСЂРёРІСЏР¶Рё РµРіРѕ РІ Render Feature.");
         }
 
         if (postProcess == null)

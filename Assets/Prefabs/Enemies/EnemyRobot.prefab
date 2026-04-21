@@ -24,12 +24,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 574474607271611065}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 1.3332, y: 0.4883, z: 0.2108}
+  m_LocalRotation: {x: -0, y: -0, z: 0.4393513, w: 0.8983153}
+  m_LocalPosition: {x: 0.8171808, y: -0.053092297, z: 0.24813369}
   m_LocalScale: {x: 1.1111112, y: 1.1111112, z: 1.1111112}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 7852806291522472154}
+  m_Father: {fileID: 8943697831893670302}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6512635442804104593
 GameObject:
@@ -67,7 +67,6 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8943769379523878040}
-  - {fileID: 7296890119673624546}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!95 &1020890256974308230
@@ -173,11 +172,11 @@ NavMeshAgent:
   m_Enabled: 1
   m_AgentTypeID: 0
   m_Radius: 0.5
-  m_Speed: 3.5
+  m_Speed: 3.2
   m_Acceleration: 8
   avoidancePriority: 50
-  m_AngularSpeed: 300
-  m_StoppingDistance: 0
+  m_AngularSpeed: 360
+  m_StoppingDistance: 0.35
   m_AutoTraverseOffMeshLink: 1
   m_AutoBraking: 1
   m_AutoRepath: 1
@@ -201,9 +200,18 @@ MonoBehaviour:
   firePoint: {fileID: 7296890119673624546}
   animator: {fileID: 1020890256974308230}
   hitCollider: {fileID: 2952856044314325031}
-  maxHealth: 50
+  visualRoot: {fileID: 8935491214671778542}
+  maxHealth: 80
+  deathStateName: Death_Anim
+  deathStateFullPath: Base Layer.Death_Anim
+  deathCrossfadeDuration: 0.05
+  deathAnimLockSeconds: 1.2
+  freezeOnDeathLastFrame: 0
+  destroyOnDeath: 0
+  destroyDelaySeconds: 8
   fovDegrees: 160
-  visionRange: 35
+  visionRange: 30
+  lookYawOffset: 0
   obstacleMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -213,25 +221,40 @@ MonoBehaviour:
   idleMinSeconds: 1
   idleMaxSeconds: 2
   patrolWaitSeconds: 1.25
-  attackRange: 24
-  preferredDistance: 14
-  searchDurationSeconds: 8
-  reactionDelaySeconds: 0.8
-  fireInterval: 0.16
-  baseDamage: 1
-  aimSpreadDegrees: 1.8
-  coverSearchRadius: 18
-  coverRepositionCooldown: 2.2
-  coverHoldSeconds: 1
-  peekSeconds: 0.45
+  attackRange: 20
+  preferredDistance: 12
+  searchDurationSeconds: 9
+  reactionDelaySeconds: 0.45
+  fireInterval: 0.23
+  baseDamage: 5
+  aimSpreadDegrees: 2.4
+  burstMinSeconds: 2
+  burstMaxSeconds: 3
+  repositionMinSeconds: 0.8
+  repositionMaxSeconds: 1.4
+  repositionDistance: 3.5
+  muzzlePrefab: {fileID: 7402772589111674848, guid: d225e46a95ff248409e8dc6f8b4afd21, type: 3}
+  muzzleLifetime: 0.08
+  tracerEffectPrefab: {fileID: 0}
+  tracerSpeed: 200
+  tracerWidth: 0.018
+  tracerLength: 0.45
+  tracerColor: {r: 1, g: 0.85, b: 0.55, a: 0.95}
+  tracerMaterial: {fileID: 0}
+  tracerFadeOut: 0.04
+  coverSearchRadius: 16
+  coverRepositionCooldown: 2.4
+  coverHoldSeconds: 1.2
+  peekSeconds: 0.38
   useEntropyScaling: 1
-  tier2DamageMult: 1.1
-  tier3DamageMult: 1.22
-  tier4DamageMult: 1.35
-  tier2FireRateMult: 0.92
-  tier3FireRateMult: 0.84
-  tier4FireRateMult: 0.76
+  tier2DamageMult: 1.08
+  tier3DamageMult: 1.16
+  tier4DamageMult: 1.25
+  tier2FireRateMult: 0.95
+  tier3FireRateMult: 0.89
+  tier4FireRateMult: 0.83
   debugState: 1
+  debugDeathAnimation: 0
 --- !u!1001 &8939158202451979248
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -243,6 +266,14 @@ PrefabInstance:
     - target: {fileID: 1433454005567430, guid: 23e084d1633f7674e81ebd4cad264047, type: 3}
       propertyPath: m_Name
       value: Robot_Soldier_Camo2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4062084700288710, guid: 23e084d1633f7674e81ebd4cad264047, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.227
+      objectReference: {fileID: 0}
+    - target: {fileID: 4062084700288710, guid: 23e084d1633f7674e81ebd4cad264047, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.114
       objectReference: {fileID: 0}
     - target: {fileID: 4754130767853416, guid: 23e084d1633f7674e81ebd4cad264047, type: 3}
       propertyPath: m_LocalPosition.x
@@ -295,12 +326,20 @@ PrefabInstance:
     m_RemovedComponents:
     - {fileID: 95012731428124264, guid: 23e084d1633f7674e81ebd4cad264047, type: 3}
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 4539663802921582, guid: 23e084d1633f7674e81ebd4cad264047, type: 3}
+      insertIndex: 0
+      addedObject: {fileID: 7296890119673624546}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 23e084d1633f7674e81ebd4cad264047, type: 3}
 --- !u!4 &8935491214671778542 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4355083417024798, guid: 23e084d1633f7674e81ebd4cad264047, type: 3}
+  m_PrefabInstance: {fileID: 8939158202451979248}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &8943697831893670302 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4539663802921582, guid: 23e084d1633f7674e81ebd4cad264047, type: 3}
   m_PrefabInstance: {fileID: 8939158202451979248}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &8943769379523878040 stripped

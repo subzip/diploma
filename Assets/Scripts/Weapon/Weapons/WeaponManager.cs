@@ -1,4 +1,4 @@
-// Assets/Scripts/Weapons/WeaponManager.cs
+﻿
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -12,6 +12,13 @@ public class WeaponManager : MonoBehaviour
     [SerializeField] private int currentWeaponIndex = 0;
     [SerializeField] private float switchCooldown = 0.25f;
 
+    [Header("Code Swap Animation")]
+    [SerializeField] private bool useCodeSwapAnimation = true;
+    [SerializeField] private Vector3 swapHideOffset = new Vector3(0.28f, -0.35f, 0.22f);
+    [SerializeField] private Vector3 swapHideEuler = new Vector3(12f, 0f, -10f);
+    [SerializeField] private float swapHideDuration = 0.09f;
+    [SerializeField] private float swapDrawDuration = 0.12f;
+
     [Header("IK Setup")]
     [SerializeField] private TwoBoneIKConstraint leftHandIK;
     [SerializeField] private TwoBoneIKConstraint rightHandIK;
@@ -22,12 +29,15 @@ public class WeaponManager : MonoBehaviour
     private PlayerInputActions inputActions;
     private bool isSwitching = false;
     private bool fireHeld = false;
+    private Vector3[] slotDefaultLocalPos;
+    private Quaternion[] slotDefaultLocalRot;
 
     private void Awake()
     {
         ResolveInputActions();
+        CacheSlotDefaultTransforms();
 
-        // Подхватываем оружие из детей слотов
+        
         for (int i = 0; i < weaponSlots.Length; i++)
         {
             var existing = weaponSlots[i].GetComponentInChildren<BaseWeapon>(true);
@@ -115,6 +125,16 @@ public class WeaponManager : MonoBehaviour
     private IEnumerator SwitchRoutine(int slotIndex)
     {
         isSwitching = true;
+        fireHeld = false;
+
+        int oldIndex = currentWeaponIndex;
+        BaseWeapon oldWeapon = (oldIndex >= 0 && oldIndex < weapons.Count) ? weapons[oldIndex] : null;
+        Transform oldSlot = (oldIndex >= 0 && oldIndex < weaponSlots.Length) ? weaponSlots[oldIndex] : null;
+
+        if (useCodeSwapAnimation && oldWeapon != null && oldSlot != null && oldWeapon.gameObject.activeSelf)
+        {
+            yield return AnimateSlotToHidden(oldIndex, oldSlot);
+        }
 
         if (currentWeaponIndex >= 0 && currentWeaponIndex < weapons.Count && weapons[currentWeaponIndex] != null)
         {
@@ -122,16 +142,35 @@ public class WeaponManager : MonoBehaviour
             weapons[currentWeaponIndex].gameObject.SetActive(false);
         }
 
+        if (oldIndex >= 0 && oldIndex < weaponSlots.Length)
+        {
+            ResetSlotToDefault(oldIndex);
+        }
+
         currentWeaponIndex = slotIndex;
         BaseWeapon newWeapon = weapons[currentWeaponIndex];
+        Transform newSlot = weaponSlots[Mathf.Clamp(currentWeaponIndex, 0, weaponSlots.Length - 1)];
+
         newWeapon.gameObject.SetActive(true);
-        newWeapon.transform.SetParent(weaponSlots[Mathf.Clamp(currentWeaponIndex, 0, weaponSlots.Length - 1)]);
+        newWeapon.transform.SetParent(newSlot);
         newWeapon.transform.localPosition = Vector3.zero;
         newWeapon.transform.localRotation = Quaternion.identity;
 
+        if (useCodeSwapAnimation)
+        {
+            SetSlotHiddenPose(currentWeaponIndex, newSlot);
+        }
+
         UpdateIKTargets(newWeapon.transform);
 
-        yield return new WaitForSeconds(switchCooldown);
+        if (useCodeSwapAnimation)
+        {
+            yield return AnimateSlotToDefault(currentWeaponIndex, newSlot, swapDrawDuration);
+        }
+
+        if (switchCooldown > 0f)
+            yield return new WaitForSeconds(switchCooldown);
+
         isSwitching = false;
     }
 
@@ -148,7 +187,9 @@ public class WeaponManager : MonoBehaviour
         if (w != null)
         {
             w.gameObject.SetActive(true);
-            w.transform.SetParent(weaponSlots[Mathf.Clamp(currentWeaponIndex, 0, weaponSlots.Length - 1)]);
+            Transform slot = weaponSlots[Mathf.Clamp(currentWeaponIndex, 0, weaponSlots.Length - 1)];
+            ResetSlotToDefault(currentWeaponIndex);
+            w.transform.SetParent(slot);
             w.transform.localPosition = Vector3.zero;
             w.transform.localRotation = Quaternion.identity;
             UpdateIKTargets(w.transform);
@@ -214,7 +255,7 @@ public class WeaponManager : MonoBehaviour
             current.RefreshAmmoUiBindingAndValue();
         }
 
-        // One extra pass to guarantee HUD sync after scene reload.
+        
         for (int i = 0; i < weapons.Count; i++)
         {
             BaseWeapon weapon = weapons[i];
@@ -248,11 +289,107 @@ public class WeaponManager : MonoBehaviour
         inputActions = GameInput.Instance.Actions;
     }
 
+    private void CacheSlotDefaultTransforms()
+    {
+        if (weaponSlots == null)
+        {
+            slotDefaultLocalPos = System.Array.Empty<Vector3>();
+            slotDefaultLocalRot = System.Array.Empty<Quaternion>();
+            return;
+        }
+
+        slotDefaultLocalPos = new Vector3[weaponSlots.Length];
+        slotDefaultLocalRot = new Quaternion[weaponSlots.Length];
+
+        for (int i = 0; i < weaponSlots.Length; i++)
+        {
+            Transform slot = weaponSlots[i];
+            if (slot == null) continue;
+            slotDefaultLocalPos[i] = slot.localPosition;
+            slotDefaultLocalRot[i] = slot.localRotation;
+        }
+    }
+
+    private void ResetSlotToDefault(int index)
+    {
+        if (!IsValidSlotIndex(index)) return;
+        Transform slot = weaponSlots[index];
+        if (slot == null) return;
+        slot.localPosition = slotDefaultLocalPos[index];
+        slot.localRotation = slotDefaultLocalRot[index];
+    }
+
+    private void SetSlotHiddenPose(int index, Transform slot)
+    {
+        if (slot == null || !IsValidSlotIndex(index)) return;
+        slot.localPosition = slotDefaultLocalPos[index] + swapHideOffset;
+        slot.localRotation = slotDefaultLocalRot[index] * Quaternion.Euler(swapHideEuler);
+    }
+
+    private IEnumerator AnimateSlotToHidden(int index, Transform slot)
+    {
+        if (slot == null || !IsValidSlotIndex(index)) yield break;
+
+        Vector3 startPos = slot.localPosition;
+        Quaternion startRot = slot.localRotation;
+        Vector3 endPos = slotDefaultLocalPos[index] + swapHideOffset;
+        Quaternion endRot = slotDefaultLocalRot[index] * Quaternion.Euler(swapHideEuler);
+
+        float duration = Mathf.Max(0.01f, swapHideDuration);
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            slot.localPosition = Vector3.Lerp(startPos, endPos, t);
+            slot.localRotation = Quaternion.Slerp(startRot, endRot, t);
+            yield return null;
+        }
+
+        slot.localPosition = endPos;
+        slot.localRotation = endRot;
+    }
+
+    private IEnumerator AnimateSlotToDefault(int index, Transform slot, float duration)
+    {
+        if (slot == null || !IsValidSlotIndex(index)) yield break;
+
+        Vector3 startPos = slot.localPosition;
+        Quaternion startRot = slot.localRotation;
+        Vector3 endPos = slotDefaultLocalPos[index];
+        Quaternion endRot = slotDefaultLocalRot[index];
+
+        float safeDuration = Mathf.Max(0.01f, duration);
+        float elapsed = 0f;
+        while (elapsed < safeDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / safeDuration);
+            slot.localPosition = Vector3.Lerp(startPos, endPos, t);
+            slot.localRotation = Quaternion.Slerp(startRot, endRot, t);
+            yield return null;
+        }
+
+        slot.localPosition = endPos;
+        slot.localRotation = endRot;
+    }
+
+    private bool IsValidSlotIndex(int index)
+    {
+        return index >= 0 &&
+               weaponSlots != null &&
+               index < weaponSlots.Length &&
+               slotDefaultLocalPos != null &&
+               slotDefaultLocalRot != null &&
+               index < slotDefaultLocalPos.Length &&
+               index < slotDefaultLocalRot.Length;
+    }
+
     public void PickupWeapon(GameObject weaponPrefab)
     {
         if (weaponPrefab == null || weaponSlots.Length == 0) return;
 
-        // Уже есть такое оружие? просто переключаемся на него
+        
         for (int i = 0; i < weapons.Count; i++)
         {
             if (weapons[i] == null) continue;
@@ -265,7 +402,7 @@ public class WeaponManager : MonoBehaviour
         }
 
         int freeSlot = FindFirstEmptySlot();
-        if (freeSlot == -1) freeSlot = currentWeaponIndex; // заменяем текущее, если нет свободных
+        if (freeSlot == -1) freeSlot = currentWeaponIndex; 
         freeSlot = Mathf.Clamp(freeSlot, 0, weaponSlots.Length - 1);
 
         if (freeSlot < weapons.Count && weapons[freeSlot] != null)
@@ -293,7 +430,7 @@ public class WeaponManager : MonoBehaviour
         var weapon = weaponObj.GetComponent<BaseWeapon>();
         if (weapon == null)
         {
-            Debug.LogError($"Weapon prefab {weaponPrefab.name} не содержит BaseWeapon");
+            Debug.LogError($"Weapon prefab {weaponPrefab.name} РЅРµ СЃРѕРґРµСЂР¶РёС‚ BaseWeapon");
             if (weaponObj != weaponPrefab) Destroy(weaponObj);
             return;
         }

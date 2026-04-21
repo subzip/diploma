@@ -1,8 +1,9 @@
-// DeathScreen.cs
+﻿
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using System.Collections.Generic;
+using System.Collections;
 
 public class DeathScreen : MonoBehaviour
 {
@@ -20,6 +21,20 @@ public class DeathScreen : MonoBehaviour
 
     [Header("Scenes")]
     [SerializeField] private string mainMenuSceneName = "StartGame";
+    [SerializeField] private bool useVariantSceneMapping = true;
+    [SerializeField] private string[] variantSceneNames = { "level0_var0", "level0_var1", "level0_var2" };
+    [SerializeField] private string[] variantManagedScenePrefixes = { "level0" };
+
+    [Header("Cycle Transition Screen")]
+    [SerializeField] private bool useCycleTransitionScreen = true;
+    [SerializeField] private float transitionTypewriterCharsPerSecond = 46f;
+    [SerializeField] private float transitionMinBlackSeconds = 1.6f;
+    [SerializeField] private string[] cycleNarrativeLines =
+    {
+        "РЎРРќРҐР РћРќРР—РђР¦РРЇ Р¦РРљР›Рђ...\nРџСЂРѕСЃС‚СЂР°РЅСЃС‚РІРµРЅРЅР°СЏ С„СЂР°РєС‚СѓСЂР° СЃРјРµС‰Р°РµС‚ РєРѕРЅС„РёРіСѓСЂР°С†РёСЋ РєРѕРјРїР»РµРєСЃР°.",
+        "РџРђРњРЇРўР¬ Р¦РРљР›Рђ РћР‘РќРћР’Р›Р•РќРђ.\nРњР°СЂС€СЂСѓС‚С‹ Рё Р±РѕРµРІС‹Рµ РїРѕР·РёС†РёРё РїСЂРѕС‚РёРІРЅРёРєР° РїРµСЂРµСЃС‚СЂРѕРµРЅС‹.",
+        "Р­РќРўР РћРџРРЇ Р Р•РђР›Р¬РќРћРЎРўР Р РђРЎРўР•Рў.\nРђСЂС…РёС‚РµРєС‚СѓСЂР° СЃРµРєС‚РѕСЂР° РёР·РјРµРЅРµРЅР°. Р‘СѓРґСЊС‚Рµ РіРѕС‚РѕРІС‹."
+    };
 
     [Header("UI")]
     [SerializeField] private GameObject deathPanel;
@@ -31,6 +46,8 @@ public class DeathScreen : MonoBehaviour
     private bool isRestarting;
     private bool isReturningToMenu;
     private readonly List<Behaviour> disabledPlayerBehaviours = new();
+    private readonly List<PauseManager> cachedPauseManagers = new();
+    private float nextPauseManagersRefreshTime;
 
     public bool IsDeathScreenActive => (deathPanel != null && deathPanel.activeSelf) || isDead;
 
@@ -93,17 +110,18 @@ public class DeathScreen : MonoBehaviour
             EnsureDeathPanelVisible();
         }
 
-        PauseManager[] pauseManagers = FindObjectsOfType<PauseManager>(true);
-        for (int i = 0; i < pauseManagers.Length; i++)
+        RefreshPauseManagersIfNeeded();
+        for (int i = 0; i < cachedPauseManagers.Count; i++)
         {
-            if (pauseManagers[i] != null)
-                pauseManagers[i].ForceCloseForDeath();
+            PauseManager manager = cachedPauseManagers[i];
+            if (manager != null)
+                manager.ForceCloseForDeath();
         }
 
         LockPlayerControlsForDeath();
         GlobalDeathActive = true;
         isDead = true;
-        Time.timeScale = 1f; // death no longer relies on global timescale pause
+        Time.timeScale = 1f; 
         if (deathPanel != null) deathPanel.SetActive(true);
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
@@ -115,10 +133,10 @@ public class DeathScreen : MonoBehaviour
 
         Debug.Log("[DeathScreen] RestartLevel pressed");
         isRestarting = true;
-        RestartCurrentScene();
+        StartCoroutine(RestartCurrentSceneRoutine());
     }
 
-    private void RestartCurrentScene()
+    private IEnumerator RestartCurrentSceneRoutine()
     {
         GlobalDeathActive = false;
         Time.timeScale = 1f;
@@ -129,8 +147,31 @@ public class DeathScreen : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         isDead = false;
+
+        string targetSceneName = ResolveRestartSceneName();
+        if (useCycleTransitionScreen)
+        {
+            CycleTransitionScreen transition = CycleTransitionScreen.Instance;
+            if (transition != null)
+            {
+                yield return transition.PlayTransitionAndLoad(
+                    targetSceneName,
+                    BuildCycleTransitionText(),
+                    transitionTypewriterCharsPerSecond,
+                    transitionMinBlackSeconds
+                );
+            }
+            else
+            {
+                SceneManager.LoadScene(targetSceneName);
+            }
+        }
+        else
+        {
+            SceneManager.LoadScene(targetSceneName);
+        }
+
         isRestarting = false;
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
     public void ReturnToMainMenu()
@@ -244,6 +285,22 @@ public class DeathScreen : MonoBehaviour
         }
     }
 
+    private void RefreshPauseManagersIfNeeded()
+    {
+        if (Time.unscaledTime < nextPauseManagersRefreshTime && cachedPauseManagers.Count > 0)
+            return;
+
+        cachedPauseManagers.Clear();
+        PauseManager[] pauseManagers = FindObjectsOfType<PauseManager>(true);
+        for (int i = 0; i < pauseManagers.Length; i++)
+        {
+            if (pauseManagers[i] != null)
+                cachedPauseManagers.Add(pauseManagers[i]);
+        }
+
+        nextPauseManagersRefreshTime = Time.unscaledTime + 1f;
+    }
+
     private void ResolveDeathPanelReference(bool force = false)
     {
         if (!force && deathPanel != null) return;
@@ -296,5 +353,66 @@ public class DeathScreen : MonoBehaviour
             g.interactable = true;
             g.blocksRaycasts = true;
         }
+    }
+
+    private string ResolveRestartSceneName()
+    {
+        string current = SceneManager.GetActiveScene().name;
+        if (!useVariantSceneMapping || variantSceneNames == null || variantSceneNames.Length == 0)
+            return current;
+
+        bool isManaged = false;
+        for (int i = 0; i < variantSceneNames.Length; i++)
+        {
+            string scene = variantSceneNames[i];
+            if (!string.IsNullOrWhiteSpace(scene) && scene == current)
+            {
+                isManaged = true;
+                break;
+            }
+        }
+
+        if (!isManaged && variantManagedScenePrefixes != null)
+        {
+            for (int i = 0; i < variantManagedScenePrefixes.Length; i++)
+            {
+                string prefix = variantManagedScenePrefixes[i];
+                if (string.IsNullOrWhiteSpace(prefix)) continue;
+                if (!current.StartsWith(prefix, System.StringComparison.OrdinalIgnoreCase)) continue;
+                isManaged = true;
+                break;
+            }
+        }
+
+        if (!isManaged) return current;
+
+        DeathCycleManager manager = DeathCycleManager.Instance;
+        if (manager == null) return current;
+
+        int variant = manager.CurrentVariantIndex;
+        int idx = variant % variantSceneNames.Length;
+        if (idx < 0) idx += variantSceneNames.Length;
+
+        string mapped = variantSceneNames[idx];
+        if (string.IsNullOrWhiteSpace(mapped)) return current;
+        return mapped;
+    }
+
+    private string BuildCycleTransitionText()
+    {
+        DeathCycleManager manager = DeathCycleManager.Instance;
+        int cycle = manager != null ? manager.CycleCount : 0;
+        int tier = manager != null ? manager.EntropyTier : 1;
+        int variant = manager != null ? manager.CurrentVariantIndex : 0;
+
+        if (cycleNarrativeLines != null && cycleNarrativeLines.Length > 0)
+        {
+            int idx = variant % cycleNarrativeLines.Length;
+            if (idx < 0) idx += cycleNarrativeLines.Length;
+            string baseLine = cycleNarrativeLines[idx];
+            return $"{baseLine}\n\nР¦РёРєР»: {cycle}   |   Р­РЅС‚СЂРѕРїРёСЏ: T{tier}";
+        }
+
+        return $"РџРµСЂРµСЃС‚СЂРѕР№РєР° СЂРµР°Р»СЊРЅРѕСЃС‚Рё Р·Р°РІРµСЂС€РµРЅР°.\nР¦РёРєР»: {cycle}   |   Р­РЅС‚СЂРѕРїРёСЏ: T{tier}";
     }
 }

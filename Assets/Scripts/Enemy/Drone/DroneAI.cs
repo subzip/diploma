@@ -1,4 +1,4 @@
-// DroneAI.cs
+﻿
 using UnityEngine;
 
 [System.Obsolete("Legacy drone AI. Use FlyingDrone instead.")]

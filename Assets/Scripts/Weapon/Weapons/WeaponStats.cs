@@ -1,4 +1,4 @@
-// Assets/Scripts/Weapons/WeaponStats.cs
+﻿
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "WeaponStats", menuName = "Weapons/Weapon Stats", order = 1)]
@@ -36,8 +36,8 @@ public class WeaponStats : ScriptableObject
     public float recoilKickMin = 0.35f;
     public float recoilKickMax = 0.6f;
     public float recoilHorizontal = 0.25f;
-    public float recoilRecoverySpeed = 6f;    // чем выше — быстрее возврат
-    public float recoilSnap = 10f;            // чем выше — резче дергает камеру
+    public float recoilRecoverySpeed = 6f;    
+    public float recoilSnap = 10f;            
 
     [Header("Effects")]
     public GameObject muzzlePrefab;

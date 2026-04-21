@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
@@ -195,7 +195,7 @@ public class RealityVariantController : MonoBehaviour
                     continue;
                 }
 
-                // Ensure only current variant contributes navmesh data.
+                
                 InvokeNavSurface(surface, "RemoveData");
                 if (forceRebuildNavMeshOnSwitch)
                     InvokeNavSurface(surface, "BuildNavMesh");
@@ -210,14 +210,14 @@ public class RealityVariantController : MonoBehaviour
         output.Clear();
         if (binding == null) return;
 
-        // Preferred explicit root.
+        
         if (binding.navMeshRoot != null)
         {
             CollectNavMeshSurfaces(binding.navMeshRoot, output);
             return;
         }
 
-        // Fallback: detect surfaces under active layout/enemy roots.
+        
         if (binding.layoutRoot != null)
             CollectNavMeshSurfacesAppend(binding.layoutRoot, output);
 

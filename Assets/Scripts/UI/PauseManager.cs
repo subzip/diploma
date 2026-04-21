@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -45,8 +45,8 @@ public class PauseManager : MonoBehaviour
     {
         if (DeathScreen.GlobalDeathActive) return;
 
-        // If timeScale is already 0 but this pause panel is not active,
-        // it means game is paused by another system (e.g. death). Do not unpause from here.
+        
+        
         if (Time.timeScale == 0f && (pausePanel == null || !pausePanel.activeSelf)) return;
 
         DeathScreen deathScreen = DeathScreen.Instance;

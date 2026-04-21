@@ -1,0 +1,95 @@
+﻿{
+  "profileName": "Medium",
+  "targetScenario": {
+    "scene": "level0 / level0_var1 / level0_var2",
+    "enemyCount": {
+      "groundRobots": "5-6",
+      "drones": 2
+    },
+    "playerMaxHealth": 150,
+    "designGoal": "Comfortably challenging for average player, no instant drone melt, pressure through crossfire and positioning"
+  },
+  "groundShooter": {
+    "maxHealth": 80.0,
+    "fovDegrees": 160.0,
+    "visionRange": 30.0,
+    "attackRange": 20.0,
+    "preferredDistance": 12.0,
+    "searchDurationSeconds": 9.0,
+    "reactionDelaySeconds": 0.45,
+    "fireInterval": 0.23,
+    "baseDamage": 5,
+    "aimSpreadDegrees": 2.4,
+    "coverSearchRadius": 16.0,
+    "coverRepositionCooldown": 2.4,
+    "coverHoldSeconds": 1.2,
+    "peekSeconds": 0.38,
+    "navAgent": {
+      "speed": 3.2,
+      "acceleration": 8.0,
+      "angularSpeed": 360.0,
+      "stoppingDistance": 0.35,
+      "autoBraking": true
+    },
+    "entropyScaling": {
+      "useEntropyScaling": true,
+      "tier2DamageMult": 1.08,
+      "tier3DamageMult": 1.16,
+      "tier4DamageMult": 1.25,
+      "tier2FireRateMult": 0.95,
+      "tier3FireRateMult": 0.89,
+      "tier4FireRateMult": 0.83
+    }
+  },
+  "droneShooter": {
+    "maxHealth": 55.0,
+    "fovDegrees": 165.0,
+    "visionRange": 26.0,
+    "attackRange": 17.0,
+    "searchDurationSeconds": 8.5,
+    "reactionDelaySeconds": 0.32,
+    "fireInterval": 0.42,
+    "baseDamage": 7,
+    "aimSpreadDegrees": 2.6,
+    "moveSpeed": 3.9,
+    "rotateSpeed": 8.0,
+    "desiredHeightOffset": 1.6,
+    "minAttackDistance": 4.0,
+    "weaveAmplitude": 0.55,
+    "weaveFrequency": 1.45,
+    "minFacingDotToFire": 0.58,
+    "navPath": {
+      "navMeshSampleDistance": 5.0,
+      "pathRebuildInterval": 0.75,
+      "cornerReachDistance": 0.85,
+      "pointTimeoutSeconds": 5.0
+    },
+    "antiStuck": {
+      "stuckDistanceEpsilon": 0.12,
+      "stuckTimeoutSeconds": 1.5
+    },
+    "entropyScaling": {
+      "useEntropyScaling": true,
+      "tier2DamageMult": 1.07,
+      "tier3DamageMult": 1.14,
+      "tier4DamageMult": 1.22,
+      "tier2FireRateMult": 0.95,
+      "tier3FireRateMult": 0.9,
+      "tier4FireRateMult": 0.85
+    }
+  },
+  "expectedCombatOutcome": {
+    "notes": [
+      "Robots become meaningful pressure instead of harmless targets.",
+      "Drones stop deleting player in 3-4 seconds and feel dangerous through sustained pressure, not burst.",
+      "Crossfire from 1 drone + 1-2 robots should be punishing but recoverable with cover movement.",
+      "Two drones in open area remain high-threat; player must break line-of-sight and reposition."
+    ],
+    "validationChecklist": [
+      "Average player survives first contact at least 6-8 seconds without perfect movement.",
+      "No instant death from two drones unless fully exposed in open space.",
+      "Robot firefight requires 1-2 cover transitions, not pure face-tank.",
+      "Resource consumption (ammo/medkit) is noticeable but not starvation-level."
+    ]
+  }
+}

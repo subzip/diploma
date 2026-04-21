@@ -50,6 +50,13 @@ public class PlayerVitalsHud : MonoBehaviour
     private float targetNeuro01 = 1f;
     private float nextResolveAttemptTime;
     private PlayerHealth boundHealth;
+    private int lastHealthText = int.MinValue;
+    private int lastStaminaText = int.MinValue;
+    private int lastNeuroText = int.MinValue;
+    private int lastHealthPercent = int.MinValue;
+    private int lastStaminaPercent = int.MinValue;
+    private int lastNeuroPercent = int.MinValue;
+    private bool lastNeuroHideState;
 
     private void Awake()
     {
@@ -57,7 +64,8 @@ public class PlayerVitalsHud : MonoBehaviour
         BindHealthEvents();
         SyncInstantValues();
         ApplyAllBarsInstant();
-        UpdateAllTexts();
+        InvalidateTextCache();
+        UpdateAllTexts(force: true);
     }
 
     private void OnEnable()
@@ -99,7 +107,7 @@ public class PlayerVitalsHud : MonoBehaviour
         ApplyBar(healthBar, currentHealth01);
         ApplyBar(staminaBar, currentStamina01);
         ApplyBar(neuroBar, currentNeuro01);
-        UpdateAllTexts();
+        UpdateAllTexts(force: false);
     }
 
     private void OnHealthChanged(float current, float max)
@@ -143,7 +151,8 @@ public class PlayerVitalsHud : MonoBehaviour
         BindHealthEvents();
         SyncInstantValues();
         ApplyAllBarsInstant();
-        UpdateAllTexts();
+        InvalidateTextCache();
+        UpdateAllTexts(force: true);
     }
 
     private void SyncInstantValues()
@@ -198,41 +207,71 @@ public class PlayerVitalsHud : MonoBehaviour
         }
     }
 
-    private void UpdateAllTexts()
+    private void UpdateAllTexts(bool force)
     {
         if (!updateNumericText) return;
 
-        UpdateBarText(healthBar, targetHealth01, playerHealth != null ? Mathf.RoundToInt(playerHealth.CurrentHealth).ToString() : "0");
-        UpdateBarText(staminaBar, targetStamina01, playerMovement != null ? Mathf.RoundToInt(playerMovement.CurrentStamina).ToString() : "0");
+        int healthRaw = playerHealth != null ? Mathf.RoundToInt(playerHealth.CurrentHealth) : 0;
+        int staminaRaw = playerMovement != null ? Mathf.RoundToInt(playerMovement.CurrentStamina) : 0;
+        int healthPercent = Mathf.RoundToInt(targetHealth01 * 100f);
+        int staminaPercent = Mathf.RoundToInt(targetStamina01 * 100f);
+
+        UpdateBarText(healthBar, targetHealth01, healthRaw, healthPercent, ref lastHealthText, ref lastHealthPercent, force);
+        UpdateBarText(staminaBar, targetStamina01, staminaRaw, staminaPercent, ref lastStaminaText, ref lastStaminaPercent, force);
 
         if (neuroBar != null && neuroBar.valueText != null)
         {
-            if (hideNeuroWhenNotAvailable && playerNeuroresist != null && !playerNeuroresist.IsActive && playerNeuroresist.IsReady)
+            bool hideNeuro = hideNeuroWhenNotAvailable && playerNeuroresist != null && !playerNeuroresist.IsActive && playerNeuroresist.IsReady;
+            if (hideNeuro)
             {
-                neuroBar.valueText.text = string.Empty;
+                if (force || !lastNeuroHideState || !string.IsNullOrEmpty(neuroBar.valueText.text))
+                    neuroBar.valueText.text = string.Empty;
             }
             else
             {
-                string neuroRaw = playerNeuroresist != null
-                    ? Mathf.RoundToInt(playerNeuroresist.IsActive ? playerNeuroresist.CurrentValue : playerNeuroresist.CooldownRemaining).ToString()
-                    : "0";
-                UpdateBarText(neuroBar, targetNeuro01, neuroRaw);
+                int neuroRaw = playerNeuroresist != null
+                    ? Mathf.RoundToInt(playerNeuroresist.IsActive ? playerNeuroresist.CurrentValue : playerNeuroresist.CooldownRemaining)
+                    : 0;
+                int neuroPercent = Mathf.RoundToInt(targetNeuro01 * 100f);
+                UpdateBarText(neuroBar, targetNeuro01, neuroRaw, neuroPercent, ref lastNeuroText, ref lastNeuroPercent, force);
             }
+
+            lastNeuroHideState = hideNeuro;
         }
     }
 
-    private void UpdateBarText(HudBar bar, float normalized, string rawValue)
+    private void UpdateBarText(HudBar bar, float normalized, int rawValue, int percentValue, ref int lastRaw, ref int lastPercent, bool force)
     {
         if (bar == null || bar.valueText == null) return;
 
         if (hideTextForFullBars && normalized >= 0.999f)
         {
-            bar.valueText.text = string.Empty;
+            if (force || !string.IsNullOrEmpty(bar.valueText.text))
+                bar.valueText.text = string.Empty;
             return;
         }
 
-        bar.valueText.text = percentText
-            ? $"{Mathf.RoundToInt(normalized * 100f)}%"
-            : rawValue;
+        if (percentText)
+        {
+            if (!force && lastPercent == percentValue) return;
+            bar.valueText.text = $"{percentValue}%";
+            lastPercent = percentValue;
+            return;
+        }
+
+        if (!force && lastRaw == rawValue) return;
+        bar.valueText.text = rawValue.ToString();
+        lastRaw = rawValue;
+    }
+
+    private void InvalidateTextCache()
+    {
+        lastHealthText = int.MinValue;
+        lastStaminaText = int.MinValue;
+        lastNeuroText = int.MinValue;
+        lastHealthPercent = int.MinValue;
+        lastStaminaPercent = int.MinValue;
+        lastNeuroPercent = int.MinValue;
+        lastNeuroHideState = false;
     }
 }

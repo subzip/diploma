@@ -1,4 +1,4 @@
-// EnemyVision.cs
+﻿
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -10,7 +10,7 @@ public class EnemyVision : MonoBehaviour
     [SerializeField] private float gunshotMemorySeconds = 1.25f;
     [SerializeField] private float gunshotHearingMultiplier = 1.5f;
     [FormerlySerializedAs("playerLayer")]
-    [SerializeField] private LayerMask playerLayer = ~0; // kept for prefab compatibility
+    [SerializeField] private LayerMask playerLayer = ~0; 
     [SerializeField] private LayerMask obstacleMask = ~0;
 
     private Transform player;
@@ -51,7 +51,7 @@ public class EnemyVision : MonoBehaviour
         return false;
     }
 
-    // Lightweight "hearing" so enemies can react if player runs nearby.
+    
     public bool CanSensePlayer(bool canSeePlayerAlready = false)
     {
         if (canSeePlayerAlready) return true;

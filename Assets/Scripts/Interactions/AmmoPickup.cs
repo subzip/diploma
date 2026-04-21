@@ -1,16 +1,12 @@
 using UnityEngine;
 
-public class AmmoPickup : PulsingPickupHighlight
+[DisallowMultipleComponent]
+public class AmmoPickup : MonoBehaviour
 {
     [Header("Ammo")]
     [SerializeField] private AmmoType ammoType = AmmoType.Rifle;
     [SerializeField] private int ammoAmount = 30;
-
-    protected override void Awake()
-    {
-        emissionColor = new Color(0.8f, 0.7f, 0.1f);
-        base.Awake();
-    }
+    private bool consumed;
 
     private void OnTriggerEnter(Collider other) => TryConsume(other);
     private void OnTriggerStay(Collider other) => TryConsume(other);
@@ -26,7 +22,7 @@ public class AmmoPickup : PulsingPickupHighlight
 
         if (!manager.AddAmmo(ammoType, ammoAmount)) return;
 
-        ConsumeAndDisableHighlight();
+        consumed = true;
         Destroy(gameObject);
     }
 }

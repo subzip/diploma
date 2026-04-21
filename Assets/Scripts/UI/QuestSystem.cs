@@ -1,4 +1,4 @@
-// QuestSystem.cs
+﻿
 using UnityEngine;
 using System.Collections.Generic;
 
@@ -28,8 +28,24 @@ public class QuestSystem : MonoBehaviour
         quests[currentQuestIndex].Complete();
 
         currentQuestIndex++;
-        questUI.ShowCompleted();
+        if (questUI != null)
+            questUI.ShowCompleted();
         UpdateUI();
+    }
+
+    public bool IsQuestCompletedByTitle(string title)
+    {
+        if (string.IsNullOrWhiteSpace(title)) return false;
+
+        for (int i = 0; i < quests.Count; i++)
+        {
+            QuestItem q = quests[i];
+            if (q == null) continue;
+            if (!string.Equals(q.title, title, System.StringComparison.Ordinal)) continue;
+            return q.isCompleted;
+        }
+
+        return false;
     }
 
     public QuestItem GetCurrentQuest()

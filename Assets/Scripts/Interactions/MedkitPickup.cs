@@ -1,15 +1,11 @@
 using UnityEngine;
 
-public class MedkitPickup : PulsingPickupHighlight
+[DisallowMultipleComponent]
+public class MedkitPickup : MonoBehaviour
 {
     [Header("Heal")]
     [SerializeField] private float healAmount = 50f;
-
-    protected override void Awake()
-    {
-        emissionColor = new Color(0.8f, 0.1f, 0.1f);
-        base.Awake();
-    }
+    private bool consumed;
 
     private void OnTriggerEnter(Collider other) => TryConsume(other);
     private void OnTriggerStay(Collider other) => TryConsume(other);
@@ -24,7 +20,7 @@ public class MedkitPickup : PulsingPickupHighlight
         if (health == null) return;
         if (!health.TryHeal(healAmount)) return;
 
-        ConsumeAndDisableHighlight();
+        consumed = true;
         Destroy(gameObject);
     }
 }

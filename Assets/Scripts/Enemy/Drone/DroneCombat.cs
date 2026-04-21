@@ -1,4 +1,4 @@
-// DroneCombat.cs
+﻿
 using UnityEngine;
 
 [System.Obsolete("Legacy drone combat. Use FlyingDrone instead.")]

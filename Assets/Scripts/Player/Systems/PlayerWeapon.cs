@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class PlayerWeapon : MonoBehaviour
@@ -42,7 +42,7 @@ public class PlayerWeapon : MonoBehaviour
             {
                 if (weaponManager != null)
                 {
-                    // Если в пикапе лежит сценовый экземпляр оружия, отдаём его; иначе — prefab
+                    
                     GameObject toGive = hit.collider.GetComponent<BaseWeapon>() != null
                         ? hit.collider.gameObject
                         : pickup.weaponPrefab;
@@ -54,6 +54,6 @@ public class PlayerWeapon : MonoBehaviour
         }
     }
 
-    // Подбор теперь через WeaponManager; оставлено для совместимости
+    
     public void PickUpWeapon(GameObject weaponPrefab) => weaponManager?.PickupWeapon(weaponPrefab);
 }

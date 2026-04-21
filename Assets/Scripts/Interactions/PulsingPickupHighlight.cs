@@ -6,22 +6,34 @@ public abstract class PulsingPickupHighlight : MonoBehaviour
     [SerializeField] protected MeshRenderer[] renderersToHighlight;
     [SerializeField] protected Color emissionColor = Color.white;
     [SerializeField] protected float pulseSpeed = 3f;
+    [SerializeField] private float rendererRefreshInterval = 1.5f;
 
     protected MaterialPropertyBlock mpb;
     protected bool consumed;
+    private float nextRefreshTime;
 
     protected virtual void Awake()
     {
-        if (renderersToHighlight == null || renderersToHighlight.Length == 0)
-            renderersToHighlight = GetComponentsInChildren<MeshRenderer>(true);
-
         mpb = new MaterialPropertyBlock();
+        EnsureRenderers();
+        EnableEmissionKeyword();
+    }
+
+    protected virtual void OnEnable()
+    {
+        EnsureRenderers();
         EnableEmissionKeyword();
     }
 
     protected virtual void Update()
     {
         if (consumed) return;
+        if (Time.unscaledTime >= nextRefreshTime)
+        {
+            EnsureRenderers();
+            EnableEmissionKeyword();
+            nextRefreshTime = Time.unscaledTime + Mathf.Max(0.25f, rendererRefreshInterval);
+        }
         ApplyHighlightPulse();
     }
 
@@ -51,7 +63,7 @@ public abstract class PulsingPickupHighlight : MonoBehaviour
     private void ApplyHighlightPulse()
     {
         if (renderersToHighlight == null) return;
-        float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * pulseSpeed);
+        float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * pulseSpeed);
         SetEmission(emissionColor * pulse);
     }
 
@@ -65,7 +77,29 @@ public abstract class PulsingPickupHighlight : MonoBehaviour
             if (renderer == null) continue;
             renderer.GetPropertyBlock(mpb);
             mpb.SetColor("_EmissionColor", color);
+            mpb.SetColor("_EmissiveColor", color);
             renderer.SetPropertyBlock(mpb);
+        }
+    }
+
+    private void EnsureRenderers()
+    {
+        bool needRefresh = renderersToHighlight == null || renderersToHighlight.Length == 0;
+        if (!needRefresh)
+        {
+            for (int i = 0; i < renderersToHighlight.Length; i++)
+            {
+                if (renderersToHighlight[i] == null)
+                {
+                    needRefresh = true;
+                    break;
+                }
+            }
+        }
+
+        if (needRefresh)
+        {
+            renderersToHighlight = GetComponentsInChildren<MeshRenderer>(true);
         }
     }
 }

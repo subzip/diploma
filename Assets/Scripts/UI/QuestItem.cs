@@ -1,12 +1,12 @@
-// QuestItem.cs
+﻿
 using UnityEngine;
 
 [System.Serializable]
 public class QuestItem
 {
-    public string title = "Новая задача";
-    public string description = "Описание задачи...";
-    [TextArea] public string objective = "Цель: найти что-то";
+    public string title = "РќРѕРІР°СЏ Р·Р°РґР°С‡Р°";
+    public string description = "РћРїРёСЃР°РЅРёРµ Р·Р°РґР°С‡Рё...";
+    [TextArea] public string objective = "Р¦РµР»СЊ: РЅР°Р№С‚Рё С‡С‚Рѕ-С‚Рѕ";
     public bool isCompleted = false;
     public string nextQuestID = "";
 

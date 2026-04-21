@@ -1,4 +1,4 @@
-// QuestUI.cs
+﻿
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -20,8 +20,8 @@ public class QuestUI : MonoBehaviour
     private void Start()
     {
         questPanel.SetActive(false);
-        Cursor.lockState = CursorLockMode.Locked; // Блокирует курсор в центре
-        Cursor.visible = false; // Скрывает курсор
+        Cursor.lockState = CursorLockMode.Locked; 
+        Cursor.visible = false; 
     }
 
     public void ShowInitialHint()
@@ -29,7 +29,7 @@ public class QuestUI : MonoBehaviour
         if (hintText != null)
         {
             hintText.gameObject.SetActive(true);
-            hintText.text = "Нажмите Tab, чтобы открыть задачи";
+            hintText.text = "РќР°Р¶РјРёС‚Рµ Tab, С‡С‚РѕР±С‹ РѕС‚РєСЂС‹С‚СЊ Р·Р°РґР°С‡Рё";
             Invoke("HideHint", hintDuration);
         }
     }
@@ -39,7 +39,7 @@ public class QuestUI : MonoBehaviour
         if (hintText != null)
         {
             hintText.gameObject.SetActive(true);
-            hintText.text = "Задание выполнено!";
+            hintText.text = "Р—Р°РґР°РЅРёРµ РІС‹РїРѕР»РЅРµРЅРѕ!";
             Invoke("HideHint", hintDuration);
         }
     }
@@ -82,7 +82,7 @@ public class QuestUI : MonoBehaviour
         {
             questTitleText.text = quest.title;
             questDescriptionText.text = quest.description;
-            //questPanel.SetActive(true);
+            
         }
         else
         {

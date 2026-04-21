@@ -1,4 +1,4 @@
-using TMPro;
+﻿using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
@@ -62,6 +62,9 @@ public abstract class BaseWeapon : MonoBehaviour
     private float nextAmmoUiResolveTime;
     private Camera cachedPlayerCamera;
     private float nextCameraResolveTime;
+    private int lastAmmoUiCurrent = int.MinValue;
+    private int lastAmmoUiReserve = int.MinValue;
+    private bool lastAmmoUiStylized;
 
     public bool CanShoot => !isReloading && currentAmmo > 0 && Time.time >= nextFireTime;
     public bool IsReloading => isReloading;
@@ -76,6 +79,7 @@ public abstract class BaseWeapon : MonoBehaviour
         if (stats != null && stats.maxReserveAmmo > 0)
             reserveAmmo = Mathf.Min(reserveAmmo, stats.maxReserveAmmo);
         currentBloom = 0f;
+        MarkAmmoUiDirty();
     }
 
     private void Awake()
@@ -114,7 +118,7 @@ public abstract class BaseWeapon : MonoBehaviour
         if (NeedsAmmoUiResolve())
             ResolveAmmoTextIfNeeded();
 
-        UpdateAmmoUi();
+        UpdateAmmoUi(force: false);
         RecoverBloom(Time.deltaTime);
     }
 
@@ -138,6 +142,7 @@ public abstract class BaseWeapon : MonoBehaviour
         );
 
         if (stats.shootSound != null) audioSource.PlayOneShot(stats.shootSound);
+        MarkAmmoUiDirty();
 
         Camera playerCamera = cachedPlayerCamera;
         if (playerCamera == null) return;
@@ -192,13 +197,32 @@ public abstract class BaseWeapon : MonoBehaviour
         kick *= chainFactor;
         horiz *= Mathf.Lerp(1f, 1.3f, Mathf.Clamp01(shotChainCount / 10f));
 
-        // Weapon model recoil (smaller and smoother than camera kick).
-        recoilCurrent += new Vector2(horiz * 0.55f, -kick * 0.6f);
+        bool aimingRifleStyle = aimController != null && aimController.IsAiming && stats != null && stats.useAimOverlay;
+        bool rifleHipfireStyle = stats != null && stats.useAimOverlay && !aimingRifleStyle;
+        if (aimingRifleStyle)
+        {
+            
+            horiz = 0f;
+            kick *= 0.55f;
+        }
+        else if (rifleHipfireStyle)
+        {
+            
+            
+            horiz = 0f;
+        }
+
+        
+        
+        
+        float modelHoriz = aimingRifleStyle ? 0f : horiz;
+        float modelKick = aimingRifleStyle ? 0f : kick;
+        recoilCurrent += new Vector2(modelHoriz * 0.55f, -modelKick * 0.6f);
         recoilOffset = new Vector3(recoilCurrent.x, recoilCurrent.y, 0f);
 
-        // Camera recoil impulse: mostly vertical, slight horizontal drift.
-        float cameraKick = kick * 1.35f;
-        float cameraYaw = horiz * 0.35f;
+        
+        float cameraKick = kick * (aimingRifleStyle ? 1.22f : 1.45f);
+        float cameraYaw = aimingRifleStyle ? 0f : horiz * (rifleHipfireStyle ? 0f : 0.2f);
         pendingLookRecoil += new Vector2(cameraYaw, cameraKick);
     }
 
@@ -248,6 +272,7 @@ public abstract class BaseWeapon : MonoBehaviour
         currentAmmo += toLoad;
         reserveAmmo -= toLoad;
         isReloading = false;
+        MarkAmmoUiDirty();
     }
 
     public virtual void CancelReload()
@@ -283,6 +308,7 @@ public abstract class BaseWeapon : MonoBehaviour
             Initialize();
         }
 
+        MarkAmmoUiDirty();
         RefreshAmmoUiBindingAndValue();
     }
 
@@ -295,7 +321,9 @@ public abstract class BaseWeapon : MonoBehaviour
 
         int before = reserveAmmo;
         reserveAmmo = Mathf.Clamp(reserveAmmo + amount, 0, maxReserve);
-        return reserveAmmo - before;
+        int added = reserveAmmo - before;
+        if (added > 0) MarkAmmoUiDirty();
+        return added;
     }
 
     private Vector3 ApplySpread(Vector3 forward, Transform cameraTransform)
@@ -383,7 +411,7 @@ public abstract class BaseWeapon : MonoBehaviour
 
         Vector3 position = hitInfo.point + forward * (decalPush + halfDepth);
 
-        // Stabilize orientation around the normal.
+        
         Vector3 up = Vector3.up;
         if (Mathf.Abs(Vector3.Dot(up, forward)) > 0.98f)
             up = Vector3.right;
@@ -537,15 +565,18 @@ public abstract class BaseWeapon : MonoBehaviour
         );
     }
 
-    private void UpdateAmmoUi()
+    private void UpdateAmmoUi(bool force)
     {
-        // Preferred mode: two separate fields (current / reserve), no slash.
+        if (!force && !NeedsAmmoUiRefresh()) return;
+
+        
         if (ammoCurrentText != null || ammoReserveText != null)
         {
             if (ammoCurrentText != null)
                 ammoCurrentText.text = currentAmmo.ToString();
             if (ammoReserveText != null)
                 ammoReserveText.text = reserveAmmo.ToString();
+            CacheAmmoUiState();
             return;
         }
 
@@ -554,16 +585,18 @@ public abstract class BaseWeapon : MonoBehaviour
         if (!stylizedAmmoHud)
         {
             ammoText.text = $"{currentAmmo} / {reserveAmmo}";
+            CacheAmmoUiState();
             return;
         }
 
         ammoText.text = $"<size={currentAmmoPercent}%>{currentAmmo}</size> <size={reserveAmmoPercent}%>{reserveAmmo}</size>";
+        CacheAmmoUiState();
     }
 
     public void RefreshAmmoUiBindingAndValue()
     {
         ResolveAmmoTextIfNeeded(force: true);
-        UpdateAmmoUi();
+        UpdateAmmoUi(force: true);
     }
 
     private void ResolveAmmoTextIfNeeded(bool force = false)
@@ -676,7 +709,7 @@ public abstract class BaseWeapon : MonoBehaviour
             }
         }
 
-        // If something is still missing, retry later without scanning each frame.
+        
         if (NeedsAmmoUiResolve())
         {
             nextAmmoUiResolveTime = Time.unscaledTime + 0.5f;
@@ -698,6 +731,27 @@ public abstract class BaseWeapon : MonoBehaviour
             return ammoCurrentText == null || ammoReserveText == null;
 
         return ammoText == null;
+    }
+
+    private bool NeedsAmmoUiRefresh()
+    {
+        if (lastAmmoUiCurrent != currentAmmo) return true;
+        if (lastAmmoUiReserve != reserveAmmo) return true;
+        if (lastAmmoUiStylized != stylizedAmmoHud) return true;
+        return false;
+    }
+
+    private void CacheAmmoUiState()
+    {
+        lastAmmoUiCurrent = currentAmmo;
+        lastAmmoUiReserve = reserveAmmo;
+        lastAmmoUiStylized = stylizedAmmoHud;
+    }
+
+    private void MarkAmmoUiDirty()
+    {
+        lastAmmoUiCurrent = int.MinValue;
+        lastAmmoUiReserve = int.MinValue;
     }
 
     private void ResolvePlayerCamera(bool force = false)

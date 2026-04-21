@@ -1,10 +1,10 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.SceneManagement;
 
-/// <summary>
-/// Adds subtle visor-like tilt and movement to HUD root.
-/// Intended for a RectTransform under Screen Space - Camera canvas.
-/// </summary>
+
+
+
+
 public class HudHelmetMotion : MonoBehaviour
 {
     [Header("References")]

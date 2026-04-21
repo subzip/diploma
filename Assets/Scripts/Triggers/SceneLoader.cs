@@ -8,8 +8,11 @@ public class SceneLoader : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private string targetSceneName = "Level-1";
     [SerializeField] private QuestSystem questSystem;
-    [SerializeField] private string requiredQuestTitle = "Активировать дверь";
+    [SerializeField] private string requiredQuestTitle = "РђРєС‚РёРІРёСЂРѕРІР°С‚СЊ РґРІРµСЂСЊ";
     [SerializeField] private Vector3 spawnPosition = new Vector3(27.331f, 7.086f, -23.299f);
+    [SerializeField] private Vector3 spawnRotationEuler = Vector3.zero;
+    [SerializeField] private bool registerEntryCheckpoint = true;
+    [SerializeField] private string entryCheckpointId = "scene_entry";
 
     [Header("Transition")]
     [SerializeField] private Image fadeImage;
@@ -29,10 +32,16 @@ public class SceneLoader : MonoBehaviour
     {
         if (isTransitioning) return;
         if (!ComponentSearch.IsPlayer(other)) return;
+        if (questSystem == null)
+            questSystem = FindObjectOfType<QuestSystem>(true);
         if (questSystem == null) return;
 
-        QuestItem current = questSystem.GetCurrentQuest();
-        if (current != null && string.Equals(current.title, requiredQuestTitle, System.StringComparison.Ordinal))
+        bool canOpenByCurrentQuest =
+            questSystem.GetCurrentQuest() != null &&
+            string.Equals(questSystem.GetCurrentQuest().title, requiredQuestTitle, System.StringComparison.Ordinal);
+        bool canOpenByCompleted = questSystem.IsQuestCompletedByTitle(requiredQuestTitle);
+
+        if (canOpenByCurrentQuest || canOpenByCompleted)
         {
             StartCoroutine(LoadSceneWithFade());
         }
@@ -52,15 +61,22 @@ public class SceneLoader : MonoBehaviour
             yield return new WaitForSeconds(fadeDuration * 0.5f);
         }
 
+        Quaternion spawnRotation = Quaternion.Euler(spawnRotationEuler);
+        SceneEntrySpawnState.SetPending(
+            targetSceneName,
+            spawnPosition,
+            spawnRotation,
+            registerEntryCheckpoint,
+            entryCheckpointId
+        );
+
         AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(targetSceneName);
         asyncLoad.allowSceneActivation = true;
         yield return asyncLoad;
 
-        Transform player = PlayerLocator.GetPlayerTransform(forceRefresh: true);
-        if (player != null)
-        {
-            player.position = spawnPosition;
-        }
+        yield return null;
+        yield return new WaitForEndOfFrame();
+        ApplySpawnAndCheckpoint();
 
         if (fadeImage != null)
         {
@@ -69,5 +85,32 @@ public class SceneLoader : MonoBehaviour
         }
 
         isTransitioning = false;
+    }
+
+    private void ApplySpawnAndCheckpoint()
+    {
+        Transform player = PlayerLocator.GetPlayerTransform(forceRefresh: true);
+        if (player == null) return;
+
+        Quaternion spawnRotation = Quaternion.Euler(spawnRotationEuler);
+        string activeScene = SceneManager.GetActiveScene().name;
+
+        PlayerMovement movement = player.GetComponent<PlayerMovement>();
+        if (movement != null)
+            movement.ResetForRespawnAt(spawnPosition, spawnRotation, resetStaminaToMax: false);
+        else
+            player.SetPositionAndRotation(spawnPosition, spawnRotation);
+
+        if (registerEntryCheckpoint)
+        {
+            RespawnCheckpointState.SetCheckpoint(
+                activeScene,
+                spawnPosition,
+                spawnRotation,
+                string.IsNullOrWhiteSpace(entryCheckpointId) ? "scene_entry" : entryCheckpointId
+            );
+        }
+
+        Debug.Log($"[SceneLoader] Applied spawn in '{activeScene}' at {spawnPosition}, rot={spawnRotation.eulerAngles}");
     }
 }
