@@ -430,7 +430,7 @@ public class WeaponManager : MonoBehaviour
         var weapon = weaponObj.GetComponent<BaseWeapon>();
         if (weapon == null)
         {
-            Debug.LogError($"Weapon prefab {weaponPrefab.name} РЅРµ СЃРѕРґРµСЂР¶РёС‚ BaseWeapon");
+            Debug.LogError($"Weapon prefab {weaponPrefab.name} does not contain BaseWeapon");
             if (weaponObj != weaponPrefab) Destroy(weaponObj);
             return;
         }

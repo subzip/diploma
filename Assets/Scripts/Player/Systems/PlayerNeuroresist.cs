@@ -64,7 +64,7 @@ public class PlayerNeuroresist : MonoBehaviour
         xrayLayer = LayerMask.NameToLayer(xrayLayerName);
         if (xrayLayer == -1)
         {
-            Debug.LogWarning($"РЎР»РѕР№ '{xrayLayerName}' РЅРµ РЅР°Р№РґРµРЅ. РЎРѕР·РґР°Р№ СЃР»РѕР№ Рё РїСЂРёРІСЏР¶Рё РµРіРѕ РІ Render Feature.");
+            Debug.LogWarning($"Layer '{xrayLayerName}' was not found. Create it and bind it in Render Feature.");
         }
 
         if (postProcess == null)

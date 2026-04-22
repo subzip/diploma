@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -8,7 +8,7 @@ public class SceneLoader : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private string targetSceneName = "Level-1";
     [SerializeField] private QuestSystem questSystem;
-    [SerializeField] private string requiredQuestTitle = "РђРєС‚РёРІРёСЂРѕРІР°С‚СЊ РґРІРµСЂСЊ";
+    [SerializeField] private string requiredQuestTitle = "\u0410\u043a\u0442\u0438\u0432\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0434\u0432\u0435\u0440\u044c";
     [SerializeField] private Vector3 spawnPosition = new Vector3(27.331f, 7.086f, -23.299f);
     [SerializeField] private Vector3 spawnRotationEuler = Vector3.zero;
     [SerializeField] private bool registerEntryCheckpoint = true;

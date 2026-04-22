@@ -10,7 +10,7 @@ public class EnemyAnimator : MonoBehaviour
         animator = GetComponent<Animator>();
         if (animator == null)
         {
-            Debug.LogError("Animator РЅРµ РЅР°Р№РґРµРЅ РЅР° РІСЂР°РіРµ!");
+            Debug.LogError("Animator was not found on enemy!");
         }
     }
 

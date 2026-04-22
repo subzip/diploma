@@ -12,7 +12,7 @@ public class AimController : MonoBehaviour
     [SerializeField] private WeaponManager weaponManager;
     [SerializeField] private float aimLerpSpeed = 10f;
 
-    [Header("Fallback ADS (РєРѕРіРґР° РЅРµС‚ WeaponStats)")]
+    [Header("Fallback ADS (when no WeaponStats)")]
     [SerializeField] private Vector3 fallbackAimOffset = new Vector3(0.05f, -0.05f, 0.1f);
 
     [Header("Camera")]

@@ -7,7 +7,7 @@ public class KeycardPickup : MonoBehaviour
     [Header("Interaction")]
     [SerializeField] private float pickupRange = 2f;
     [SerializeField] private float viewAngle = 30f;
-    [SerializeField] private string promptText = "РџРѕРґР±РµСЂРёС‚Рµ РєР°СЂС‚Сѓ";
+    [SerializeField] private string promptText = "\u041f\u043e\u0434\u0431\u0435\u0440\u0438\u0442\u0435 \u043a\u0430\u0440\u0442\u0443";
 
     [Header("Quest System")]
     [SerializeField] private QuestSystem questSystem;

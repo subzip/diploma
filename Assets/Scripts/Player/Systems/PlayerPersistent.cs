@@ -17,7 +17,7 @@ public class PlayerPersistent : MonoBehaviour
                 instance = FindObjectOfType<PlayerPersistent>();
                 if (instance == null)
                 {
-                    Debug.LogError("PlayerPersistent: РѕР±СЉРµРєС‚ РЅРµ РЅР°Р№РґРµРЅ РЅР° СЃС†РµРЅРµ!");
+                    Debug.LogError("PlayerPersistent: object was not found in scene!");
                 }
             }
             return instance;

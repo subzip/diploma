@@ -15928,6 +15928,81 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: dc35c61ecac9f3e4ea7e96c2ce7f1218, type: 3}
+--- !u!1 &681413642
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 681413643}
+  - component: {fileID: 681413645}
+  - component: {fileID: 681413644}
+  m_Layer: 0
+  m_Name: TriggerDoorScene (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &681413643
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 681413642}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 175.427, y: 2.03, z: 59.29}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1749298429}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &681413644
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 681413642}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 29daa0c319dcd3f4f8c14ddc896ac814, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetSceneName: Level-1
+  questSystem: {fileID: 54208294}
+  requiredQuestTitle: "\u041D\u0430\u0439\u0442\u0438 \u043A\u043B\u044E\u0447-\u043A\u0430\u0440\u0442\u0443"
+  spawnPosition: {x: 27, y: 7, z: -23}
+  spawnRotationEuler: {x: 0, y: 0, z: 0}
+  registerEntryCheckpoint: 1
+  entryCheckpointId: scene_entry
+  fadeImage: {fileID: 589977691}
+  fadeDuration: 1
+--- !u!65 &681413645
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 681413642}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!4 &682095503 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -963928955111807074, guid: fc8042c18949d8a4c8a3df4cdbcdaee0, type: 3}
@@ -26977,7 +27052,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: -101.37109, y: 0, z: 0, w: 19.374512}
+  m_margin: {x: -384.20642, y: 0, z: 0, w: 19.374512}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -27008,7 +27083,7 @@ RectTransform:
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: -86, y: -51}
-  m_SizeDelta: {x: 200, y: 50}
+  m_SizeDelta: {x: 350, y: 80}
   m_Pivot: {x: 1, y: 1}
 --- !u!4 &1116995100 stripped
 Transform:
@@ -35420,7 +35495,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.6666667}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -40983,6 +41058,7 @@ Transform:
   m_Children:
   - {fileID: 191596302}
   - {fileID: 1282122638}
+  - {fileID: 681413643}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1751040875
@@ -43268,6 +43344,7 @@ MonoBehaviour:
   questSystem: {fileID: 54208294}
   questUI: {fileID: 54208293}
   autoResolveQuestReferences: 1
+  promptRefreshInterval: 0.08
   renderersToHighlight:
   - {fileID: 1899611439}
   emissionColor: {r: 0.3, g: 0.8, b: 0.2, a: 1}
@@ -45052,7 +45129,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.6666667}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -48798,6 +48875,7 @@ RectTransform:
   m_LocalScale: {x: 0, y: 0, z: 0}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 1671861272}
   - {fileID: 2078969771}
   - {fileID: 1296827370}
   - {fileID: 1212458117}
@@ -48811,7 +48889,6 @@ RectTransform:
   - {fileID: 1534009985}
   - {fileID: 1887213903}
   - {fileID: 589977690}
-  - {fileID: 1671861272}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}

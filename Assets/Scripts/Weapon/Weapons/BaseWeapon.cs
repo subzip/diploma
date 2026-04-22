@@ -99,6 +99,8 @@ public abstract class BaseWeapon : MonoBehaviour
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
         ResolveAmmoTextIfNeeded();
+        MarkAmmoUiDirty();
+        UpdateAmmoUi(force: true);
     }
 
     private void OnDisable()
@@ -157,10 +159,6 @@ public abstract class BaseWeapon : MonoBehaviour
 
         if (hit)
         {
-            if (debugDecalsVerbose)
-            {
-                Debug.Log($"[DecalDebug] HIT {hitInfo.collider.name} layer {hitInfo.collider.gameObject.layer} point {hitInfo.point} normal {hitInfo.normal}");
-            }
             SpawnImpact(hitInfo);
             TrySpawnBulletHole(hitInfo);
             TryApplyPhysicsImpact(hitInfo, shotDirection);
