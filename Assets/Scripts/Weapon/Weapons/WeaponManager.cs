@@ -1,9 +1,11 @@
 ﻿
 using System.Collections;
 using System.Collections.Generic;
+using System;
 using UnityEngine;
 using UnityEngine.Animations.Rigging;
 using UnityEngine.InputSystem;
+using TMPro;
 
 public class WeaponManager : MonoBehaviour
 {
@@ -24,6 +26,12 @@ public class WeaponManager : MonoBehaviour
     [SerializeField] private TwoBoneIKConstraint rightHandIK;
     [SerializeField] private RigBuilder rigBuilder;
 
+    [Header("Ammo HUD Binding")]
+    [SerializeField] private TMP_Text ammoCurrentText;
+    [SerializeField] private string ammoCurrentObjectName = "BulletsCurrent";
+    [SerializeField] private TMP_Text ammoReserveText;
+    [SerializeField] private string ammoReserveObjectName = "BulletsReserve";
+
     private readonly List<BaseWeapon> weapons = new();
     public BaseWeapon CurrentWeapon => (currentWeaponIndex >= 0 && currentWeaponIndex < weapons.Count) ? weapons[currentWeaponIndex] : null;
     private PlayerInputActions inputActions;
@@ -31,11 +39,15 @@ public class WeaponManager : MonoBehaviour
     private bool fireHeld = false;
     private Vector3[] slotDefaultLocalPos;
     private Quaternion[] slotDefaultLocalRot;
+    private int lastHudCurrentAmmo = int.MinValue;
+    private int lastHudReserveAmmo = int.MinValue;
+    private float nextHudResolveTime;
 
     private void Awake()
     {
         ResolveInputActions();
         CacheSlotDefaultTransforms();
+        ResolveAmmoHudTextIfNeeded(force: true);
 
         
         for (int i = 0; i < weaponSlots.Length; i++)
@@ -84,6 +96,15 @@ public class WeaponManager : MonoBehaviour
     {
         if (inputActions == null && GameInput.Instance != null)
             ResolveInputActions();
+        ResolveAmmoHudTextIfNeeded(force: false);
+
+        if (IsGameplayInputBlocked())
+        {
+            fireHeld = false;
+            CurrentWeapon?.UpdateRecoil(Time.deltaTime);
+            SyncAmmoHudFromCurrentWeapon();
+            return;
+        }
 
         if (!isSwitching && fireHeld && CurrentWeapon?.stats.fireMode == FireMode.Auto)
         {
@@ -91,10 +112,17 @@ public class WeaponManager : MonoBehaviour
         }
 
         CurrentWeapon?.UpdateRecoil(Time.deltaTime);
+        SyncAmmoHudFromCurrentWeapon();
     }
 
     private void OnShoot(InputAction.CallbackContext ctx)
     {
+        if (IsGameplayInputBlocked() || IsIgnoredShootControl(ctx))
+        {
+            fireHeld = false;
+            return;
+        }
+
         fireHeld = true;
         if (isSwitching) return;
         if (CurrentWeapon == null) return;
@@ -107,10 +135,54 @@ public class WeaponManager : MonoBehaviour
     }
 
     private void OnShootCanceled(InputAction.CallbackContext ctx) => fireHeld = false;
-    private void OnReload(InputAction.CallbackContext ctx) => CurrentWeapon?.Reload();
-    private void OnSlot1(InputAction.CallbackContext ctx) => SwitchWeapon(0);
-    private void OnSlot2(InputAction.CallbackContext ctx) => SwitchWeapon(1);
-    private void OnSlot3(InputAction.CallbackContext ctx) => SwitchWeapon(2);
+    private void OnReload(InputAction.CallbackContext ctx)
+    {
+        if (IsGameplayInputBlocked()) return;
+        CurrentWeapon?.Reload();
+    }
+    private void OnSlot1(InputAction.CallbackContext ctx)
+    {
+        if (IsGameplayInputBlocked()) return;
+        SwitchWeapon(0);
+    }
+    private void OnSlot2(InputAction.CallbackContext ctx)
+    {
+        if (IsGameplayInputBlocked()) return;
+        SwitchWeapon(1);
+    }
+    private void OnSlot3(InputAction.CallbackContext ctx)
+    {
+        if (IsGameplayInputBlocked()) return;
+        SwitchWeapon(2);
+    }
+
+    private static bool IsGameplayInputBlocked()
+    {
+        return DeathScreen.GlobalDeathActive || CycleTransitionScreen.IsTransitionActive;
+    }
+
+    private static bool IsIgnoredShootControl(InputAction.CallbackContext ctx)
+    {
+        string path = ctx.control?.path ?? string.Empty;
+        string name = ctx.control?.name ?? string.Empty;
+        string displayName = ctx.control?.displayName ?? string.Empty;
+
+        if (ContainsIgnoreCase(path, "printScreen") ||
+            ContainsIgnoreCase(name, "printScreen") ||
+            ContainsIgnoreCase(displayName, "Print Screen"))
+        {
+            return true;
+        }
+
+        return path.StartsWith("/Keyboard", StringComparison.OrdinalIgnoreCase) ||
+               ContainsIgnoreCase(path, "<Keyboard>");
+    }
+
+    private static bool ContainsIgnoreCase(string source, string value)
+    {
+        return !string.IsNullOrEmpty(source) &&
+               source.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0;
+    }
 
     private void SwitchWeapon(int slotIndex)
     {
@@ -172,6 +244,9 @@ public class WeaponManager : MonoBehaviour
             yield return new WaitForSeconds(switchCooldown);
 
         isSwitching = false;
+        lastHudCurrentAmmo = int.MinValue;
+        lastHudReserveAmmo = int.MinValue;
+        SyncAmmoHudFromCurrentWeapon();
     }
 
     private void EquipImmediate(int slotIndex)
@@ -194,6 +269,10 @@ public class WeaponManager : MonoBehaviour
             w.transform.localRotation = Quaternion.identity;
             UpdateIKTargets(w.transform);
         }
+
+        lastHudCurrentAmmo = int.MinValue;
+        lastHudReserveAmmo = int.MinValue;
+        SyncAmmoHudFromCurrentWeapon();
     }
 
     private void UpdateIKTargets(Transform weaponRoot)
@@ -262,6 +341,10 @@ public class WeaponManager : MonoBehaviour
             if (weapon == null) continue;
             weapon.RefreshAmmoUiBindingAndValue();
         }
+
+        lastHudCurrentAmmo = int.MinValue;
+        lastHudReserveAmmo = int.MinValue;
+        SyncAmmoHudFromCurrentWeapon();
     }
 
     public bool AddAmmo(AmmoType ammoType, int amount)
@@ -287,6 +370,42 @@ public class WeaponManager : MonoBehaviour
         if (inputActions != null) return;
         if (GameInput.Instance == null) return;
         inputActions = GameInput.Instance.Actions;
+    }
+
+    private void ResolveAmmoHudTextIfNeeded(bool force)
+    {
+        if (!force && Time.unscaledTime < nextHudResolveTime) return;
+
+        if (force || ammoCurrentText == null)
+            ammoCurrentText = ResolveTextByName(ammoCurrentObjectName);
+        if (force || ammoReserveText == null)
+            ammoReserveText = ResolveTextByName(ammoReserveObjectName);
+
+        if (ammoCurrentText == null || ammoReserveText == null)
+            nextHudResolveTime = Time.unscaledTime + 0.5f;
+    }
+
+    private TMP_Text ResolveTextByName(string objectName)
+    {
+        if (string.IsNullOrWhiteSpace(objectName)) return null;
+        GameObject go = GameObject.Find(objectName);
+        return go != null ? go.GetComponent<TMP_Text>() : null;
+    }
+
+    private void SyncAmmoHudFromCurrentWeapon()
+    {
+        if (ammoCurrentText == null || ammoReserveText == null) return;
+        BaseWeapon weapon = CurrentWeapon;
+        if (weapon == null) return;
+
+        int current = weapon.CurrentAmmo;
+        int reserve = weapon.ReserveAmmo;
+        if (current == lastHudCurrentAmmo && reserve == lastHudReserveAmmo) return;
+
+        ammoCurrentText.text = current.ToString();
+        ammoReserveText.text = reserve.ToString();
+        lastHudCurrentAmmo = current;
+        lastHudReserveAmmo = reserve;
     }
 
     private void CacheSlotDefaultTransforms()
@@ -385,19 +504,21 @@ public class WeaponManager : MonoBehaviour
                index < slotDefaultLocalRot.Length;
     }
 
-    public void PickupWeapon(GameObject weaponPrefab)
+    public bool PickupWeapon(GameObject weaponPrefab)
     {
-        if (weaponPrefab == null || weaponSlots.Length == 0) return;
+        if (weaponPrefab == null || weaponSlots == null || weaponSlots.Length == 0) return false;
 
-        
+        BaseWeapon incomingWeapon = weaponPrefab.GetComponent<BaseWeapon>();
+        if (incomingWeapon == null)
+            incomingWeapon = weaponPrefab.GetComponentInChildren<BaseWeapon>(true);
+
         for (int i = 0; i < weapons.Count; i++)
         {
             if (weapons[i] == null) continue;
-            var baseName = weapons[i].name.Replace("(Clone)", "");
-            if (baseName.StartsWith(weaponPrefab.name))
+            if (IsSameWeapon(weapons[i], incomingWeapon, weaponPrefab.name))
             {
                 SwitchWeapon(i);
-                return;
+                return true;
             }
         }
 
@@ -414,7 +535,7 @@ public class WeaponManager : MonoBehaviour
         Transform slot = weaponSlots[freeSlot];
 
         GameObject weaponObj;
-        if (weaponPrefab.scene.rootCount != 0)
+        if (weaponPrefab.scene.IsValid() && weaponPrefab.scene.rootCount != 0)
         {
             weaponObj = weaponPrefab;
             var pickup = weaponObj.GetComponent<WeaponPickup>();
@@ -429,10 +550,12 @@ public class WeaponManager : MonoBehaviour
 
         var weapon = weaponObj.GetComponent<BaseWeapon>();
         if (weapon == null)
+            weapon = weaponObj.GetComponentInChildren<BaseWeapon>(true);
+        if (weapon == null)
         {
             Debug.LogError($"Weapon prefab {weaponPrefab.name} does not contain BaseWeapon");
             if (weaponObj != weaponPrefab) Destroy(weaponObj);
-            return;
+            return false;
         }
 
         weapon.Initialize();
@@ -441,6 +564,31 @@ public class WeaponManager : MonoBehaviour
         else weapons.Add(weapon);
 
         SwitchWeapon(freeSlot);
+        lastHudCurrentAmmo = int.MinValue;
+        lastHudReserveAmmo = int.MinValue;
+        SyncAmmoHudFromCurrentWeapon();
+        return true;
+    }
+
+    private static bool IsSameWeapon(BaseWeapon existing, BaseWeapon incoming, string fallbackName)
+    {
+        if (existing == null) return false;
+
+        if (incoming != null)
+        {
+            if (existing.GetType() == incoming.GetType()) return true;
+            if (existing.stats != null && incoming.stats != null && existing.stats == incoming.stats) return true;
+
+            string existingStatsName = existing.stats != null ? existing.stats.weaponName : string.Empty;
+            string incomingStatsName = incoming.stats != null ? incoming.stats.weaponName : string.Empty;
+            if (!string.IsNullOrWhiteSpace(existingStatsName) &&
+                string.Equals(existingStatsName, incomingStatsName, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        string existingName = existing.name.Replace("(Clone)", string.Empty);
+        return !string.IsNullOrWhiteSpace(fallbackName) &&
+               existingName.StartsWith(fallbackName, StringComparison.OrdinalIgnoreCase);
     }
 
     private int FindWeaponIndexByName(string key)

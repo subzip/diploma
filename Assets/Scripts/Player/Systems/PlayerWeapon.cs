@@ -40,16 +40,7 @@ public class PlayerWeapon : MonoBehaviour
         {
             if (hit.collider.TryGetComponent<WeaponPickup>(out var pickup))
             {
-                if (weaponManager != null)
-                {
-                    
-                    GameObject toGive = hit.collider.GetComponent<BaseWeapon>() != null
-                        ? hit.collider.gameObject
-                        : pickup.weaponPrefab;
-
-                    weaponManager.PickupWeapon(toGive);
-                }
-                pickup.Consume();
+                pickup.TryPickupFrom(this);
             }
         }
     }

@@ -4,26 +4,27 @@ using UnityEngine.InputSystem;
 public class PlayerAudio : MonoBehaviour
 {
     [Header("Audio")]
-    [SerializeField] private AudioClip[] footstepSounds;
-    [SerializeField] private AudioClip breathIdle;
-    [SerializeField] private AudioClip sighSound;
+    [SerializeField] private AudioCue footstepCue;
+    [SerializeField] private AudioCue breathRunCue;
+    [SerializeField] private AudioCue sighCue;
+    [SerializeField, Range(0f, 2f)] private float footstepVolumeScale = 0.8f;
+    [SerializeField, Range(0f, 2f)] private float breathRunVolumeScale = 0.45f;
+    [SerializeField, Range(0f, 2f)] private float sighVolumeScale = 0.5f;
+    [SerializeField] private float breathRunInterval = 1.1f;
+    [SerializeField] private float idleSighInterval = 10f;
 
-    private AudioSource audioSource;
     private PlayerInputActions inputActions;
     private Vector2 moveInput;
     private float lastFootstepTime = 0f;
     private float footstepInterval = 0.5f;
-    private float lastSighTime = 0f;
-    private float sighInterval = 20f;
-    private bool wasMoving = false;
+    private float lastRunBreathTime = 0f;
+    private float lastSighTime = -999f;
+    private AudioSource runBreathSource;
+    private AudioSource sighSource;
     private PlayerMovement movement;
 
     private void Awake()
     {
-        audioSource = GetComponent<AudioSource>() ?? gameObject.AddComponent<AudioSource>();
-        audioSource.spatialBlend = 1f;
-        audioSource.rolloffMode = AudioRolloffMode.Logarithmic;
-        audioSource.maxDistance = 15f;
         ResolveInputActions();
         movement = GetComponent<PlayerMovement>();
     }
@@ -51,27 +52,36 @@ public class PlayerAudio : MonoBehaviour
         if (movement == null || !movement.IsGrounded) return;
 
         bool isMoving = moveInput.magnitude > 0.1f;
+        bool isSprinting = movement.IsSprinting;
 
         if (isMoving)
         {
-            if (Time.time - lastFootstepTime > footstepInterval && footstepSounds.Length > 0)
+            if (Time.time - lastFootstepTime > footstepInterval)
             {
-                AudioClip clip = footstepSounds[Random.Range(0, footstepSounds.Length)];
-                audioSource.PlayOneShot(clip, 0.7f);
+                AudioService.PlayAt(footstepCue, transform.position, footstepVolumeScale);
                 lastFootstepTime = Time.time;
             }
-            wasMoving = true;
-        }
-        else if (wasMoving)
-        {
-            audioSource.PlayOneShot(breathIdle, 0.3f);
-            wasMoving = false;
         }
 
-        if (Time.time - lastSighTime > sighInterval && Random.value < 0.15f)
+        if (isSprinting && isMoving)
         {
-            audioSource.PlayOneShot(sighSound, 0.5f);
-            lastSighTime = Time.time;
+            bool runBreathBusy = runBreathSource != null && runBreathSource.isPlaying;
+            if (!runBreathBusy && Time.time - lastRunBreathTime > Mathf.Max(0.2f, breathRunInterval))
+            {
+                runBreathSource = AudioService.PlayAt(breathRunCue, transform.position, breathRunVolumeScale);
+                lastRunBreathTime = Time.time;
+            }
+            return;
+        }
+
+        if (!isMoving && Time.time - lastSighTime > Mathf.Max(1f, idleSighInterval))
+        {
+            bool sighBusy = sighSource != null && sighSource.isPlaying;
+            if (!sighBusy)
+            {
+                sighSource = AudioService.PlayAt(sighCue, transform.position, sighVolumeScale);
+                lastSighTime = Time.time;
+            }
         }
     }
 

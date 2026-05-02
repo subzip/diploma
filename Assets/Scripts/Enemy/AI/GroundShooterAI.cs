@@ -37,17 +37,17 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
     [SerializeField] private float patrolWaitSeconds = 1.25f;
 
     [Header("Combat")]
-    [SerializeField] private float attackRange = 20f;
-    [SerializeField] private float searchDurationSeconds = 9f;
-    [SerializeField] private float reactionDelaySeconds = 0.45f;
-    [SerializeField] private float fireInterval = 0.23f;
-    [SerializeField] private int baseDamage = 5;
-    [SerializeField] private float aimSpreadDegrees = 2.4f;
-    [SerializeField] private float burstMinSeconds = 2.0f;
-    [SerializeField] private float burstMaxSeconds = 3.0f;
-    [SerializeField] private float repositionMinSeconds = 0.8f;
-    [SerializeField] private float repositionMaxSeconds = 1.4f;
-    [SerializeField] private float repositionDistance = 3.5f;
+    [SerializeField] private float attackRange = 16f;
+    [SerializeField] private float searchDurationSeconds = 5.5f;
+    [SerializeField] private float reactionDelaySeconds = 0.6f;
+    [SerializeField] private float fireInterval = 0.32f;
+    [SerializeField] private int baseDamage = 3;
+    [SerializeField] private float aimSpreadDegrees = 3.1f;
+    [SerializeField] private float burstMinSeconds = 1.2f;
+    [SerializeField] private float burstMaxSeconds = 1.8f;
+    [SerializeField] private float repositionMinSeconds = 1.2f;
+    [SerializeField] private float repositionMaxSeconds = 1.9f;
+    [SerializeField] private float repositionDistance = 2.2f;
 
     [Header("Shoot VFX")]
     [SerializeField] private GameObject muzzlePrefab;
@@ -59,19 +59,23 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
     [SerializeField] private Color tracerColor = new Color(1f, 0.85f, 0.55f, 0.95f);
     [SerializeField] private Material tracerMaterial;
     [SerializeField] private float tracerFadeOut = 0.04f;
+    [SerializeField] private AudioCue shootCue;
 
     [Header("Entropy Scaling")]
     [SerializeField] private bool useEntropyScaling = true;
-    [SerializeField] private float tier2DamageMult = 1.08f;
-    [SerializeField] private float tier3DamageMult = 1.16f;
-    [SerializeField] private float tier4DamageMult = 1.25f;
-    [SerializeField] private float tier2FireRateMult = 0.95f;
-    [SerializeField] private float tier3FireRateMult = 0.89f;
-    [SerializeField] private float tier4FireRateMult = 0.83f;
+    [SerializeField] private float tier2DamageMult = 1.04f;
+    [SerializeField] private float tier3DamageMult = 1.1f;
+    [SerializeField] private float tier4DamageMult = 1.17f;
+    [SerializeField] private float tier2FireRateMult = 0.98f;
+    [SerializeField] private float tier3FireRateMult = 0.93f;
+    [SerializeField] private float tier4FireRateMult = 0.88f;
 
     [Header("Debug")]
     [SerializeField] private bool debugState;
     [SerializeField] private bool debugDeathAnimation;
+
+    [Header("Difficulty Profile")]
+    [SerializeField] private CombatDifficultyProfile difficultyProfile;
 
     private NavMeshAgent agent;
     private Transform player;
@@ -87,6 +91,16 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
     private float attackAllowedAfter;
     private int patrolIndex;
     private int entropyTier = 1;
+    private bool difficultyApplied;
+    private float baseMaxHealth;
+    private int baseBaseDamage;
+    private float baseFireInterval;
+    private float baseReactionDelay;
+    private float baseSearchDuration;
+    private float baseAimSpread;
+    private float baseBurstMin;
+    private float baseBurstMax;
+    private float baseRepositionDistance;
 
     private IdleState idleState;
     private PatrolState patrolState;
@@ -98,6 +112,9 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
 
     private void Awake()
     {
+        CacheBaseTuningIfNeeded();
+        ApplyDifficultyProfile();
+
         agent = GetComponent<NavMeshAgent>();
         agent.updateRotation = true;
         agent.updatePosition = true;
@@ -114,6 +131,14 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
         idleState = new IdleState(this);
         patrolState = new PatrolState(this);
         attackState = new AttackState(this);
+    }
+
+    private void OnValidate()
+    {
+        if (Application.isPlaying) return;
+        CacheBaseTuningIfNeeded();
+        difficultyApplied = false;
+        ApplyDifficultyProfile();
     }
 
     private void OnEnable()
@@ -136,6 +161,40 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
     private void Start()
     {
         stateMachine.ChangeState(idleState);
+    }
+
+    private void CacheBaseTuningIfNeeded()
+    {
+        if (baseMaxHealth > 0f) return;
+        baseMaxHealth = maxHealth;
+        baseBaseDamage = baseDamage;
+        baseFireInterval = fireInterval;
+        baseReactionDelay = reactionDelaySeconds;
+        baseSearchDuration = searchDurationSeconds;
+        baseAimSpread = aimSpreadDegrees;
+        baseBurstMin = burstMinSeconds;
+        baseBurstMax = burstMaxSeconds;
+        baseRepositionDistance = repositionDistance;
+    }
+
+    private void ApplyDifficultyProfile()
+    {
+        if (difficultyApplied) return;
+        if (difficultyProfile == null) return;
+
+        maxHealth = Mathf.Max(1f, baseMaxHealth * difficultyProfile.HealthMultiplier);
+        baseDamage = Mathf.Max(1, Mathf.RoundToInt(baseBaseDamage * difficultyProfile.DamageMultiplier));
+        fireInterval = Mathf.Max(0.05f, baseFireInterval * difficultyProfile.FireIntervalMultiplier);
+        reactionDelaySeconds = Mathf.Max(0.05f, baseReactionDelay * difficultyProfile.ReactionDelayMultiplier);
+        searchDurationSeconds = Mathf.Max(1f, baseSearchDuration * difficultyProfile.SearchDurationMultiplier);
+        aimSpreadDegrees = Mathf.Max(0.1f, baseAimSpread * difficultyProfile.AimSpreadMultiplier);
+
+        float burstMult = difficultyProfile.GroundBurstDurationMultiplier;
+        burstMinSeconds = Mathf.Max(0.2f, baseBurstMin * burstMult);
+        burstMaxSeconds = Mathf.Max(burstMinSeconds, baseBurstMax * burstMult);
+        repositionDistance = Mathf.Max(0.5f, baseRepositionDistance * difficultyProfile.GroundRepositionDistanceMultiplier);
+
+        difficultyApplied = true;
     }
 
     private void Update()
@@ -457,6 +516,7 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
         if (player == null) return;
         if (Time.time < fireReadyTime) return;
         fireReadyTime = Time.time + GetScaledFireInterval();
+        AudioService.PlayAt(shootCue, firePoint.position, 1f);
         SpawnMuzzleFlash();
 
         Vector3 from = firePoint.position;

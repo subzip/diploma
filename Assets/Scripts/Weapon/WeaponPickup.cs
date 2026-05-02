@@ -14,21 +14,32 @@ public class WeaponPickup : PulsingPickupHighlight
     private void OnTriggerEnter(Collider other) => TryGiveWeapon(other);
     private void OnTriggerStay(Collider other) => TryGiveWeapon(other);
 
-    public void Consume() => TryGiveWeapon(GetComponent<Collider>());
+    public bool TryPickupFrom(Component playerComponent) => TryGiveWeapon(playerComponent);
 
-    private void TryGiveWeapon(Component other)
+    public void Consume()
     {
-        if (consumed) return;
-        if (other == null) return;
-        if (!ComponentSearch.IsPlayer(other)) return;
+        Collider col = GetComponent<Collider>();
+        if (col != null) col.enabled = false;
+        ConsumeAndDisableHighlight();
+    }
+
+    private bool TryGiveWeapon(Component other)
+    {
+        if (consumed) return false;
+        if (other == null) return false;
+        if (!ComponentSearch.IsPlayer(other)) return false;
 
         WeaponManager manager = ComponentSearch.FindInHierarchy<WeaponManager>(other);
-        if (manager == null) return;
+        if (manager == null) return false;
+
+        GameObject weaponToGive = ResolveWeaponObject();
+        if (weaponToGive == null) return false;
+
+        bool isSceneObject = weaponToGive.scene.IsValid() && weaponToGive.scene.rootCount != 0;
+        bool pickedUp = manager.PickupWeapon(weaponToGive);
+        if (!pickedUp) return false;
 
         ConsumeAndDisableHighlight();
-
-        bool isSceneObject = weaponPrefab != null && weaponPrefab.scene.rootCount != 0;
-        manager.PickupWeapon(weaponPrefab);
 
         if (isSceneObject)
         {
@@ -42,11 +53,35 @@ public class WeaponPickup : PulsingPickupHighlight
         {
             Destroy(gameObject);
         }
+
+        return true;
     }
 
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, 1.5f);
+    }
+
+    private GameObject ResolveWeaponObject()
+    {
+        if (weaponPrefab != null)
+        {
+            bool isAsset = !weaponPrefab.scene.IsValid() || weaponPrefab.scene.rootCount == 0;
+            bool belongsToThisPickup = weaponPrefab.transform == transform ||
+                                       weaponPrefab.transform.IsChildOf(transform) ||
+                                       transform.IsChildOf(weaponPrefab.transform);
+
+            if (isAsset || belongsToThisPickup)
+                return weaponPrefab;
+        }
+
+        BaseWeapon localWeapon = GetComponent<BaseWeapon>();
+        if (localWeapon == null)
+            localWeapon = GetComponentInChildren<BaseWeapon>(true);
+        if (localWeapon == null)
+            localWeapon = GetComponentInParent<BaseWeapon>();
+
+        return localWeapon != null ? localWeapon.gameObject : weaponPrefab;
     }
 }

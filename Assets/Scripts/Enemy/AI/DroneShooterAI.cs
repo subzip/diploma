@@ -29,12 +29,12 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
 
 
     [Header("Attack")]
-    [SerializeField] private float attackRange = 17f;
-    [SerializeField] private float searchDurationSeconds = 8.5f;
-    [SerializeField] private float reactionDelaySeconds = 0.32f;
-    [SerializeField] private float fireInterval = 0.42f;
-    [SerializeField] private int baseDamage = 7;
-    [SerializeField] private float aimSpreadDegrees = 2.6f;
+    [SerializeField] private float attackRange = 13.5f;
+    [SerializeField] private float searchDurationSeconds = 5f;
+    [SerializeField] private float reactionDelaySeconds = 0.5f;
+    [SerializeField] private float fireInterval = 0.62f;
+    [SerializeField] private int baseDamage = 4;
+    [SerializeField] private float aimSpreadDegrees = 3.4f;
 
     [Header("Shoot VFX")]
     [SerializeField] private GameObject muzzlePrefab;
@@ -46,16 +46,17 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
     [SerializeField] private Color tracerColor = new Color(1f, 0.2f, 0.2f, 0.95f);
     [SerializeField] private Material tracerMaterial;
     [SerializeField] private float tracerFadeOut = 0.03f;
+    [SerializeField] private AudioCue shootCue;
 
     [Header("Movement")]
-    [SerializeField] private float moveSpeed = 3.9f;
-    [SerializeField] private float rotateSpeed = 8f;
+    [SerializeField] private float moveSpeed = 2.9f;
+    [SerializeField] private float rotateSpeed = 6.5f;
     [SerializeField] private float lookYawOffset = 0f;
     [SerializeField] private float desiredHeightOffset = 1.6f;
-    [SerializeField] private float minAttackDistance = 4f;
-    [SerializeField] private float weaveAmplitude = 0.55f;
-    [SerializeField] private float weaveFrequency = 1.45f;
-    [SerializeField, Range(-1f, 1f)] private float minFacingDotToFire = 0.58f;
+    [SerializeField] private float minAttackDistance = 5f;
+    [SerializeField] private float weaveAmplitude = 0.26f;
+    [SerializeField] private float weaveFrequency = 1.05f;
+    [SerializeField, Range(-1f, 1f)] private float minFacingDotToFire = 0.68f;
 
     [Header("Patrol Path (NavMesh)")]
     [SerializeField] private float navMeshSampleDistance = 5f;
@@ -69,15 +70,18 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
 
     [Header("Entropy Scaling")]
     [SerializeField] private bool useEntropyScaling = true;
-    [SerializeField] private float tier2DamageMult = 1.07f;
-    [SerializeField] private float tier3DamageMult = 1.14f;
-    [SerializeField] private float tier4DamageMult = 1.22f;
-    [SerializeField] private float tier2FireRateMult = 0.95f;
-    [SerializeField] private float tier3FireRateMult = 0.9f;
-    [SerializeField] private float tier4FireRateMult = 0.85f;
+    [SerializeField] private float tier2DamageMult = 1.04f;
+    [SerializeField] private float tier3DamageMult = 1.09f;
+    [SerializeField] private float tier4DamageMult = 1.14f;
+    [SerializeField] private float tier2FireRateMult = 0.98f;
+    [SerializeField] private float tier3FireRateMult = 0.94f;
+    [SerializeField] private float tier4FireRateMult = 0.9f;
 
     [Header("Debug")]
     [SerializeField] private bool debugState;
+
+    [Header("Difficulty Profile")]
+    [SerializeField] private CombatDifficultyProfile difficultyProfile;
 
     [Header("Death")]
     [SerializeField] private bool settleOnGroundAfterDeath = true;
@@ -105,6 +109,18 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
     private int patrolCornerIndex;
     private NavMeshPath patrolPath;
     private bool deathSettling;
+    private bool difficultyApplied;
+    private float baseMaxHealth;
+    private int baseBaseDamage;
+    private float baseFireInterval;
+    private float baseReactionDelay;
+    private float baseSearchDuration;
+    private float baseAimSpread;
+    private float baseMoveSpeed;
+    private float baseRotateSpeed;
+    private float baseWeaveAmplitude;
+    private float baseWeaveFrequency;
+    private float baseAttackRange;
 
     private IdleState idleState;
     private PatrolState patrolState;
@@ -116,6 +132,9 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
 
     private void Awake()
     {
+        CacheBaseTuningIfNeeded();
+        ApplyDifficultyProfile();
+
         if (eyePoint == null) eyePoint = transform;
         if (firePoint == null) firePoint = eyePoint;
         if (animator == null) animator = GetComponentInChildren<Animator>();
@@ -133,6 +152,14 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
         idleState = new IdleState(this);
         patrolState = new PatrolState(this);
         attackState = new AttackState(this);
+    }
+
+    private void OnValidate()
+    {
+        if (Application.isPlaying) return;
+        CacheBaseTuningIfNeeded();
+        difficultyApplied = false;
+        ApplyDifficultyProfile();
     }
 
     private void OnEnable()
@@ -155,6 +182,43 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
     private void Start()
     {
         stateMachine.ChangeState(idleState);
+    }
+
+    private void CacheBaseTuningIfNeeded()
+    {
+        if (baseMaxHealth > 0f) return;
+        baseMaxHealth = maxHealth;
+        baseBaseDamage = baseDamage;
+        baseFireInterval = fireInterval;
+        baseReactionDelay = reactionDelaySeconds;
+        baseSearchDuration = searchDurationSeconds;
+        baseAimSpread = aimSpreadDegrees;
+        baseMoveSpeed = moveSpeed;
+        baseRotateSpeed = rotateSpeed;
+        baseWeaveAmplitude = weaveAmplitude;
+        baseWeaveFrequency = weaveFrequency;
+        baseAttackRange = attackRange;
+    }
+
+    private void ApplyDifficultyProfile()
+    {
+        if (difficultyApplied) return;
+        if (difficultyProfile == null) return;
+
+        maxHealth = Mathf.Max(1f, baseMaxHealth * difficultyProfile.HealthMultiplier);
+        baseDamage = Mathf.Max(1, Mathf.RoundToInt(baseBaseDamage * difficultyProfile.DamageMultiplier));
+        fireInterval = Mathf.Max(0.08f, baseFireInterval * difficultyProfile.FireIntervalMultiplier);
+        reactionDelaySeconds = Mathf.Max(0.05f, baseReactionDelay * difficultyProfile.ReactionDelayMultiplier);
+        searchDurationSeconds = Mathf.Max(1f, baseSearchDuration * difficultyProfile.SearchDurationMultiplier);
+        aimSpreadDegrees = Mathf.Max(0.1f, baseAimSpread * difficultyProfile.AimSpreadMultiplier);
+
+        moveSpeed = Mathf.Max(0.2f, baseMoveSpeed * difficultyProfile.DroneMoveSpeedMultiplier);
+        rotateSpeed = Mathf.Max(0.2f, baseRotateSpeed * difficultyProfile.DroneRotateSpeedMultiplier);
+        weaveAmplitude = Mathf.Max(0f, baseWeaveAmplitude * difficultyProfile.DroneWeaveMultiplier);
+        weaveFrequency = Mathf.Max(0f, baseWeaveFrequency * difficultyProfile.DroneWeaveMultiplier);
+        attackRange = Mathf.Max(1f, baseAttackRange * difficultyProfile.DroneAttackRangeMultiplier);
+
+        difficultyApplied = true;
     }
 
     private void Update()
@@ -366,6 +430,7 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
         if (Time.time < fireReadyTime) return;
         if (!IsFacingPlayer()) return;
         fireReadyTime = Time.time + GetScaledFireInterval();
+        AudioService.PlayAt(shootCue, firePoint.position, 1f);
         SpawnMuzzleFlash();
 
         Vector3 from = firePoint.position;

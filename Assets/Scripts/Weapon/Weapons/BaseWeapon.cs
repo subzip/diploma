@@ -42,6 +42,11 @@ public abstract class BaseWeapon : MonoBehaviour
     [Header("Muzzle Flash")]
     [SerializeField] private Transform muzzlePoint;
 
+    [Header("Audio Cues")]
+    [SerializeField] private AudioCue shootCue;
+    [SerializeField] private AudioCue reloadCue;
+    [SerializeField] private AudioCue emptyCue;
+
     protected int currentAmmo;
     protected int reserveAmmo;
     protected float nextFireTime;
@@ -134,6 +139,7 @@ public abstract class BaseWeapon : MonoBehaviour
 
     public virtual void Shoot()
     {
+        if (DeathScreen.GlobalDeathActive || CycleTransitionScreen.IsTransitionActive) return;
         if (!CanShoot || stats == null) return;
 
         currentAmmo--;
@@ -143,7 +149,7 @@ public abstract class BaseWeapon : MonoBehaviour
             Mathf.Clamp(stats.range * 0.3f, 8f, 30f)
         );
 
-        if (stats.shootSound != null) audioSource.PlayOneShot(stats.shootSound);
+        PlayShootAudio();
         MarkAmmoUiDirty();
 
         Camera playerCamera = cachedPlayerCamera;
@@ -177,7 +183,7 @@ public abstract class BaseWeapon : MonoBehaviour
 
         if (currentAmmo == 0)
         {
-            if (stats.emptyClipSound != null) audioSource.PlayOneShot(stats.emptyClipSound);
+            PlayEmptyAudio();
             Reload();
         }
 
@@ -252,7 +258,7 @@ public abstract class BaseWeapon : MonoBehaviour
         if (reserveAmmo <= 0) return;
         isReloading = true;
 
-        if (stats.reloadSound != null) audioSource.PlayOneShot(stats.reloadSound);
+        PlayReloadAudio();
 
         Invoke(nameof(FinishReload), stats.reloadTime);
     }
@@ -760,5 +766,35 @@ public abstract class BaseWeapon : MonoBehaviour
         cachedPlayerCamera = Camera.main;
         if (cachedPlayerCamera == null)
             nextCameraResolveTime = Time.unscaledTime + 0.5f;
+    }
+
+    private void PlayShootAudio()
+    {
+        if (shootCue != null && shootCue.IsValid)
+        {
+            AudioService.PlayAt(shootCue, transform.position, 1f);
+            return;
+        }
+        if (stats.shootSound != null) audioSource.PlayOneShot(stats.shootSound);
+    }
+
+    private void PlayReloadAudio()
+    {
+        if (reloadCue != null && reloadCue.IsValid)
+        {
+            AudioService.PlayAt(reloadCue, transform.position, 1f);
+            return;
+        }
+        if (stats.reloadSound != null) audioSource.PlayOneShot(stats.reloadSound);
+    }
+
+    private void PlayEmptyAudio()
+    {
+        if (emptyCue != null && emptyCue.IsValid)
+        {
+            AudioService.PlayAt(emptyCue, transform.position, 1f);
+            return;
+        }
+        if (stats.emptyClipSound != null) audioSource.PlayOneShot(stats.emptyClipSound);
     }
 }

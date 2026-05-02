@@ -7,6 +7,7 @@ using UnityEngine.UI;
 public class CycleTransitionScreen : MonoBehaviour
 {
     private static CycleTransitionScreen instance;
+    public static bool IsTransitionActive { get; private set; }
     public static CycleTransitionScreen Instance
     {
         get
@@ -116,6 +117,7 @@ public class CycleTransitionScreen : MonoBehaviour
         EnsureUi();
         while (isTransitioning) yield return null;
         isTransitioning = true;
+        IsTransitionActive = true;
 
         Time.timeScale = 1f;
         group.blocksRaycasts = true;
@@ -134,6 +136,7 @@ public class CycleTransitionScreen : MonoBehaviour
         group.blocksRaycasts = false;
         messageText.text = string.Empty;
         isTransitioning = false;
+        IsTransitionActive = false;
     }
 
     public void BeginTransitionAndLoad(
@@ -159,6 +162,7 @@ public class CycleTransitionScreen : MonoBehaviour
         EnsureUi();
         while (isTransitioning) yield return null;
         isTransitioning = true;
+        IsTransitionActive = true;
 
         group.blocksRaycasts = true;
         yield return FadeTo(1f, fadeInSeconds);
@@ -182,6 +186,7 @@ public class CycleTransitionScreen : MonoBehaviour
         }
 
         isTransitioning = false;
+        IsTransitionActive = keepBlackScreen;
     }
 
     public void BeginNarrativeOnly(
@@ -251,5 +256,6 @@ public class CycleTransitionScreen : MonoBehaviour
         group.alpha = visible ? 1f : 0f;
         group.blocksRaycasts = visible;
         if (!visible) messageText.text = string.Empty;
+        IsTransitionActive = visible || isTransitioning;
     }
 }

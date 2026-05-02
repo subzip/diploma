@@ -201,7 +201,7 @@ MonoBehaviour:
   animator: {fileID: 1020890256974308230}
   hitCollider: {fileID: 2952856044314325031}
   visualRoot: {fileID: 8935491214671778542}
-  maxHealth: 80
+  maxHealth: 39.2
   deathStateName: Death_Anim
   deathStateFullPath: Base Layer.Death_Anim
   deathCrossfadeDuration: 0.05
@@ -222,11 +222,10 @@ MonoBehaviour:
   idleMaxSeconds: 2
   patrolWaitSeconds: 1.25
   attackRange: 20
-  preferredDistance: 12
   searchDurationSeconds: 9
-  reactionDelaySeconds: 0.45
-  fireInterval: 0.23
-  baseDamage: 5
+  reactionDelaySeconds: 0.36449996
+  fireInterval: 0.16617502
+  baseDamage: 3
   aimSpreadDegrees: 2.4
   burstMinSeconds: 2
   burstMaxSeconds: 3
@@ -242,10 +241,7 @@ MonoBehaviour:
   tracerColor: {r: 1, g: 0.85, b: 0.55, a: 0.95}
   tracerMaterial: {fileID: 0}
   tracerFadeOut: 0.04
-  coverSearchRadius: 16
-  coverRepositionCooldown: 2.4
-  coverHoldSeconds: 1.2
-  peekSeconds: 0.38
+  shootCue: {fileID: 0}
   useEntropyScaling: 1
   tier2DamageMult: 1.08
   tier3DamageMult: 1.16
@@ -253,8 +249,9 @@ MonoBehaviour:
   tier2FireRateMult: 0.95
   tier3FireRateMult: 0.89
   tier4FireRateMult: 0.83
-  debugState: 1
+  debugState: 0
   debugDeathAnimation: 0
+  difficultyProfile: {fileID: 11400000, guid: 35a1076a5b62f4e40b8e0df45cde5aa7, type: 2}
 --- !u!1001 &8939158202451979248
 PrefabInstance:
   m_ObjectHideFlags: 0
