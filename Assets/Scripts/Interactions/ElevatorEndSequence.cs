@@ -14,6 +14,10 @@ public class ElevatorEndSequence : MonoBehaviour
 
     [Header("Condition")]
     [SerializeField] private float stayInCabinSeconds = 2f;
+    [SerializeField] private bool requirePowerRestored = true;
+    [SerializeField] private PowerOutageScenario powerScenario;
+    [SerializeField] private string powerRequiredHint = "Лифт не работает. Восстановите питание генератора.";
+    [SerializeField] private float powerHintCooldown = 2f;
 
     [Header("Final Narrative")]
     [SerializeField, TextArea(3, 10)] private string finalNarrativeText =
@@ -31,6 +35,7 @@ public class ElevatorEndSequence : MonoBehaviour
     private float cabinStayTimer;
     private bool sequenceStarted;
     private Collider[] overlapBuffer;
+    private float nextPowerHintTime;
 
     private void Awake()
     {
@@ -52,6 +57,19 @@ public class ElevatorEndSequence : MonoBehaviour
 
         bool tryingToExitOrOpen = inApproach > 0 || inDoorway > 0;
         bool validStay = inCabin > 0 && !tryingToExitOrOpen && doorClosed;
+
+        if (requirePowerRestored && powerScenario != null && !powerScenario.IsPowerRestored)
+        {
+            cabinStayTimer = 0f;
+            if (validStay && Time.unscaledTime >= nextPowerHintTime)
+            {
+                QuestUI questUI = FindObjectOfType<QuestUI>(true);
+                if (questUI != null && !string.IsNullOrWhiteSpace(powerRequiredHint))
+                    questUI.ShowHint(powerRequiredHint);
+                nextPowerHintTime = Time.unscaledTime + Mathf.Max(0.3f, powerHintCooldown);
+            }
+            return;
+        }
 
         if (validStay)
         {

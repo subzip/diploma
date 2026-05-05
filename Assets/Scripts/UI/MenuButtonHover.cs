@@ -54,6 +54,8 @@ public class MenuButtonHover : MonoBehaviour, IPointerEnterHandler, IPointerExit
 
     [Header("SFX (Optional)")]
     [SerializeField] private AudioSource uiAudioSource;
+    [SerializeField] private AudioCue hoverCue;
+    [SerializeField] private AudioCue clickCue;
     [SerializeField] private AudioClip hoverClip;
     [SerializeField] private AudioClip clickClip;
     [SerializeField, Range(0f, 1f)] private float hoverVolume = 0.2f;
@@ -214,6 +216,11 @@ public class MenuButtonHover : MonoBehaviour, IPointerEnterHandler, IPointerExit
     private void OnClicked()
     {
         if (!IsInteractable()) return;
+        if (clickCue != null && clickCue.IsValid)
+        {
+            AudioService.Play2D(clickCue, clickVolume, ui: true);
+            return;
+        }
         if (uiAudioSource != null && clickClip != null)
             uiAudioSource.PlayOneShot(clickClip, clickVolume);
     }
@@ -225,6 +232,11 @@ public class MenuButtonHover : MonoBehaviour, IPointerEnterHandler, IPointerExit
 
     private void PlayHoverSound()
     {
+        if (hoverCue != null && hoverCue.IsValid)
+        {
+            AudioService.Play2D(hoverCue, hoverVolume, ui: true);
+            return;
+        }
         if (uiAudioSource != null && hoverClip != null)
             uiAudioSource.PlayOneShot(hoverClip, hoverVolume);
     }
@@ -269,4 +281,3 @@ public class MenuButtonHover : MonoBehaviour, IPointerEnterHandler, IPointerExit
         g.color = c;
     }
 }
-

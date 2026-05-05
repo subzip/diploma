@@ -25125,6 +25125,12 @@ MonoBehaviour:
   approachZone: {fileID: 257183790}
   doorwayZone: {fileID: 1807511448}
   stayInCabinSeconds: 2
+  requirePowerRestored: 1
+  powerScenario: {fileID: 0}
+  powerRequiredHint: "\u041B\u0438\u0444\u0442 \u043D\u0435 \u0440\u0430\u0431\u043E\u0442\u0430\u0435\u0442.
+    \u0412\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u0435 \u043F\u0438\u0442\u0430\u043D\u0438\u0435
+    \u0433\u0435\u043D\u0435\u0440\u0430\u0442\u043E\u0440\u0430."
+  powerHintCooldown: 2
   finalNarrativeText: "\u0421\u0415\u041A\u0422\u041E\u0420 \u041B\u0410\u0411\u041E\u0420\u0410\u0422\u041E\u0420\u0418\u0418
     \u041E\u0421\u0422\u0410\u0412\u041B\u0415\u041D \u041F\u041E\u0417\u0410\u0414\u0418.\n\n\u041F\u043E
     \u0430\u0432\u0430\u0440\u0438\u0439\u043D\u043E\u043C\u0443 \u0436\u0443\u0440\u043D\u0430\u043B\u0443
@@ -32432,6 +32438,90 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1453485022173259434, guid: eb4b38db67a56dc469a2c2aafcc36add, type: 3}
   m_PrefabInstance: {fileID: 1725780276}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1745923326
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1745923329}
+  - component: {fileID: 1745923328}
+  - component: {fileID: 1745923327}
+  m_Layer: 0
+  m_Name: PowerOutageTrigger
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1745923327
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1745923326}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 201e400df81bded45ae348a2b257b9de, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  triggerOnce: 1
+  blackoutSeconds: 1.5
+  normalLightGroups: []
+  emergencyLightGroups: []
+  enemyGroupsBeforeOutage: []
+  enemyGroupsAfterOutage: []
+  generatorSwitch: {fileID: 0}
+  generatorRoomHintMarker: {fileID: 0}
+  questUI: {fileID: 0}
+  outageStartHint: "\u0417\u0430\u0434\u0430\u043D\u0438\u0435 \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u043E:
+    \u041D\u0430\u0439\u0434\u0438\u0442\u0435 \u0433\u0435\u043D\u0435\u0440\u0430\u0442\u043E\u0440
+    \u0438 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u0435
+    \u043F\u0438\u0442\u0430\u043D\u0438\u0435."
+  powerRestoredHint: "\u041F\u0438\u0442\u0430\u043D\u0438\u0435 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043E.
+    \u0412\u0435\u0440\u043D\u0438\u0442\u0435\u0441\u044C \u043A \u043B\u0438\u0444\u0442\u0443."
+  questSystem: {fileID: 0}
+  completeCurrentQuestOnOutageStart: 0
+  completeCurrentQuestOnPowerRestore: 0
+--- !u!65 &1745923328
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1745923326}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 2, z: 2}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!4 &1745923329
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1745923326}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -20.581, y: 2.054, z: -44.61}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1750549514
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -39522,3 +39612,4 @@ SceneRoots:
   - {fileID: 1870719395}
   - {fileID: 622486003}
   - {fileID: 1725232911}
+  - {fileID: 1745923329}

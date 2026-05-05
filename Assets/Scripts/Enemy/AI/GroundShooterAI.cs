@@ -27,7 +27,7 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
     [Header("Perception")]
     [SerializeField, Range(30f, 180f)] private float fovDegrees = 160f;
     [SerializeField] private float visionRange = 30f;
-    [SerializeField] private float lookYawOffset = 0f;
+    [SerializeField, Range(-180f, 180f)] private float lookYawOffset = 90f;
     [SerializeField] private LayerMask obstacleMask = ~0;
 
     [Header("Idle + Patrol")]
@@ -387,6 +387,12 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
         agent.isStopped = value;
     }
 
+    private void SetAgentAutoRotationSafe(bool value)
+    {
+        if (agent == null) return;
+        agent.updateRotation = value;
+    }
+
     private bool SetAgentDestinationSafe(Vector3 destination)
     {
         if (!HasValidAgent()) return false;
@@ -458,14 +464,18 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
         Vector3 to = player.position - transform.position;
         to.y = 0f;
         if (to.sqrMagnitude < 0.001f) return;
-        Quaternion target = Quaternion.LookRotation(to.normalized, Vector3.up);
-        transform.rotation = Quaternion.Slerp(transform.rotation, target, Time.deltaTime * speed);
+        Quaternion baseTarget = Quaternion.LookRotation(to.normalized, Vector3.up);
 
         if (visualRoot != null && visualRoot != transform)
         {
-            Quaternion visualTarget = transform.rotation * Quaternion.Euler(0f, lookYawOffset, 0f);
+            transform.rotation = Quaternion.Slerp(transform.rotation, baseTarget, Time.deltaTime * speed);
+            Quaternion visualTarget = baseTarget * Quaternion.Euler(0f, lookYawOffset, 0f);
             visualRoot.rotation = Quaternion.Slerp(visualRoot.rotation, visualTarget, Time.deltaTime * speed);
+            return;
         }
+
+        Quaternion targetWithOffset = baseTarget * Quaternion.Euler(0f, lookYawOffset, 0f);
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetWithOffset, Time.deltaTime * speed);
     }
 
     private int GetScaledDamage()
@@ -516,6 +526,15 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
         if (player == null) return;
         if (Time.time < fireReadyTime) return;
         fireReadyTime = Time.time + GetScaledFireInterval();
+        if (firePoint != null)
+        {
+            Vector3 fireTo = (player.position + Vector3.up * 1.1f) - firePoint.position;
+            if (fireTo.sqrMagnitude > 0.0001f)
+            {
+                Quaternion fireLook = Quaternion.LookRotation(fireTo.normalized, Vector3.up);
+                firePoint.rotation = fireLook;
+            }
+        }
         AudioService.PlayAt(shootCue, firePoint.position, 1f);
         SpawnMuzzleFlash();
 
@@ -669,6 +688,7 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
             firingBurst = true;
             ai.stateTimer = Random.Range(ai.burstMinSeconds, ai.burstMaxSeconds);
             ai.SetAgentStoppedSafe(true);
+            ai.SetAgentAutoRotationSafe(false);
         }
 
         public void Tick(float deltaTime)
@@ -687,10 +707,11 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
                 ai.lastKnownPlayerPosition = ai.player.position;
             }
 
+            ai.FacePlayer(14f);
+
             if (firingBurst)
             {
                 ai.SetAgentStoppedSafe(true);
-                ai.FacePlayer(12f);
                 if (hasVision && Time.time >= ai.attackAllowedAfter)
                     ai.TryShootAtPlayer();
 
@@ -710,9 +731,6 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
             ai.SetAgentStoppedSafe(false);
             ai.SetAgentDestinationSafe(repositionTarget);
 
-            if (!ai.HasValidAgent() || ai.agent.velocity.sqrMagnitude < 0.04f)
-                ai.FacePlayer(10f);
-
             ai.stateTimer -= deltaTime;
             bool reached = ai.HasValidAgent() &&
                            !ai.agent.pathPending &&
@@ -728,6 +746,7 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
         public void Exit()
         {
             ai.SetAgentStoppedSafe(false);
+            ai.SetAgentAutoRotationSafe(true);
         }
     }
 }

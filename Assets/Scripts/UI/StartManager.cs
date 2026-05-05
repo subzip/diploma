@@ -25,6 +25,12 @@ public class StartManager : MonoBehaviour
     [SerializeField] private float introMinBlackSeconds = 2.2f;
 
     private bool isStarting;
+    private StartMenuAudio startMenuAudio;
+
+    private void Awake()
+    {
+        startMenuAudio = FindObjectOfType<StartMenuAudio>(true);
+    }
 
     public void Continue()
     {
@@ -34,6 +40,8 @@ public class StartManager : MonoBehaviour
         }
 
         isStarting = true;
+        if (startMenuAudio != null)
+            startMenuAudio.StopMusic();
 
         if (useIntroBlackScreen)
         {

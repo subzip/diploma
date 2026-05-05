@@ -24,13 +24,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 574474607271611065}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.4393513, w: 0.8983153}
+  m_LocalRotation: {x: 0.11371251, y: 0.23250116, z: 0.42438078, w: 0.867706}
   m_LocalPosition: {x: 0.8171808, y: -0.053092297, z: 0.24813369}
   m_LocalScale: {x: 1.1111112, y: 1.1111112, z: 1.1111112}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 8943697831893670302}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 30, z: 52.125}
 --- !u!1 &6512635442804104593
 GameObject:
   m_ObjectHideFlags: 0
@@ -201,7 +201,7 @@ MonoBehaviour:
   animator: {fileID: 1020890256974308230}
   hitCollider: {fileID: 2952856044314325031}
   visualRoot: {fileID: 8935491214671778542}
-  maxHealth: 39.2
+  maxHealth: 6.5883436
   deathStateName: Death_Anim
   deathStateFullPath: Base Layer.Death_Anim
   deathCrossfadeDuration: 0.05
@@ -211,7 +211,7 @@ MonoBehaviour:
   destroyDelaySeconds: 8
   fovDegrees: 160
   visionRange: 30
-  lookYawOffset: 0
+  lookYawOffset: -90
   obstacleMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -223,9 +223,9 @@ MonoBehaviour:
   patrolWaitSeconds: 1.25
   attackRange: 20
   searchDurationSeconds: 9
-  reactionDelaySeconds: 0.36449996
-  fireInterval: 0.16617502
-  baseDamage: 3
+  reactionDelaySeconds: 0.21523356
+  fireInterval: 0.073732756
+  baseDamage: 1
   aimSpreadDegrees: 2.4
   burstMinSeconds: 2
   burstMaxSeconds: 3
@@ -236,12 +236,12 @@ MonoBehaviour:
   muzzleLifetime: 0.08
   tracerEffectPrefab: {fileID: 0}
   tracerSpeed: 200
-  tracerWidth: 0.018
-  tracerLength: 0.45
-  tracerColor: {r: 1, g: 0.85, b: 0.55, a: 0.95}
+  tracerWidth: 0.01
+  tracerLength: 0.25
+  tracerColor: {r: 1, g: 0.85, b: 0.55, a: 0}
   tracerMaterial: {fileID: 0}
-  tracerFadeOut: 0.04
-  shootCue: {fileID: 0}
+  tracerFadeOut: 0.02
+  shootCue: {fileID: 11400000, guid: eeb8738b5bf7eda429972fb859e84212, type: 2}
   useEntropyScaling: 1
   tier2DamageMult: 1.08
   tier3DamageMult: 1.16

@@ -880,10 +880,12 @@ MonoBehaviour:
   hoverArrowAlpha: 1
   disabledArrowAlpha: 0
   uiAudioSource: {fileID: 0}
+  hoverCue: {fileID: 11400000, guid: c7f0348603932614eab865c8cf54ecd9, type: 2}
+  clickCue: {fileID: 11400000, guid: a43e9536424c69c4ea81e1c5a3f6dbf9, type: 2}
   hoverClip: {fileID: 0}
   clickClip: {fileID: 0}
-  hoverVolume: 0.2
-  clickVolume: 0.35
+  hoverVolume: 0.7
+  clickVolume: 0.7
 --- !u!222 &766405319
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1078,10 +1080,12 @@ MonoBehaviour:
   hoverArrowAlpha: 1
   disabledArrowAlpha: 0
   uiAudioSource: {fileID: 0}
+  hoverCue: {fileID: 11400000, guid: c7f0348603932614eab865c8cf54ecd9, type: 2}
+  clickCue: {fileID: 11400000, guid: a43e9536424c69c4ea81e1c5a3f6dbf9, type: 2}
   hoverClip: {fileID: 0}
   clickClip: {fileID: 0}
-  hoverVolume: 0.2
-  clickVolume: 0.35
+  hoverVolume: 0.7
+  clickVolume: 0.7
 --- !u!222 &813418544
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1472,10 +1476,12 @@ MonoBehaviour:
   hoverArrowAlpha: 1
   disabledArrowAlpha: 0
   uiAudioSource: {fileID: 0}
+  hoverCue: {fileID: 11400000, guid: c7f0348603932614eab865c8cf54ecd9, type: 2}
+  clickCue: {fileID: 11400000, guid: a43e9536424c69c4ea81e1c5a3f6dbf9, type: 2}
   hoverClip: {fileID: 0}
   clickClip: {fileID: 0}
-  hoverVolume: 0.2
-  clickVolume: 0.35
+  hoverVolume: 0.7
+  clickVolume: 0.7
 --- !u!222 &864219219
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1855,6 +1861,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1262433588}
   - component: {fileID: 1262433587}
+  - component: {fileID: 1262433589}
   m_Layer: 0
   m_Name: Manager
   m_TagString: Untagged
@@ -1924,6 +1931,23 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1262433589
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1262433586}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b7ef8ddc411ad741872d8b1f7e164cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  musicCue: {fileID: 0}
+  musicVolumeScale: 1
+  playOnEnable: 1
+  stopOnDisable: 1
+  use2D: 1
 --- !u!1 &1286779356
 GameObject:
   m_ObjectHideFlags: 0

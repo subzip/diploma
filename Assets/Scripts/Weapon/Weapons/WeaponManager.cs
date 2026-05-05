@@ -158,7 +158,7 @@ public class WeaponManager : MonoBehaviour
 
     private static bool IsGameplayInputBlocked()
     {
-        return DeathScreen.GlobalDeathActive || CycleTransitionScreen.IsTransitionActive;
+        return DeathScreen.GlobalDeathActive || CycleTransitionScreen.IsTransitionActive || PauseManager.IsPaused || PauseManager.IsInputGuardActive;
     }
 
     private static bool IsIgnoredShootControl(InputAction.CallbackContext ctx)
@@ -623,3 +623,4 @@ public class WeaponManager : MonoBehaviour
         return weapons.Count < weaponSlots.Length ? weapons.Count : -1;
     }
 }
+

@@ -19,6 +19,7 @@ public class AudioService : MonoBehaviour
     }
 
     [SerializeField] private int poolSize = 24;
+    [SerializeField] private int maxPoolSize = 64;
     [SerializeField, Range(0f, 1f)] private float masterSfxVolume = 1f;
     [SerializeField, Range(0f, 1f)] private float masterUiVolume = 1f;
     [SerializeField, Range(0f, 1f)] private float masterAmbienceVolume = 1f;
@@ -61,6 +62,17 @@ public class AudioService : MonoBehaviour
             if (!candidate.isPlaying) return candidate;
         }
 
+        int safeMaxPool = Mathf.Max(poolSize, maxPoolSize);
+        if (sourcePool.Count < safeMaxPool)
+        {
+            AudioSource newSource = gameObject.AddComponent<AudioSource>();
+            newSource.playOnAwake = false;
+            newSource.loop = false;
+            sourcePool.Add(newSource);
+            poolIndex = sourcePool.Count - 1;
+            return newSource;
+        }
+
         poolIndex = (poolIndex + 1) % sourcePool.Count;
         AudioSource fallback = sourcePool[poolIndex];
         fallback.Stop();
@@ -95,4 +107,3 @@ public class AudioService : MonoBehaviour
         return source;
     }
 }
-
