@@ -11,7 +11,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float crouchSpeed = 2f;
     [SerializeField] private float jumpHeight = 2f;
 
-    [Header("Source-Lite Movement")]
+    [Header("Movement")]
     [SerializeField] private float groundAcceleration = 14f;
     [SerializeField] private float airAcceleration = 22f;
     [SerializeField] private float airMaxWishSpeed = 3.2f;

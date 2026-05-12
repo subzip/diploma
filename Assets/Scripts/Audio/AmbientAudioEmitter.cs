@@ -9,6 +9,7 @@ public class AmbientAudioEmitter : MonoBehaviour
     [SerializeField, Range(0f, 2f)] private float volumeScale = 1f;
 
     private AudioSource loopSource;
+    private float lastAppliedVolume = -1f;
 
     private void Awake()
     {
@@ -27,6 +28,12 @@ public class AmbientAudioEmitter : MonoBehaviour
     private void OnDisable()
     {
         StopLoop();
+    }
+
+    private void Update()
+    {
+        if (loopSource == null || !loopSource.isPlaying || loopCue == null) return;
+        ApplyLoopVolume();
     }
 
     private void OnTriggerEnter(Collider other)
@@ -55,7 +62,7 @@ public class AmbientAudioEmitter : MonoBehaviour
         loopSource.spatialBlend = loopCue.SpatialBlend;
         loopSource.minDistance = loopCue.MinDistance;
         loopSource.maxDistance = loopCue.MaxDistance;
-        loopSource.volume = loopCue.Volume * Mathf.Max(0f, volumeScale);
+        ApplyLoopVolume();
         loopSource.Play();
     }
 
@@ -64,5 +71,14 @@ public class AmbientAudioEmitter : MonoBehaviour
         if (loopSource == null) return;
         if (!loopSource.isPlaying) return;
         loopSource.Stop();
+    }
+
+    private void ApplyLoopVolume()
+    {
+        float master = AudioService.GetMasterVolume(AudioCue.AudioCategory.MusicAmbient);
+        float v = loopCue.Volume * Mathf.Max(0f, volumeScale) * master;
+        if (Mathf.Abs(v - lastAppliedVolume) < 0.0001f) return;
+        loopSource.volume = v;
+        lastAppliedVolume = v;
     }
 }

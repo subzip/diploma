@@ -56,7 +56,7 @@ MonoBehaviour:
   emptyClipSound: {fileID: 8300000, guid: 3ea0522317b2e634ba0cb45d85a118ef, type: 3}
   hipLocalPosition: {x: 0, y: 0, z: 0}
   hipLocalEuler: {x: 0, y: 0, z: 0}
-  aimLocalPosition: {x: 0.04, y: -0.007, z: 0.15}
+  aimLocalPosition: {x: 0.07, y: -0.01, z: 0.15}
   aimLocalEuler: {x: 1.5, y: 11, z: 0}
   useAdsFovOverride: 1
   adsFovOverride: 45

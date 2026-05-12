@@ -17,6 +17,18 @@ public class ElevatorDoorController : MonoBehaviour
     [SerializeField] private float closeDelayAfterCabinEnter = 0.25f;
     [SerializeField] private int overlapBufferSize = 24;
 
+    [Header("Power Gate")]
+    [SerializeField] private bool requirePowerRestored = true;
+    [SerializeField] private PowerOutageScenario powerScenario;
+    [SerializeField] private string noPowerHintText = "Лифт не работает. Восстановите питание генератора.";
+    [SerializeField] private float noPowerHintCooldown = 1.6f;
+
+    [Header("Door Audio")]
+    [SerializeField] private AudioCue doorOpenCue;
+    [SerializeField] private AudioCue doorCloseCue;
+    [SerializeField, Range(0f, 2f)] private float doorOpenVolume = 1f;
+    [SerializeField, Range(0f, 2f)] private float doorCloseVolume = 1f;
+
     private Vector3 closedLocalPos;
     private Vector3 openLocalPos;
     private float closeAllowedAfterTime;
@@ -26,6 +38,8 @@ public class ElevatorDoorController : MonoBehaviour
     private int approachPlayers;
     private int cabinPlayers;
     private int doorwayPlayers;
+    private float nextNoPowerHintTime;
+    private bool lastDoorShouldBeOpen;
 
     public bool IsDoorFullyClosed => door != null && Vector3.Distance(door.localPosition, closedLocalPos) <= 0.01f;
     public bool IsDoorOpeningOrOpen => doorShouldBeOpen;
@@ -43,10 +57,13 @@ public class ElevatorDoorController : MonoBehaviour
         closedLocalPos = door.localPosition;
         openLocalPos = closedLocalPos + openOffsetLocal;
         overlapBuffer = new Collider[Mathf.Max(8, overlapBufferSize)];
+        lastDoorShouldBeOpen = false;
     }
 
     private void Update()
     {
+        bool powerLocked = requirePowerRestored && powerScenario != null && !powerScenario.IsPowerRestored;
+
         approachPlayers = CountPlayersInside(approachZone);
         cabinPlayers = CountPlayersInside(cabinZone);
         doorwayPlayers = CountPlayersInside(doorwayZone);
@@ -57,7 +74,19 @@ public class ElevatorDoorController : MonoBehaviour
         }
         prevCabinCount = cabinPlayers;
 
-        if (doorwayPlayers > 0)
+        if (powerLocked)
+        {
+            doorShouldBeOpen = false;
+            bool playerNearDoor = doorwayPlayers > 0 || approachPlayers > 0;
+            if (playerNearDoor && Time.unscaledTime >= nextNoPowerHintTime)
+            {
+                QuestUI questUi = FindObjectOfType<QuestUI>(true);
+                if (questUi != null && !string.IsNullOrWhiteSpace(noPowerHintText))
+                    questUi.ShowHint(noPowerHintText);
+                nextNoPowerHintTime = Time.unscaledTime + Mathf.Max(0.3f, noPowerHintCooldown);
+            }
+        }
+        else if (doorwayPlayers > 0)
         {
             
             doorShouldBeOpen = true;
@@ -75,6 +104,15 @@ public class ElevatorDoorController : MonoBehaviour
         else
         {
             doorShouldBeOpen = false;
+        }
+
+        if (doorShouldBeOpen != lastDoorShouldBeOpen)
+        {
+            if (doorShouldBeOpen)
+                AudioService.PlayAt(doorOpenCue, door.position, doorOpenVolume, ambience: false);
+            else
+                AudioService.PlayAt(doorCloseCue, door.position, doorCloseVolume, ambience: false);
+            lastDoorShouldBeOpen = doorShouldBeOpen;
         }
 
         Vector3 target = doorShouldBeOpen ? openLocalPos : closedLocalPos;

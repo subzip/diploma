@@ -60,4 +60,21 @@ public class QuestSystem : MonoBehaviour
         if (questUI != null)
             questUI.UpdateQuestDisplay(GetCurrentQuest());
     }
+
+    public void SetSingleActiveQuest(string title, string description, string objective = "")
+    {
+        QuestItem item = new QuestItem
+        {
+            title = title,
+            description = description,
+            objective = objective,
+            isCompleted = false,
+            nextQuestID = string.Empty
+        };
+
+        quests.Clear();
+        quests.Add(item);
+        currentQuestIndex = 0;
+        UpdateUI();
+    }
 }

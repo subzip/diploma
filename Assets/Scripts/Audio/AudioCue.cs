@@ -3,7 +3,15 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Audio/Audio Cue", fileName = "AudioCue")]
 public class AudioCue : ScriptableObject
 {
+    public enum AudioCategory
+    {
+        Other = 0,
+        Weapons = 1,
+        MusicAmbient = 2
+    }
+
     [SerializeField] private AudioClip[] clips;
+    [SerializeField] private AudioCategory category = AudioCategory.Other;
     [SerializeField, Range(0f, 1f)] private float volume = 1f;
     [SerializeField, Range(0.5f, 1.5f)] private float pitchMin = 1f;
     [SerializeField, Range(0.5f, 1.5f)] private float pitchMax = 1f;
@@ -13,6 +21,7 @@ public class AudioCue : ScriptableObject
     [SerializeField] private bool loop;
 
     public bool IsValid => clips != null && clips.Length > 0;
+    public AudioCategory Category => category;
     public float Volume => volume;
     public float SpatialBlend => spatialBlend;
     public float MinDistance => minDistance;
@@ -32,4 +41,3 @@ public class AudioCue : ScriptableObject
         return Random.Range(pitchMin, pitchMax);
     }
 }
-

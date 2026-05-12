@@ -547,11 +547,12 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
         if (Physics.Raycast(from, dir, out RaycastHit hit, attackRange, obstacleMask, QueryTriggerInteraction.Ignore))
         {
             tracerEnd = hit.point;
-            if (hit.collider.TryGetComponent<IDamageable>(out var target))
+            bool isPlayerHit = hit.collider.CompareTag("Player") || hit.collider.transform.root.CompareTag("Player");
+            if (isPlayerHit && hit.collider.TryGetComponent<IDamageable>(out var target))
             {
                 target.TakeDamage(GetScaledDamage(), hit.point);
             }
-            else
+            else if (isPlayerHit)
             {
                 target = hit.collider.GetComponentInParent<IDamageable>();
                 if (target != null) target.TakeDamage(GetScaledDamage(), hit.point);

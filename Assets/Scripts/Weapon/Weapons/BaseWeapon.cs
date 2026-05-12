@@ -5,6 +5,8 @@ using UnityEngine.SceneManagement;
 
 public abstract class BaseWeapon : MonoBehaviour
 {
+    public static event System.Action<BaseWeapon> OnAnyShotFired;
+
     [SerializeField] public WeaponStats stats;
 
     [Header("UI")]
@@ -144,6 +146,7 @@ public abstract class BaseWeapon : MonoBehaviour
 
         currentAmmo--;
         nextFireTime = Time.time + stats.fireRate;
+        OnAnyShotFired?.Invoke(this);
         CombatStimulusHub.RegisterGunshot(
             transform.position,
             Mathf.Clamp(stats.range * 0.3f, 8f, 30f)

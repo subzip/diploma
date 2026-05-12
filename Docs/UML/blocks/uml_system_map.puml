@@ -1,0 +1,36 @@
+﻿@startuml
+left to right direction
+skinparam monochrome true
+skinparam shadowing false
+skinparam linetype polyline
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 13
+skinparam ArrowThickness 1.4
+skinparam dpi 150
+skinparam nodesep 14
+skinparam ranksep 16
+scale 1.1
+
+rectangle "Подсистема игрока" as PLAYER
+rectangle "Подсистема оружия" as WEAPON
+rectangle "Подсистема противников" as ENEMY
+rectangle "Подсистема интерфейса" as UI
+rectangle "Подсистема USP и прогресса" as USP
+rectangle "Подсистема звука" as AUDIO
+
+PLAYER --> WEAPON : активное оружие\nотдача
+WEAPON --> ENEMY : урон
+ENEMY --> PLAYER : урон игроку
+PLAYER --> UI : HP/стамина/нейрорезист
+WEAPON --> UI : патроны
+USP --> UI : обновление задач\nэкраны перехода
+USP --> ENEMY : изменение сложности
+USP --> PLAYER : цикл смерти\nвариант локации
+AUDIO --> PLAYER : шаги/дыхание
+AUDIO --> WEAPON : выстрел/перезарядка
+AUDIO --> ENEMY : атака
+AUDIO --> UI : кнопки/уведомления
+
+@enduml

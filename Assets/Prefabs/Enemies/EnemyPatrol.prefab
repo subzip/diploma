@@ -79,7 +79,7 @@ MonoBehaviour:
   visionRange: 26
   obstacleMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 2015
   patrolPoints: []
   idleMinSeconds: 1
   idleMaxSeconds: 2
@@ -100,6 +100,7 @@ MonoBehaviour:
   tracerColor: {r: 1, g: 0.2, b: 0.2, a: 0.95}
   tracerMaterial: {fileID: 2100000, guid: 5b58690ba587f044e82f74c76da4d479, type: 2}
   tracerFadeOut: 0.06
+  shootCue: {fileID: 0}
   moveSpeed: 3.9
   rotateSpeed: 8
   lookYawOffset: 0
@@ -112,6 +113,8 @@ MonoBehaviour:
   pathRebuildInterval: 0.75
   cornerReachDistance: 0.85
   pointTimeoutSeconds: 5
+  usePatrolPointYAsCruiseHeight: 1
+  fallbackCruiseHeightOffset: 1.6
   stuckDistanceEpsilon: 0.12
   stuckTimeoutSeconds: 1.5
   useEntropyScaling: 1
@@ -122,6 +125,7 @@ MonoBehaviour:
   tier3FireRateMult: 0.9
   tier4FireRateMult: 0.85
   debugState: 0
+  difficultyProfile: {fileID: 0}
   settleOnGroundAfterDeath: 1
   deathSettleSpeed: 6
   deathGroundOffset: 0.08
@@ -205,6 +209,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: bd3ba8acde8798d49976ef4e875dd2db, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -7002264515098492394, guid: bd3ba8acde8798d49976ef4e875dd2db, type: 3}
+      propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: bd3ba8acde8798d49976ef4e875dd2db, type: 3}

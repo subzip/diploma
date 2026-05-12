@@ -60,9 +60,12 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
 
     [Header("Patrol Path (NavMesh)")]
     [SerializeField] private float navMeshSampleDistance = 5f;
+    [SerializeField] private float navMeshVerticalProbeDistance = 30f;
     [SerializeField] private float pathRebuildInterval = 0.75f;
     [SerializeField] private float cornerReachDistance = 0.85f;
     [SerializeField] private float pointTimeoutSeconds = 5f;
+    [SerializeField] private bool usePatrolPointYAsCruiseHeight = true;
+    [SerializeField] private float fallbackCruiseHeightOffset = 1.6f;
 
     [Header("Patrol Anti-Stuck")]
     [SerializeField] private float stuckDistanceEpsilon = 0.12f;
@@ -108,6 +111,7 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
     private float patrolPointElapsed;
     private int patrolCornerIndex;
     private NavMeshPath patrolPath;
+    private float patrolCruiseY;
     private bool deathSettling;
     private bool difficultyApplied;
     private float baseMaxHealth;
@@ -442,11 +446,12 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
         if (Physics.Raycast(from, dir, out RaycastHit hit, attackRange, obstacleMask, QueryTriggerInteraction.Ignore))
         {
             tracerEnd = hit.point;
-            if (hit.collider.TryGetComponent<IDamageable>(out var target))
+            bool isPlayerHit = hit.collider.CompareTag("Player") || hit.collider.transform.root.CompareTag("Player");
+            if (isPlayerHit && hit.collider.TryGetComponent<IDamageable>(out var target))
             {
                 target.TakeDamage(GetScaledDamage(), hit.point);
             }
-            else
+            else if (isPlayerHit)
             {
                 target = hit.collider.GetComponentInParent<IDamageable>();
                 if (target != null) target.TakeDamage(GetScaledDamage(), hit.point);
@@ -500,8 +505,10 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
     private bool BuildPathToCurrentPatrolPoint()
     {
         if (patrolPoints == null || patrolPoints.Length == 0) return false;
+        Transform waypointTransform = patrolPoints[patrolIndex];
+        if (waypointTransform == null) return false;
 
-        Vector3 waypoint = patrolPoints[patrolIndex].position;
+        Vector3 waypoint = waypointTransform.position;
         if (!TrySampleNavMesh(transform.position, out Vector3 from)) return false;
         if (!TrySampleNavMesh(waypoint, out Vector3 to)) return false;
 
@@ -521,13 +528,31 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
         if (patrolCornerIndex < 0 || patrolCornerIndex >= patrolPath.corners.Length) return false;
 
         Vector3 corner = patrolPath.corners[patrolCornerIndex];
-        cornerTarget = new Vector3(corner.x, corner.y + desiredHeightOffset, corner.z);
+        cornerTarget = new Vector3(corner.x, patrolCruiseY, corner.z);
         return true;
     }
 
     private bool TrySampleNavMesh(Vector3 world, out Vector3 sampled)
     {
-        if (NavMesh.SamplePosition(world, out NavMeshHit hit, Mathf.Max(0.5f, navMeshSampleDistance), NavMesh.AllAreas))
+        float baseDistance = Mathf.Max(0.5f, navMeshSampleDistance);
+        if (NavMesh.SamplePosition(world, out NavMeshHit hit, baseDistance, NavMesh.AllAreas))
+        {
+            sampled = hit.position;
+            return true;
+        }
+
+        float vertical = Mathf.Max(1f, navMeshVerticalProbeDistance);
+        float expandedDistance = Mathf.Max(baseDistance * 3f, vertical);
+
+        Vector3 lowered = world + Vector3.down * vertical;
+        if (NavMesh.SamplePosition(lowered, out hit, expandedDistance, NavMesh.AllAreas))
+        {
+            sampled = hit.position;
+            return true;
+        }
+
+        Vector3 raised = world + Vector3.up * vertical;
+        if (NavMesh.SamplePosition(raised, out hit, expandedDistance, NavMesh.AllAreas))
         {
             sampled = hit.position;
             return true;
@@ -543,7 +568,19 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
         patrolIndex = (patrolIndex + 1) % patrolPoints.Length;
         patrolPointElapsed = 0f;
         patrolStuckTimer = 0f;
+        patrolCruiseY = ResolvePatrolCruiseY();
         BuildPathToCurrentPatrolPoint();
+    }
+
+    private float ResolvePatrolCruiseY()
+    {
+        if (patrolPoints == null || patrolPoints.Length == 0)
+            return transform.position.y;
+
+        if (usePatrolPointYAsCruiseHeight && patrolIndex >= 0 && patrolIndex < patrolPoints.Length && patrolPoints[patrolIndex] != null)
+            return patrolPoints[patrolIndex].position.y;
+
+        return transform.position.y + fallbackCruiseHeightOffset;
     }
 
     private void OnCycleChanged(int cycle, int variant, int entropy, int tier)
@@ -590,6 +627,7 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
             ai.patrolStuckTimer = 0f;
             ai.lastPatrolPosition = ai.transform.position;
             ai.patrolPointElapsed = 0f;
+            ai.patrolCruiseY = ai.ResolvePatrolCruiseY();
             ai.BuildPathToCurrentPatrolPoint();
         }
 
@@ -610,7 +648,8 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
                 ai.BuildPathToCurrentPatrolPoint();
             }
 
-            Vector3 waypoint = ai.patrolPoints[ai.patrolIndex].position + Vector3.up * ai.desiredHeightOffset;
+            Vector3 waypoint = ai.patrolPoints[ai.patrolIndex].position;
+            waypoint.y = ai.patrolCruiseY;
             bool hasCorner = ai.TryGetCurrentPathCorner(out Vector3 cornerTarget);
 
             if (hasCorner)
@@ -625,8 +664,16 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
             }
             else
             {
-                ai.MoveTowards(waypoint);
-                ai.FaceTowards(waypoint);
+                if (!ai.BuildPathToCurrentPatrolPoint())
+                {
+                    ai.FaceTowards(waypoint);
+                    ai.stateTimer -= deltaTime;
+                    if (ai.stateTimer <= 0f)
+                    {
+                        ai.AdvancePatrolPoint();
+                        ai.stateTimer = ai.patrolWaitSeconds;
+                    }
+                }
             }
 
             bool reached = Vector3.Distance(ai.transform.position, waypoint) <= Mathf.Max(0.2f, ai.patrolReachDistance);

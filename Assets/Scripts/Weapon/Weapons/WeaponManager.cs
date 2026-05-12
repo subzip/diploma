@@ -395,17 +395,43 @@ public class WeaponManager : MonoBehaviour
     private void SyncAmmoHudFromCurrentWeapon()
     {
         if (ammoCurrentText == null || ammoReserveText == null) return;
-        BaseWeapon weapon = CurrentWeapon;
+        BaseWeapon weapon = GetHudWeapon();
         if (weapon == null) return;
 
         int current = weapon.CurrentAmmo;
         int reserve = weapon.ReserveAmmo;
-        if (current == lastHudCurrentAmmo && reserve == lastHudReserveAmmo) return;
-
         ammoCurrentText.text = current.ToString();
         ammoReserveText.text = reserve.ToString();
         lastHudCurrentAmmo = current;
         lastHudReserveAmmo = reserve;
+    }
+
+    private BaseWeapon GetHudWeapon()
+    {
+        BaseWeapon active = GetActiveWeaponFromSlots();
+        if (active != null) return active;
+        if (CurrentWeapon != null) return CurrentWeapon;
+        return null;
+    }
+
+    private BaseWeapon GetActiveWeaponFromSlots()
+    {
+        if (weaponSlots == null) return null;
+
+        for (int i = 0; i < weaponSlots.Length; i++)
+        {
+            Transform slot = weaponSlots[i];
+            if (slot == null) continue;
+
+            BaseWeapon weapon = (i < weapons.Count) ? weapons[i] : null;
+            if (weapon == null)
+                weapon = slot.GetComponentInChildren<BaseWeapon>(true);
+
+            if (weapon != null && weapon.gameObject.activeInHierarchy)
+                return weapon;
+        }
+
+        return null;
     }
 
     private void CacheSlotDefaultTransforms()

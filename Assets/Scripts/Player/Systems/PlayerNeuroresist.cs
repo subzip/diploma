@@ -2,9 +2,13 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
+using UnityEngine.SceneManagement;
 
 public class PlayerNeuroresist : MonoBehaviour
 {
+    public static event System.Action OnActivated;
+
     [Header("Settings")]
     [SerializeField] private float duration = 15f;
     [SerializeField] private float cooldown = 90f;
@@ -67,11 +71,7 @@ public class PlayerNeuroresist : MonoBehaviour
             Debug.LogWarning($"Layer '{xrayLayerName}' was not found. Create it and bind it in Render Feature.");
         }
 
-        if (postProcess == null)
-        {
-            postProcess = GetComponentInChildren<NeuroresistPostProcess>();
-            if (postProcess == null) postProcess = FindObjectOfType<NeuroresistPostProcess>();
-        }
+        ResolvePostProcessRef(forceRefresh: true);
     }
 
     private void OnEnable()
@@ -81,12 +81,14 @@ public class PlayerNeuroresist : MonoBehaviour
         if (input == null) return;
 
         input.Player.Neuroresist.performed += OnNeuroresist;
+        SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
     private void OnDisable()
     {
         if (input != null)
             input.Player.Neuroresist.performed -= OnNeuroresist;
+        SceneManager.sceneLoaded -= OnSceneLoaded;
         if (isActive) Deactivate();
         else SetOcclusionCullingDuringNeuro(active: false);
     }
@@ -94,6 +96,14 @@ public class PlayerNeuroresist : MonoBehaviour
     private void Update()
     {
         if (!isActive) return;
+
+        if (postProcess == null)
+        {
+            ResolvePostProcessRef(forceRefresh: true);
+            if (postProcess != null)
+                postProcess.EnableEffects(true);
+        }
+
         if (Time.time >= endTime)
         {
             Deactivate();
@@ -108,8 +118,10 @@ public class PlayerNeuroresist : MonoBehaviour
     private void Activate()
     {
         if (isActive || xrayLayer == -1) return;
+        ResolvePostProcessRef(forceRefresh: true);
 
         isActive = true;
+        OnActivated?.Invoke();
         endTime = Time.time + duration;
         if (movement != null) movement.SetNeuroMultiplier(0.7f);
         SetOcclusionCullingDuringNeuro(active: true);
@@ -177,6 +189,39 @@ public class PlayerNeuroresist : MonoBehaviour
         SetOcclusionCullingDuringNeuro(active: false);
 
         nextReadyTime = Time.time + cooldown;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        ResolvePostProcessRef(forceRefresh: true);
+    }
+
+    private void ResolvePostProcessRef(bool forceRefresh)
+    {
+        if (postProcess != null && !forceRefresh) return;
+
+        NeuroresistPostProcess[] all = FindObjectsOfType<NeuroresistPostProcess>(true);
+        if (all == null || all.Length == 0)
+        {
+            postProcess = null;
+            return;
+        }
+
+        NeuroresistPostProcess best = null;
+        for (int i = 0; i < all.Length; i++)
+        {
+            NeuroresistPostProcess candidate = all[i];
+            if (candidate == null) continue;
+            Volume volume = candidate.GetComponent<Volume>();
+            if (volume == null) continue;
+            if (!volume.enabled) continue;
+            if (!volume.isGlobal) continue;
+
+            if (best == null || volume.priority > best.GetComponent<Volume>().priority)
+                best = candidate;
+        }
+
+        postProcess = best != null ? best : all[0];
     }
 
     private void SetOcclusionCullingDuringNeuro(bool active)

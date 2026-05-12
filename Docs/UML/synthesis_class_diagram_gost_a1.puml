@@ -1,0 +1,328 @@
+﻿@startuml
+' ===== ГОСТ-версия (A1) =====
+top to bottom direction
+skinparam monochrome true
+skinparam shadowing false
+skinparam linetype polyline
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam packageTitleFontSize 13
+skinparam classFontSize 11
+skinparam ArrowThickness 1.4
+skinparam dpi 150
+skinparam nodesep 8
+skinparam ranksep 8
+skinparam Padding 2
+skinparam BoxPadding 6
+hide empty members
+
+scale 1.35
+
+package "Подсистема игрока" as P {
+  class GameInput {
+    +Instance: GameInput
+    +Actions: PlayerInputActions
+  }
+
+  class PlayerMovement {
+    +IsGrounded: bool
+    +IsMoving: bool
+    +IsSprinting: bool
+    +IsCrouching: bool
+    +SetNeuroMultiplier(mult: float)
+  }
+
+  class PlayerLook {
+    +UpdateLook()
+  }
+
+  class PlayerHealth {
+    +CurrentHealth: float
+    +MaxHealth: float
+    +TakeDamage(amount: float, hit: Vector3)
+    +Heal(amount: float)
+    +Die()
+  }
+
+  class PlayerNeuroresist {
+    +IsActive: bool
+    +CooldownRemaining: float
+    +Activate()
+    +Deactivate()
+  }
+
+  class NeuroresistPostProcess {
+    +EnableEffects(enabled: bool)
+  }
+
+  class PlayerFlashlight {
+    +SetFlashlight(enabled: bool, playSound: bool)
+  }
+
+  class AimController {
+    +IsAiming: bool
+    +ApplyAimPose()
+  }
+
+  class PlayerPersistent {
+    +PersistAcrossScenes()
+  }
+}
+
+package "Подсистема оружия" as W {
+  abstract class BaseWeapon {
+    +stats: WeaponStats
+    +CurrentAmmo: int
+    +ReserveAmmo: int
+    +Shoot()
+    +Reload()
+    +AddReserveAmmo(amount: int): int
+    +GetRecoilOffset(): Vector3
+    +ConsumeLookRecoil(): Vector2
+  }
+
+  class AssaultRifle {
+    +Initialize()
+    +Shoot()
+  }
+
+  class Pistol {
+    +Initialize()
+    +Shoot()
+  }
+
+  class WeaponStats {
+    +weaponName: string
+    +damage: int
+    +fireRate: float
+    +range: float
+    +magazineSize: int
+    +startReserveAmmo: int
+    +maxReserveAmmo: int
+    +hipSpread: float
+    +aimSpread: float
+  }
+
+  class WeaponManager {
+    +CurrentWeapon: BaseWeapon
+    +SwitchWeapon(index: int)
+    +PickupWeapon(prefab: GameObject): bool
+    +AddAmmo(type: AmmoType, amount: int): bool
+    +ResetForRespawn(refill: bool)
+  }
+
+  class WeaponPickup {
+    +TryPickup()
+  }
+
+  class TracerVFX {
+    +Initialize(from: Vector3, to: Vector3, ...)
+  }
+}
+
+package "Подсистема противников" as E {
+  interface IDamageable {
+    +TakeDamage(damage: float, hitPoint: Vector3)
+  }
+
+  class EnemyStateMachine {
+    +CurrentState: IAIState
+    +ChangeState(state: IAIState)
+    +Tick(deltaTime: float)
+  }
+
+  class CombatDifficultyProfile {
+    +HealthMultiplier: float
+    +DamageMultiplier: float
+    +FireIntervalMultiplier: float
+    +ReactionDelayMultiplier: float
+    +AimSpreadMultiplier: float
+  }
+
+  class GroundShooterAI {
+    +TakeDamage(d: float, hit: Vector3)
+    +CanSeePlayer(): bool
+    +TryShootAtPlayer()
+  }
+
+  class DroneShooterAI {
+    +TakeDamage(d: float, hit: Vector3)
+    +CanSeePlayer(): bool
+    +TryShootPlayer()
+    +BuildPathToCurrentPatrolPoint(): bool
+  }
+}
+
+package "Подсистема интерфейса" as UI {
+  class QuestItem {
+    +title: string
+    +description: string
+    +isCompleted: bool
+    +Complete()
+  }
+
+  class QuestSystem {
+    +CompleteCurrentQuest()
+    +SetSingleActiveQuest(title: string, description: string)
+    +UpdateUI()
+  }
+
+  class QuestUI {
+    +ShowInitialHint()
+    +ShowHint(text: string)
+    +ShowCompleted()
+    +UpdateQuestDisplay(quest: QuestItem)
+  }
+
+  class GuideManager {
+    +ShowGuide(id: string)
+    +ShowCustomHint(id: string, text: string, icons: Sprite[])
+    +HideGuide(id: string)
+  }
+
+  class GuideHintWidget {
+    +SetContent(text: string, icons: Sprite[])
+  }
+
+  class PauseManager {
+    +IsPaused: bool
+    +TogglePause()
+  }
+
+  class DeathScreen {
+    +GlobalDeathActive: bool
+    +ShowDeathUI()
+  }
+
+  class CycleTransitionScreen {
+    +IsTransitionActive: bool
+    +PlayNarrativeOnly(...)
+  }
+
+  class PlayerVitalsHud {
+    +BindToPlayer()
+    +Refresh()
+  }
+}
+
+package "Подсистема USP и прогресса" as USP {
+  class FractureLoopConfig {
+    +VariantCount: int
+    +EntropyCap: int
+    +DeathPenalty: int
+  }
+
+  class DeathCycleManager {
+    +EntropyTier: int
+    +CurrentVariant: int
+    +RegisterDeath(kind: DeathKind, zone: string)
+  }
+
+  class RealityVariantController {
+    +ApplyCurrentVariant()
+    +ApplyVariantByIndex(index: int)
+  }
+
+  class PowerOutageScenario {
+    +HasOutageStarted: bool
+    +IsPowerRestored: bool
+    +RestorePower()
+  }
+
+  class GeneratorSwitchInteract {
+    +SetInteractEnabled(enabled: bool)
+  }
+
+  class ElevatorDoorController {
+    +IsDoorFullyClosed: bool
+    +HasPlayerInCabin: bool
+  }
+
+  class ElevatorEndSequence {
+    +BeginFinalSequence()
+  }
+}
+
+package "Подсистема звука" as A {
+  class AudioCue {
+    +clips: AudioClip[]
+    +volume: float
+    +pitchMin: float
+    +pitchMax: float
+  }
+
+  class AudioService {
+    +PlayAt(cue: AudioCue, pos: Vector3, vol: float)
+    +GetMasterVolume(category: AudioCategory): float
+  }
+
+  class AmbientAudioEmitter {
+    +ApplyRuntimeVolume()
+  }
+}
+
+' --- Наследование ---
+BaseWeapon <|-- AssaultRifle
+BaseWeapon <|-- Pistol
+GroundShooterAI ..|> IDamageable
+DroneShooterAI ..|> IDamageable
+
+' --- Связи внутри подсистем ---
+WeaponManager *-- BaseWeapon : управляет
+BaseWeapon --> WeaponStats : использует
+WeaponPickup --> WeaponManager : подбор
+BaseWeapon --> IDamageable : урон цели
+BaseWeapon --> TracerVFX : визуал
+
+GroundShooterAI *-- EnemyStateMachine : состояния
+DroneShooterAI *-- EnemyStateMachine : состояния
+GroundShooterAI --> CombatDifficultyProfile : баланс
+DroneShooterAI --> CombatDifficultyProfile : баланс
+
+QuestSystem --> QuestItem : текущий квест
+QuestSystem --> QuestUI : вывод
+QuestUI --> GuideManager : подсказки
+GuideManager *-- GuideHintWidget : элемент
+PauseManager --> GameInput : ввод
+DeathScreen --> PlayerHealth : событие смерти
+PlayerVitalsHud --> PlayerHealth : HP
+PlayerVitalsHud --> PlayerNeuroresist : нейрорезист
+PlayerVitalsHud --> WeaponManager : патроны
+
+DeathCycleManager --> FractureLoopConfig : конфиг
+RealityVariantController --> DeathCycleManager : вариант цикла
+PowerOutageScenario --> QuestSystem : обновление задач
+PowerOutageScenario --> QuestUI : уведомления
+PowerOutageScenario --> GeneratorSwitchInteract : активация
+ElevatorEndSequence --> ElevatorDoorController : состояние двери
+ElevatorEndSequence --> CycleTransitionScreen : переход
+
+AudioService --> AudioCue : параметры клипа
+AmbientAudioEmitter --> AudioService : фон
+BaseWeapon --> AudioService : звуки выстрела
+GroundShooterAI --> AudioService : звук атаки
+DroneShooterAI --> AudioService : звук атаки
+
+' --- Межподсистемные зависимости ---
+PlayerLook --> WeaponManager : отдача
+AimController --> WeaponManager : активное оружие
+PlayerNeuroresist --> NeuroresistPostProcess : постобработка
+PlayerNeuroresist --> DeathCycleManager : энтропия
+PlayerFlashlight --> GameInput : ввод
+PlayerPersistent --> CycleTransitionScreen : переход сцен
+
+
+' --- Принудительная компактная сетка для A1 ---
+P -[hidden]right-> W
+W -[hidden]right-> E
+E -[hidden]right-> A
+P -[hidden]down-> UI
+W -[hidden]down-> USP
+UI -[hidden]right-> USP
+USP -[hidden]right-> A
+@enduml
+
+
+

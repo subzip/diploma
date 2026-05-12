@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Cue_Amb_ElectricHum
   m_EditorClassIdentifier: 
   clips: []
+  category: 2
   volume: 1
   pitchMin: 1
   pitchMax: 1

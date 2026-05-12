@@ -1,0 +1,76 @@
+﻿@startuml
+skinparam monochrome true
+skinparam shadowing false
+skinparam linetype polyline
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam classFontSize 11
+skinparam ArrowThickness 1.3
+skinparam dpi 150
+skinparam nodesep 8
+skinparam ranksep 10
+hide empty members
+scale 1.15
+
+package "Подсистема игрока" {
+  class GameInput {
+    +Instance: GameInput
+    +Actions: PlayerInputActions
+  }
+
+  class PlayerMovement {
+    +IsGrounded: bool
+    +IsMoving: bool
+    +IsSprinting: bool
+    +IsCrouching: bool
+    +SetNeuroMultiplier(mult: float)
+  }
+
+  class PlayerLook {
+    +UpdateLook()
+  }
+
+  class PlayerHealth {
+    +CurrentHealth: float
+    +MaxHealth: float
+    +TakeDamage(amount: float, hit: Vector3)
+    +Heal(amount: float)
+    +Die()
+  }
+
+  class PlayerNeuroresist {
+    +IsActive: bool
+    +CooldownRemaining: float
+    +Activate()
+    +Deactivate()
+  }
+
+  class NeuroresistPostProcess {
+    +EnableEffects(enabled: bool)
+  }
+
+  class PlayerFlashlight {
+    +SetFlashlight(enabled: bool, playSound: bool)
+  }
+
+  class AimController {
+    +IsAiming: bool
+    +ApplyAimPose()
+  }
+
+  class PlayerPersistent {
+    +PersistAcrossScenes()
+  }
+}
+
+PlayerLook --> GameInput : ввод
+PlayerMovement --> GameInput : ввод
+PlayerNeuroresist --> NeuroresistPostProcess : постобработка
+PlayerFlashlight --> GameInput : ввод
+AimController --> PlayerMovement : состояние
+PlayerHealth --> PlayerMovement : событие смерти
+PlayerPersistent --> PlayerHealth : состояние игрока
+
+@enduml

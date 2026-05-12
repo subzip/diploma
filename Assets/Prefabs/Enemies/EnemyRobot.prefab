@@ -82,7 +82,7 @@ Animator:
   m_Controller: {fileID: 9100000, guid: a456ac230849b0440bdfe3206057f2dc, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
-  m_ApplyRootMotion: 0
+  m_ApplyRootMotion: 1
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
   m_AnimatePhysics: 0
@@ -201,7 +201,7 @@ MonoBehaviour:
   animator: {fileID: 1020890256974308230}
   hitCollider: {fileID: 2952856044314325031}
   visualRoot: {fileID: 8935491214671778542}
-  maxHealth: 6.5883436
+  maxHealth: 1.5818611
   deathStateName: Death_Anim
   deathStateFullPath: Base Layer.Death_Anim
   deathCrossfadeDuration: 0.05
@@ -223,8 +223,8 @@ MonoBehaviour:
   patrolWaitSeconds: 1.25
   attackRange: 20
   searchDurationSeconds: 9
-  reactionDelaySeconds: 0.21523356
-  fireInterval: 0.073732756
+  reactionDelaySeconds: 0.14121471
+  fireInterval: 0.05
   baseDamage: 1
   aimSpreadDegrees: 2.4
   burstMinSeconds: 2
@@ -241,7 +241,7 @@ MonoBehaviour:
   tracerColor: {r: 1, g: 0.85, b: 0.55, a: 0}
   tracerMaterial: {fileID: 0}
   tracerFadeOut: 0.02
-  shootCue: {fileID: 11400000, guid: eeb8738b5bf7eda429972fb859e84212, type: 2}
+  shootCue: {fileID: 11400000, guid: 38565efba7fd2774cbba322dc368c8aa, type: 2}
   useEntropyScaling: 1
   tier2DamageMult: 1.08
   tier3DamageMult: 1.16

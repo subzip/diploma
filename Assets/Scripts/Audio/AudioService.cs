@@ -20,9 +20,10 @@ public class AudioService : MonoBehaviour
 
     [SerializeField] private int poolSize = 24;
     [SerializeField] private int maxPoolSize = 64;
-    [SerializeField, Range(0f, 1f)] private float masterSfxVolume = 1f;
-    [SerializeField, Range(0f, 1f)] private float masterUiVolume = 1f;
-    [SerializeField, Range(0f, 1f)] private float masterAmbienceVolume = 1f;
+    [Header("Master Volumes")]
+    [SerializeField, Range(0f, 1f)] private float masterMusicAmbientVolume = 1f;
+    [SerializeField, Range(0f, 1f)] private float masterWeaponsVolume = 1f;
+    [SerializeField, Range(0f, 1f)] private float masterOtherVolume = 1f;
 
     private readonly List<AudioSource> sourcePool = new();
     private int poolIndex;
@@ -45,7 +46,9 @@ public class AudioService : MonoBehaviour
         int target = Mathf.Max(8, poolSize);
         while (sourcePool.Count < target)
         {
-            AudioSource source = gameObject.AddComponent<AudioSource>();
+            GameObject child = new GameObject($"AudioSource_{sourcePool.Count}");
+            child.transform.SetParent(transform, false);
+            AudioSource source = child.AddComponent<AudioSource>();
             source.playOnAwake = false;
             source.loop = false;
             sourcePool.Add(source);
@@ -65,7 +68,9 @@ public class AudioService : MonoBehaviour
         int safeMaxPool = Mathf.Max(poolSize, maxPoolSize);
         if (sourcePool.Count < safeMaxPool)
         {
-            AudioSource newSource = gameObject.AddComponent<AudioSource>();
+            GameObject child = new GameObject($"AudioSource_{sourcePool.Count}");
+            child.transform.SetParent(transform, false);
+            AudioSource newSource = child.AddComponent<AudioSource>();
             newSource.playOnAwake = false;
             newSource.loop = false;
             sourcePool.Add(newSource);
@@ -82,17 +87,18 @@ public class AudioService : MonoBehaviour
     public static AudioSource Play2D(AudioCue cue, float volumeScale = 1f, bool ui = false)
     {
         if (cue == null || !cue.IsValid) return null;
-        return Instance.PlayInternal(cue, Vector3.zero, false, volumeScale, ui ? Instance.masterUiVolume : Instance.masterSfxVolume);
+        AudioCue.AudioCategory category = ui ? AudioCue.AudioCategory.Other : cue.Category;
+        return Instance.PlayInternal(cue, Vector3.zero, false, volumeScale, category);
     }
 
     public static AudioSource PlayAt(AudioCue cue, Vector3 position, float volumeScale = 1f, bool ambience = false)
     {
         if (cue == null || !cue.IsValid) return null;
-        float master = ambience ? Instance.masterAmbienceVolume : Instance.masterSfxVolume;
-        return Instance.PlayInternal(cue, position, true, volumeScale, master);
+        AudioCue.AudioCategory category = ambience ? AudioCue.AudioCategory.MusicAmbient : cue.Category;
+        return Instance.PlayInternal(cue, position, true, volumeScale, category);
     }
 
-    private AudioSource PlayInternal(AudioCue cue, Vector3 position, bool useWorldPosition, float volumeScale, float master)
+    private AudioSource PlayInternal(AudioCue cue, Vector3 position, bool useWorldPosition, float volumeScale, AudioCue.AudioCategory category)
     {
         AudioSource source = GetNextSource();
         source.transform.position = useWorldPosition ? position : transform.position;
@@ -102,8 +108,26 @@ public class AudioService : MonoBehaviour
         source.spatialBlend = cue.SpatialBlend;
         source.minDistance = cue.MinDistance;
         source.maxDistance = cue.MaxDistance;
-        source.volume = cue.Volume * Mathf.Max(0f, volumeScale) * Mathf.Clamp01(master);
+        source.volume = cue.Volume * Mathf.Max(0f, volumeScale) * Mathf.Clamp01(GetCategoryMasterVolume(category));
         source.Play();
         return source;
+    }
+
+    private float GetCategoryMasterVolume(AudioCue.AudioCategory category)
+    {
+        switch (category)
+        {
+            case AudioCue.AudioCategory.MusicAmbient:
+                return masterMusicAmbientVolume;
+            case AudioCue.AudioCategory.Weapons:
+                return masterWeaponsVolume;
+            default:
+                return masterOtherVolume;
+        }
+    }
+
+    public static float GetMasterVolume(AudioCue.AudioCategory category)
+    {
+        return Mathf.Clamp01(Instance.GetCategoryMasterVolume(category));
     }
 }

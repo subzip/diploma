@@ -1,9 +1,5 @@
 ﻿using UnityEngine;
 
-
-
-
-
 [DefaultExecutionOrder(-200)]
 public class GameInput : MonoBehaviour
 {

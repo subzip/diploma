@@ -12,11 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 870da90bd19533d4d8b20fed8b964cd6, type: 3}
   m_Name: Cue_Amb_AlarmFar
   m_EditorClassIdentifier: 
-  clips: []
+  clips:
+  - {fileID: 8300000, guid: 96e293ff2956ceb4f901c077cf3accda, type: 3}
+  category: 2
   volume: 1
   pitchMin: 1
   pitchMax: 1
-  spatialBlend: 1
+  spatialBlend: 0
   minDistance: 1
   maxDistance: 20
-  loop: 0
+  loop: 1

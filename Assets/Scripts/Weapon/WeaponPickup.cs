@@ -2,6 +2,8 @@ using UnityEngine;
 
 public class WeaponPickup : PulsingPickupHighlight
 {
+    public static event System.Action<string> OnWeaponPickedUp;
+
     [SerializeField] private string weaponName = "Weapon";
     [SerializeField] public GameObject weaponPrefab;
 
@@ -38,6 +40,7 @@ public class WeaponPickup : PulsingPickupHighlight
         bool isSceneObject = weaponToGive.scene.IsValid() && weaponToGive.scene.rootCount != 0;
         bool pickedUp = manager.PickupWeapon(weaponToGive);
         if (!pickedUp) return false;
+        OnWeaponPickedUp?.Invoke(string.IsNullOrWhiteSpace(weaponName) ? weaponToGive.name : weaponName);
 
         ConsumeAndDisableHighlight();
 
