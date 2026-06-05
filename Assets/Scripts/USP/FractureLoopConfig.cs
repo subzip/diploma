@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 [CreateAssetMenu(fileName = "FractureLoopConfig", menuName = "USP/Fracture Loop Config", order = 1)]
 public class FractureLoopConfig : ScriptableObject

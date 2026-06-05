@@ -1,4 +1,4 @@
-﻿
+
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -53,6 +53,7 @@ public class PlayerLook : MonoBehaviour
 
     private void Awake()
     {
+        GameSettingsService.Instance.InitializeIfNeeded();
         inputActions = GameInput.Instance.Actions;
         if (movement == null) movement = GetComponent<PlayerMovement>();
         if (neuroresist == null) neuroresist = GetComponent<PlayerNeuroresist>();
@@ -134,6 +135,16 @@ public class PlayerLook : MonoBehaviour
             recoilCurrent.x,
             0f
         );
+    }
+
+    public void SetLookSensitivity(float value)
+    {
+        lookSensitivity = Mathf.Clamp(value, 0.03f, 10f);
+    }
+
+    public float GetLookSensitivity()
+    {
+        return lookSensitivity;
     }
 
     private void ApplyLookRecoil(float deltaTime)

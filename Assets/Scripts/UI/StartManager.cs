@@ -1,9 +1,12 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class StartManager : MonoBehaviour
 {
     [SerializeField] private string firstGameplayScene = "level0_var0";
+    [Header("Menu Panels")]
+    [SerializeField] private GameObject mainMenuPanel;
+    [SerializeField] private GameObject settingsPanel;
 
     [Header("Intro Transition")]
     [SerializeField] private bool useIntroBlackScreen = true;
@@ -29,7 +32,20 @@ public class StartManager : MonoBehaviour
 
     private void Awake()
     {
+        GameSettingsService.Instance.InitializeIfNeeded();
         startMenuAudio = FindObjectOfType<StartMenuAudio>(true);
+    }
+
+    public void OpenSettings()
+    {
+        if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
+        if (settingsPanel != null) settingsPanel.SetActive(true);
+    }
+
+    public void CloseSettings()
+    {
+        if (settingsPanel != null) settingsPanel.SetActive(false);
+        if (mainMenuPanel != null) mainMenuPanel.SetActive(true);
     }
 
     public void Continue()

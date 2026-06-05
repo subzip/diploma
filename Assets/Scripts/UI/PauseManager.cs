@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -10,10 +10,13 @@ public class PauseManager : MonoBehaviour
     private static float inputGuardUntilUnscaledTime;
 
     [SerializeField] private GameObject pausePanel;
+    [SerializeField] private GameObject settingsPanel;
     [SerializeField] private GameObject player;
     [SerializeField] private GameObject camera1;
     [SerializeField] private Button continueButton;
     [SerializeField] private Button exitButton;
+    [SerializeField] private Button settingsButton;
+    [SerializeField] private Button settingsBackButton;
     [SerializeField] private AudioCue hoverCue;
     [SerializeField] private AudioCue clickCue;
     [SerializeField, Range(0f, 1f)] private float hoverVolume = 0.2f;
@@ -37,6 +40,7 @@ public class PauseManager : MonoBehaviour
 
     private void Start()
     {
+        GameSettingsService.Instance.InitializeIfNeeded();
         WirePauseButtons();
         EnsureClosedState();
     }
@@ -45,6 +49,11 @@ public class PauseManager : MonoBehaviour
 
     public void Continue()
     {
+        if (settingsPanel != null && settingsPanel.activeSelf)
+        {
+            CloseSettings();
+            return;
+        }
         ClosePause();
     }
 
@@ -84,6 +93,7 @@ public class PauseManager : MonoBehaviour
 
     private void OpenPause()
     {
+        if (settingsPanel != null) settingsPanel.SetActive(false);
         pausePanel.SetActive(true);
         IsPaused = true;
         Time.timeScale = 0f;
@@ -94,6 +104,7 @@ public class PauseManager : MonoBehaviour
     private void ClosePause()
     {
         if (pausePanel != null) pausePanel.SetActive(false);
+        if (settingsPanel != null) settingsPanel.SetActive(false);
 
         IsPaused = false;
         Time.timeScale = 1f;
@@ -105,8 +116,23 @@ public class PauseManager : MonoBehaviour
     private void EnsureClosedState()
     {
         if (pausePanel != null) pausePanel.SetActive(false);
+        if (settingsPanel != null) settingsPanel.SetActive(false);
         IsPaused = false;
         Time.timeScale = 1f;
+    }
+
+    public void OpenSettings()
+    {
+        if (!IsPaused) return;
+        if (pausePanel != null) pausePanel.SetActive(false);
+        if (settingsPanel != null) settingsPanel.SetActive(true);
+    }
+
+    public void CloseSettings()
+    {
+        if (!IsPaused) return;
+        if (settingsPanel != null) settingsPanel.SetActive(false);
+        if (pausePanel != null) pausePanel.SetActive(true);
     }
 
     private void WirePauseButtons()
@@ -125,6 +151,8 @@ public class PauseManager : MonoBehaviour
 
         AttachSfx(continueButton);
         AttachSfx(exitButton);
+        AttachSfx(settingsButton);
+        AttachSfx(settingsBackButton);
     }
 
     private void AttachSfx(Button button)

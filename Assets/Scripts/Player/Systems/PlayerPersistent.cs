@@ -1,4 +1,4 @@
-﻿
+
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections;
@@ -19,7 +19,6 @@ public class PlayerPersistent : MonoBehaviour
                 instance = FindObjectOfType<PlayerPersistent>();
                 if (instance == null)
                 {
-                    Debug.LogError("PlayerPersistent: object was not found in scene!");
                 }
             }
             return instance;
@@ -183,7 +182,6 @@ public class PlayerPersistent : MonoBehaviour
         if (shouldRegisterCheckpoint)
             RespawnCheckpointState.SetCheckpoint(sceneName, spawnPos, spawnRot, checkpointId);
 
-        Debug.Log($"[PlayerPersistent] Consumed pending scene-entry spawn for '{sceneName}' at {spawnPos}");
     }
 
     private void RecoverInvalidScenePositionIfNeeded(string sceneName)
@@ -224,7 +222,6 @@ public class PlayerPersistent : MonoBehaviour
         else
             transform.SetPositionAndRotation(position, rotation);
 
-        Debug.LogWarning($"[PlayerPersistent] Recovered invalid spawn in '{sceneName}' from {source} at {position}");
     }
 
     private bool TryFindFallbackSpawnInScene(out Vector3 position, out Quaternion rotation)

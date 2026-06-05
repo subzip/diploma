@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -47,7 +47,6 @@ public class SceneLoader : MonoBehaviour
         }
         else
         {
-            Debug.Log("Card!");
         }
     }
 
@@ -111,6 +110,5 @@ public class SceneLoader : MonoBehaviour
             );
         }
 
-        Debug.Log($"[SceneLoader] Applied spawn in '{activeScene}' at {spawnPosition}, rot={spawnRotation.eulerAngles}");
     }
 }

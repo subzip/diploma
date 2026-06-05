@@ -70,10 +70,6 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
     [SerializeField] private float tier3FireRateMult = 0.93f;
     [SerializeField] private float tier4FireRateMult = 0.88f;
 
-    [Header("Debug")]
-    [SerializeField] private bool debugState;
-    [SerializeField] private bool debugDeathAnimation;
-
     [Header("Difficulty Profile")]
     [SerializeField] private CombatDifficultyProfile difficultyProfile;
 
@@ -242,7 +238,6 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
         if (dead) return;
         dead = true;
         currentHealth = 0f;
-        if (debugDeathAnimation) Debug.Log($"{name}: Die() called");
         SetAgentStoppedSafe(true);
         if (agent != null) agent.enabled = false;
         SetDeathCollidersTrigger();
@@ -282,7 +277,6 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
                 animator.CrossFadeInFixedTime(fullPathHash, fade, 0, 0f);
                 animator.Update(0f);
                 played = true;
-                if (debugDeathAnimation) Debug.Log($"{name}: death by fullPath '{deathStateFullPath}'");
             }
         }
 
@@ -295,7 +289,6 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
                 animator.CrossFadeInFixedTime(nameHash, fade, 0, 0f);
                 animator.Update(0f);
                 played = true;
-                if (debugDeathAnimation) Debug.Log($"{name}: death by stateName '{deathStateName}' on layer 0");
             }
         }
 
@@ -311,15 +304,10 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
                 animator.CrossFadeInFixedTime(hash, fade, layer, 0f);
                 animator.Update(0f);
                 played = true;
-                if (debugDeathAnimation) Debug.Log($"{name}: death by layerPath '{layerPath}'");
                 break;
             }
         }
 
-        if (!played)
-        {
-            Debug.LogWarning($"{name}: failed to force death state. Check Animator state name/path. deathStateName='{deathStateName}', deathStateFullPath='{deathStateFullPath}'");
-        }
     }
 
     private IEnumerator LockDeathPoseAfterDelay()
@@ -601,7 +589,6 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
         {
             ai.stateTimer = Random.Range(ai.idleMinSeconds, ai.idleMaxSeconds);
             ai.SetAgentStoppedSafe(true);
-            if (ai.debugState) Debug.Log($"{ai.name}: Idle");
         }
 
         public void Tick(float deltaTime)
@@ -632,7 +619,6 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
 
         public void Enter()
         {
-            if (ai.debugState) Debug.Log($"{ai.name}: Patrol");
             MoveToNextPoint();
         }
 
@@ -684,7 +670,6 @@ public class GroundShooterAI : MonoBehaviour, IDamageable
 
         public void Enter()
         {
-            if (ai.debugState) Debug.Log($"{ai.name}: Attack");
             ai.fireReadyTime = Time.time + ai.reactionDelaySeconds;
             firingBurst = true;
             ai.stateTimer = Random.Range(ai.burstMinSeconds, ai.burstMaxSeconds);

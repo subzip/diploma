@@ -1,4 +1,4 @@
-﻿
+
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -68,7 +68,6 @@ public class PlayerNeuroresist : MonoBehaviour
         xrayLayer = LayerMask.NameToLayer(xrayLayerName);
         if (xrayLayer == -1)
         {
-            Debug.LogWarning($"Layer '{xrayLayerName}' was not found. Create it and bind it in Render Feature.");
         }
 
         ResolvePostProcessRef(forceRefresh: true);
@@ -129,7 +128,6 @@ public class PlayerNeuroresist : MonoBehaviour
         int count = Physics.OverlapSphereNonAlloc(transform.position, detectionRadius, detectedEnemies, enemyLayer);
         if (count >= detectedEnemies.Length)
         {
-            Debug.LogWarning($"PlayerNeuroresist: detection buffer is full ({detectedEnemies.Length}). Increase Detection Buffer Size.");
         }
 
         cachedRenderers.Clear();

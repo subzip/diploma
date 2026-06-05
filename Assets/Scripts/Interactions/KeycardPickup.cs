@@ -1,4 +1,4 @@
-﻿
+
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -36,7 +36,6 @@ public class KeycardPickup : MonoBehaviour
         playerCamera = Camera.main?.transform;
         if (playerCamera == null)
         {
-            Debug.LogError("Camera");
         }
         playerTransform = PlayerLocator.GetPlayerTransform(forceRefresh: true);
         if (renderersToHighlight == null || renderersToHighlight.Length == 0)
@@ -123,7 +122,6 @@ public class KeycardPickup : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning($"{name}: QuestSystem reference missing, keycard picked but quest was not completed.");
         }
 
         Destroy(gameObject);

@@ -1,4 +1,4 @@
-﻿
+
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "WeaponStats", menuName = "Weapons/Weapon Stats", order = 1)]

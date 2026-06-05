@@ -1,4 +1,4 @@
-﻿
+
 using UnityEngine;
 
 [System.Obsolete("Legacy drone AI. Use FlyingDrone instead.")]
@@ -15,7 +15,6 @@ public class DroneAI : EnemyAI
     protected override void Start()
     {
         base.Start();
-        Debug.LogWarning($"{name}: DroneAI is legacy. Prefer FlyingDrone for active drone behavior.");
         if (patrolPoints.Length > 0)
         {
             destination = patrolPoints[currentPatrolIndex].position;

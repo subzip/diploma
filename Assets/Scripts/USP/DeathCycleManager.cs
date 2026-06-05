@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -32,8 +32,6 @@ public class DeathCycleManager : MonoBehaviour
     [SerializeField] private float recoveryUntilTime = -999f;
     [SerializeField] private int repeatDeathsInSameZone;
 
-    [Header("Debug")]
-    [SerializeField] private bool debugLogs = true;
     [SerializeField] private string mainMenuSceneName = "StartGame";
 
     private string lastDeathZoneId;
@@ -76,10 +74,6 @@ public class DeathCycleManager : MonoBehaviour
             repeatDeathsInSameZone = snapshotRepeatDeathsInZone;
         }
 
-        if (config == null)
-        {
-            Debug.LogWarning("DeathCycleManager: FractureLoopConfig is not assigned. Using built-in defaults.");
-        }
     }
 
     private void OnEnable()
@@ -130,12 +124,6 @@ public class DeathCycleManager : MonoBehaviour
         lastDeathTime = Time.time;
         TryActivateRecoveryIfNeeded(sameZoneRepeat);
 
-        if (debugLogs)
-        {
-            string recoveryInfo = IsRecoveryActive ? $", recovery=ON({Mathf.Max(0f, recoveryUntilTime - Time.time):0.0}s)" : ", recovery=off";
-            Debug.Log($"[DeathCycle] death={deathKind}, zone='{zoneId}', +entropy={penalty}, entropy={entropy}, tier={EntropyTier}, variant={currentVariantIndex}, cycles={cycleCount}{recoveryInfo}");
-        }
-
         StoreSnapshot();
         OnCycleStateChanged?.Invoke(cycleCount, currentVariantIndex, entropy, EntropyTier);
     }
@@ -144,11 +132,6 @@ public class DeathCycleManager : MonoBehaviour
     {
         int reward = config != null ? Mathf.Max(0, config.majorProgressReward) : 10;
         entropy = Mathf.Max(0, entropy - reward);
-
-        if (debugLogs)
-        {
-            Debug.Log($"[DeathCycle] major progress: -{reward} entropy => {entropy}");
-        }
 
         StoreSnapshot();
         OnCycleStateChanged?.Invoke(cycleCount, currentVariantIndex, entropy, EntropyTier);
@@ -163,11 +146,6 @@ public class DeathCycleManager : MonoBehaviour
         lastDeathTime = -999f;
         recoveryUntilTime = -999f;
         repeatDeathsInSameZone = 0;
-
-        if (debugLogs)
-        {
-            Debug.Log("[DeathCycle] run state reset");
-        }
 
         StoreSnapshot();
         OnCycleStateChanged?.Invoke(cycleCount, currentVariantIndex, entropy, EntropyTier);

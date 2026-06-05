@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
@@ -34,9 +34,6 @@ public class RealityVariantController : MonoBehaviour
     [SerializeField] private bool refreshNavAgentsAfterSwitch = true;
     [SerializeField] private float navRefreshDelay = 0.05f;
     [SerializeField] private bool forceRebuildNavMeshOnSwitch = false;
-
-    [Header("Debug")]
-    [SerializeField] private bool debugLogs = true;
 
     private DeathCycleManager manager;
     private bool subscribed;
@@ -122,10 +119,6 @@ public class RealityVariantController : MonoBehaviour
             StartCoroutine(RefreshAgentsAfterDelay());
         }
 
-        if (debugLogs)
-        {
-            Debug.Log($"[RealityVariant] Applied variant {index} (raw={rawIndex}) in scene '{SceneManager.GetActiveScene().name}'.");
-        }
     }
 
     private void ValidateVariantCountAgainstConfig()
@@ -136,11 +129,6 @@ public class RealityVariantController : MonoBehaviour
         if (variantCountWarningShown) return;
         variantCountWarningShown = true;
 
-        if (debugLogs)
-        {
-            Debug.LogWarning($"[RealityVariant] variants.Length ({variants.Length}) != config.variantCount ({configured}). " +
-                             $"Controller will use bindings length.");
-        }
     }
 
     private void SetVariantActive(RealityVariantBinding binding, bool active)
@@ -195,7 +183,6 @@ public class RealityVariantController : MonoBehaviour
                     continue;
                 }
 
-                
                 InvokeNavSurface(surface, "RemoveData");
                 if (forceRebuildNavMeshOnSwitch)
                     InvokeNavSurface(surface, "BuildNavMesh");
@@ -210,14 +197,12 @@ public class RealityVariantController : MonoBehaviour
         output.Clear();
         if (binding == null) return;
 
-        
         if (binding.navMeshRoot != null)
         {
             CollectNavMeshSurfaces(binding.navMeshRoot, output);
             return;
         }
 
-        
         if (binding.layoutRoot != null)
             CollectNavMeshSurfacesAppend(binding.layoutRoot, output);
 
@@ -265,8 +250,6 @@ public class RealityVariantController : MonoBehaviour
         MethodInfo method = surface.GetType().GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
         if (method == null)
         {
-            if (debugLogs)
-                Debug.LogWarning($"[RealityVariant] NavMeshSurface method '{methodName}' not found on {surface.GetType().FullName}");
             return;
         }
 

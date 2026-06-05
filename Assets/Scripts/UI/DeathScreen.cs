@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using System.Collections.Generic;
@@ -52,6 +52,7 @@ public class DeathScreen : MonoBehaviour
     private bool isRestarting;
     private bool isReturningToMenu;
     private readonly List<Behaviour> disabledPlayerBehaviours = new();
+    private readonly List<Behaviour> disabledEnemyBehaviours = new();
     private readonly List<PauseManager> cachedPauseManagers = new();
     private float nextPauseManagersRefreshTime;
 
@@ -126,6 +127,8 @@ public class DeathScreen : MonoBehaviour
         }
 
         LockPlayerControlsForDeath();
+        LockEnemyCombatForDeath();
+        AudioService.StopCategory(AudioCue.AudioCategory.Weapons);
         GlobalDeathActive = true;
         isDead = true;
         Time.timeScale = 1f;
@@ -315,6 +318,8 @@ public class DeathScreen : MonoBehaviour
             if (b != null) b.enabled = true;
         }
         disabledPlayerBehaviours.Clear();
+
+        disabledEnemyBehaviours.Clear();
     }
 
     private void DisableBehaviours<T>(GameObject root) where T : Behaviour
@@ -326,6 +331,29 @@ public class DeathScreen : MonoBehaviour
             if (c == null || !c.enabled) continue;
             c.enabled = false;
             disabledPlayerBehaviours.Add(c);
+        }
+    }
+
+    private void LockEnemyCombatForDeath()
+    {
+        disabledEnemyBehaviours.Clear();
+        DisableAllEnabledOfType<GroundShooterAI>();
+        DisableAllEnabledOfType<DroneShooterAI>();
+        DisableAllEnabledOfType<EnemyAI>();
+        DisableAllEnabledOfType<EnemyCombat>();
+        DisableAllEnabledOfType<DroneAI>();
+        DisableAllEnabledOfType<DroneCombat>();
+    }
+
+    private void DisableAllEnabledOfType<T>() where T : Behaviour
+    {
+        T[] components = FindObjectsOfType<T>(true);
+        for (int i = 0; i < components.Length; i++)
+        {
+            T c = components[i];
+            if (c == null || !c.enabled) continue;
+            c.enabled = false;
+            disabledEnemyBehaviours.Add(c);
         }
     }
 

@@ -1,4 +1,4 @@
-﻿
+
 using System.Collections;
 using System.Collections.Generic;
 using System;
@@ -579,7 +579,6 @@ public class WeaponManager : MonoBehaviour
             weapon = weaponObj.GetComponentInChildren<BaseWeapon>(true);
         if (weapon == null)
         {
-            Debug.LogError($"Weapon prefab {weaponPrefab.name} does not contain BaseWeapon");
             if (weaponObj != weaponPrefab) Destroy(weaponObj);
             return false;
         }

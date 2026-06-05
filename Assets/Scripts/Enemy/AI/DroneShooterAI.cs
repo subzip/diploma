@@ -80,9 +80,6 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
     [SerializeField] private float tier3FireRateMult = 0.94f;
     [SerializeField] private float tier4FireRateMult = 0.9f;
 
-    [Header("Debug")]
-    [SerializeField] private bool debugState;
-
     [Header("Difficulty Profile")]
     [SerializeField] private CombatDifficultyProfile difficultyProfile;
 
@@ -596,7 +593,6 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
         public void Enter()
         {
             ai.stateTimer = Random.Range(ai.idleMinSeconds, ai.idleMaxSeconds);
-            if (ai.debugState) Debug.Log($"{ai.name}: Idle");
         }
         public void Tick(float deltaTime)
         {
@@ -620,7 +616,6 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
 
         public void Enter()
         {
-            if (ai.debugState) Debug.Log($"{ai.name}: Patrol");
             if (ai.patrolPoints != null && ai.patrolPoints.Length > 0)
                 ai.patrolIndex = (ai.patrolIndex + 1) % ai.patrolPoints.Length;
             ai.stateTimer = ai.patrolWaitSeconds;
@@ -720,7 +715,6 @@ public class DroneShooterAI : MonoBehaviour, IDamageable
 
         public void Enter()
         {
-            if (ai.debugState) Debug.Log($"{ai.name}: Attack");
             ai.fireReadyTime = Time.time + ai.reactionDelaySeconds;
         }
 

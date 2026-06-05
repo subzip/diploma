@@ -1,4 +1,4 @@
-﻿
+
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -41,7 +41,6 @@ public class EnemyCombat : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         if (agent == null)
         {
-            Debug.LogError($"{name}: NavMeshAgent missing on enemy.");
         }
     }
 

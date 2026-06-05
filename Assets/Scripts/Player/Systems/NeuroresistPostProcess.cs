@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
@@ -245,7 +245,6 @@ public class NeuroresistPostProcess : MonoBehaviour
             volume = GetComponent<Volume>();
         if (volume == null)
         {
-            if (force) Debug.LogWarning("NeuroresistPostProcess: Volume component is missing.");
             initialized = false;
             return;
         }
@@ -255,7 +254,6 @@ public class NeuroresistPostProcess : MonoBehaviour
 
         if (volume.profile == null)
         {
-            if (force) Debug.LogWarning("NeuroresistPostProcess: Volume Profile is missing.");
             initialized = false;
             return;
         }

@@ -11,6 +11,7 @@ public class StartMenuAudio : MonoBehaviour
     [SerializeField] private bool use2D = true;
 
     private AudioSource musicSource;
+    private float lastAppliedVolume = -1f;
 
     private void Awake()
     {
@@ -46,7 +47,7 @@ public class StartMenuAudio : MonoBehaviour
         musicSource.spatialBlend = use2D ? 0f : musicCue.SpatialBlend;
         musicSource.minDistance = musicCue.MinDistance;
         musicSource.maxDistance = musicCue.MaxDistance;
-        musicSource.volume = musicCue.Volume * Mathf.Max(0f, musicVolumeScale);
+        ApplyVolume();
         musicSource.Play();
     }
 
@@ -56,5 +57,19 @@ public class StartMenuAudio : MonoBehaviour
         if (!musicSource.isPlaying) return;
         musicSource.Stop();
     }
-}
 
+    private void Update()
+    {
+        if (musicSource == null || !musicSource.isPlaying || musicCue == null) return;
+        ApplyVolume();
+    }
+
+    private void ApplyVolume()
+    {
+        float master = AudioService.GetMasterVolume(AudioCue.AudioCategory.MusicAmbient);
+        float value = musicCue.Volume * Mathf.Max(0f, musicVolumeScale) * master;
+        if (Mathf.Abs(value - lastAppliedVolume) < 0.0001f) return;
+        musicSource.volume = value;
+        lastAppliedVolume = value;
+    }
+}

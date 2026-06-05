@@ -9,9 +9,6 @@ public class CheckpointTrigger : MonoBehaviour
     [SerializeField] private bool oneTime = true;
     [SerializeField] private string checkpointId = "checkpoint";
 
-    [Header("Debug")]
-    [SerializeField] private bool debugLog = true;
-
     private bool consumed;
 
     private void Reset()
@@ -39,11 +36,6 @@ public class CheckpointTrigger : MonoBehaviour
         Transform point = respawnPoint != null ? respawnPoint : transform;
         string scene = SceneManager.GetActiveScene().name;
         RespawnCheckpointState.SetCheckpoint(scene, point.position, point.rotation, checkpointId);
-
-        if (debugLog)
-        {
-            Debug.Log($"[Checkpoint] Activated '{checkpointId}' in scene '{scene}' at {point.position}");
-        }
 
         if (oneTime)
         {

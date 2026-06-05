@@ -1,4 +1,4 @@
-﻿using TMPro;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
@@ -34,13 +34,6 @@ public abstract class BaseWeapon : MonoBehaviour
     [SerializeField] private bool decalUseNormalForward = true;
     [SerializeField] private bool decalParentToHit = false;
     [SerializeField] private Transform decalParentOverride;
-    [Header("Decal Debug")]
-    [SerializeField] private bool debugDecals = false;
-    [SerializeField] private bool debugDecalsVerbose = false;
-    [SerializeField] private Vector2 debugDecalSize = new Vector2(0.5f, 0.5f);
-    [SerializeField] private float debugDecalDepth = 0.5f;
-    [SerializeField] private Color debugDecalColor = new Color(1f, 0f, 0f, 1f);
-
     [Header("Muzzle Flash")]
     [SerializeField] private Transform muzzlePoint;
 
@@ -177,11 +170,6 @@ public abstract class BaseWeapon : MonoBehaviour
                 target.TakeDamage(stats.damage, hitInfo.point);
             }
         }
-        else if (debugDecalsVerbose)
-        {
-            Debug.Log("[DecalDebug] Raycast MISS");
-        }
-
         SpawnMuzzleFlash();
 
         if (currentAmmo == 0)
@@ -208,20 +196,14 @@ public abstract class BaseWeapon : MonoBehaviour
         bool rifleHipfireStyle = stats != null && stats.useAimOverlay && !aimingRifleStyle;
         if (aimingRifleStyle)
         {
-            
             horiz = 0f;
             kick *= 0.55f;
         }
         else if (rifleHipfireStyle)
         {
-            
-            
             horiz = 0f;
         }
 
-        
-        
-        
         float modelHoriz = aimingRifleStyle ? 0f : horiz;
         float modelKick = aimingRifleStyle ? 0f : kick;
         recoilCurrent += new Vector2(modelHoriz * 0.55f, -modelKick * 0.6f);
@@ -412,13 +394,12 @@ public abstract class BaseWeapon : MonoBehaviour
         Vector3 normal = hitInfo.normal;
         Vector3 forward = decalUseNormalForward ? normal : -normal;
 
-        Vector2 size = debugDecals ? debugDecalSize : decalSize;
-        float depth = debugDecals ? debugDecalDepth : decalDepth;
+        Vector2 size = decalSize;
+        float depth = decalDepth;
         float halfDepth = Mathf.Max(0.001f, depth) * 0.5f;
 
         Vector3 position = hitInfo.point + forward * (decalPush + halfDepth);
 
-        
         Vector3 up = Vector3.up;
         if (Mathf.Abs(Vector3.Dot(up, forward)) > 0.98f)
             up = Vector3.right;
@@ -444,22 +425,6 @@ public abstract class BaseWeapon : MonoBehaviour
         projector.drawDistance = 50f;
         projector.startAngleFade = 180f;
         projector.endAngleFade = 180f;
-
-        if (debugDecals && decalMaterial != null)
-        {
-            Material debugMat = new Material(decalMaterial);
-            ApplyDecalTextureScale(debugMat);
-            if (debugMat.HasProperty("_BaseColor")) debugMat.SetColor("_BaseColor", debugDecalColor);
-            if (debugMat.HasProperty("_Color")) debugMat.SetColor("_Color", debugDecalColor);
-            projector.material = debugMat;
-        }
-
-        if (debugDecals)
-        {
-            Debug.Log($"[DecalDebug] Spawned at {hitInfo.point}, normal {hitInfo.normal}, layer {hitInfo.collider.gameObject.layer}");
-            Debug.DrawRay(hitInfo.point, hitInfo.normal * 0.3f, Color.red, 2f);
-            Debug.DrawRay(hitInfo.point, forward * 0.3f, Color.green, 2f);
-        }
 
         Destroy(decalObj, decalLifetime);
     }
@@ -716,7 +681,6 @@ public abstract class BaseWeapon : MonoBehaviour
             }
         }
 
-        
         if (NeedsAmmoUiResolve())
         {
             nextAmmoUiResolveTime = Time.unscaledTime + 0.5f;
