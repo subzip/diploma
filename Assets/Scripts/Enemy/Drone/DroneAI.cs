@@ -1,6 +1,7 @@
-// DroneAI.cs
+
 using UnityEngine;
 
+[System.Obsolete("Legacy drone AI. Use FlyingDrone instead.")]
 public class DroneAI : EnemyAI
 {
     [Header("Flight Settings")]

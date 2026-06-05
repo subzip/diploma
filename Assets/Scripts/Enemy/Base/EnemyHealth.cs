@@ -1,4 +1,4 @@
-// EnemyHealth.cs
+
 using UnityEngine;
 
 public class EnemyHealth : MonoBehaviour, IDamageable

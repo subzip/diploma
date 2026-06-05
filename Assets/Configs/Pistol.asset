@@ -12,9 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d8fc551f1c8193841a3b99caa0a288bc, type: 3}
   m_Name: Pistol
   m_EditorClassIdentifier: 
+  ammoType: 1
+  startReserveAmmo: 24
+  maxReserveAmmo: 48
   weaponName: Pistol
   damage: 20
-  range: 100
+  range: 150
   magazineSize: 12
   reloadTime: 1.8
   fireRate: 0.4
@@ -34,8 +37,14 @@ MonoBehaviour:
   recoilHorizontal: 0.25
   recoilRecoverySpeed: 3
   recoilSnap: 10
-  muzzlePrefab: {fileID: 0}
+  muzzlePrefab: {fileID: 7402772589111674848, guid: d225e46a95ff248409e8dc6f8b4afd21, type: 3}
   tracerEffectPrefab: {fileID: 0}
+  muzzleLifetime: 0.08
+  tracerSpeed: 260
+  tracerWidth: 0.02
+  tracerLength: 0.35
+  tracerColor: {r: 1, g: 0.95, b: 0.75, a: 0.95}
+  tracerMaterial: {fileID: 0}
   impactDefaultPrefab: {fileID: 0}
   impactFleshPrefab: {fileID: 0}
   casingPrefab: {fileID: 0}

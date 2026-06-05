@@ -1,99 +1,90 @@
 using UnityEngine;
 
-public class WeaponPickup : MonoBehaviour
+public class WeaponPickup : PulsingPickupHighlight
 {
+    public static event System.Action<string> OnWeaponPickedUp;
+
     [SerializeField] private string weaponName = "Weapon";
     [SerializeField] public GameObject weaponPrefab;
-    private bool consumed = false;
 
-    [Header("Highlight")]
-    [SerializeField] private MeshRenderer[] renderersToHighlight;
-    [SerializeField] private Color emissionColor = new Color(0.1f, 0.6f, 1f);
-    [SerializeField] private float pulseSpeed = 3f;
-    private MaterialPropertyBlock mpb;
-
-    private void Awake()
+    protected override void Awake()
     {
-        if (renderersToHighlight == null || renderersToHighlight.Length == 0)
-            renderersToHighlight = GetComponentsInChildren<MeshRenderer>(true);
-        mpb = new MaterialPropertyBlock();
-
-        // Включаем глобально поддержку эмиссии на материалах (на случай, если выключена)
-        foreach (var r in renderersToHighlight)
-        {
-            if (r == null) continue;
-            foreach (var mat in r.sharedMaterials)
-            {
-                if (mat != null && !mat.IsKeywordEnabled("_EMISSION"))
-                {
-                    mat.EnableKeyword("_EMISSION");
-                }
-            }
-        }
-    }
-
-    private void Update()
-    {
-        if (consumed || renderersToHighlight == null) return;
-        float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * pulseSpeed);
-        foreach (var r in renderersToHighlight)
-        {
-            if (r == null) continue;
-            r.GetPropertyBlock(mpb);
-            mpb.SetColor("_EmissionColor", emissionColor * pulse);
-            r.SetPropertyBlock(mpb);
-        }
+        emissionColor = new Color(0.1f, 0.6f, 1f);
+        base.Awake();
     }
 
     private void OnTriggerEnter(Collider other) => TryGiveWeapon(other);
     private void OnTriggerStay(Collider other) => TryGiveWeapon(other);
 
-    public void Consume() => TryGiveWeapon(GetComponent<Collider>());
+    public bool TryPickupFrom(Component playerComponent) => TryGiveWeapon(playerComponent);
 
-    private void TryGiveWeapon(Component other)
+    public void Consume()
     {
-        if (consumed) return;
-        if (!other.CompareTag("Player")) return;
+        Collider col = GetComponent<Collider>();
+        if (col != null) col.enabled = false;
+        ConsumeAndDisableHighlight();
+    }
 
-        var manager = other.GetComponent<WeaponManager>() ?? other.GetComponentInChildren<WeaponManager>();
-        if (manager == null) return;
+    private bool TryGiveWeapon(Component other)
+    {
+        if (consumed) return false;
+        if (other == null) return false;
+        if (!ComponentSearch.IsPlayer(other)) return false;
 
-        consumed = true;
-        DisableHighlight();
+        WeaponManager manager = ComponentSearch.FindInHierarchy<WeaponManager>(other);
+        if (manager == null) return false;
 
-        // Определяем, сценовый ли объект
-        bool isSceneObject = weaponPrefab != null && weaponPrefab.scene.rootCount != 0;
-        manager.PickupWeapon(weaponPrefab);
+        GameObject weaponToGive = ResolveWeaponObject();
+        if (weaponToGive == null) return false;
+
+        bool isSceneObject = weaponToGive.scene.IsValid() && weaponToGive.scene.rootCount != 0;
+        bool pickedUp = manager.PickupWeapon(weaponToGive);
+        if (!pickedUp) return false;
+        OnWeaponPickedUp?.Invoke(string.IsNullOrWhiteSpace(weaponName) ? weaponToGive.name : weaponName);
+
+        ConsumeAndDisableHighlight();
 
         if (isSceneObject)
         {
-            var col = GetComponent<Collider>();
-            if (col) col.enabled = false;
-            var rb = GetComponent<Rigidbody>();
-            if (rb) rb.isKinematic = true;
+            Collider col = GetComponent<Collider>();
+            if (col != null) col.enabled = false;
+            Rigidbody rb = GetComponent<Rigidbody>();
+            if (rb != null) rb.isKinematic = true;
             Destroy(this);
         }
         else
         {
             Destroy(gameObject);
         }
-    }
 
-    private void DisableHighlight()
-    {
-        if (renderersToHighlight == null) return;
-        foreach (var r in renderersToHighlight)
-        {
-            if (r == null) continue;
-            r.GetPropertyBlock(mpb);
-            mpb.SetColor("_EmissionColor", Color.black);
-            r.SetPropertyBlock(mpb);
-        }
+        return true;
     }
 
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, 1.5f);
+    }
+
+    private GameObject ResolveWeaponObject()
+    {
+        if (weaponPrefab != null)
+        {
+            bool isAsset = !weaponPrefab.scene.IsValid() || weaponPrefab.scene.rootCount == 0;
+            bool belongsToThisPickup = weaponPrefab.transform == transform ||
+                                       weaponPrefab.transform.IsChildOf(transform) ||
+                                       transform.IsChildOf(weaponPrefab.transform);
+
+            if (isAsset || belongsToThisPickup)
+                return weaponPrefab;
+        }
+
+        BaseWeapon localWeapon = GetComponent<BaseWeapon>();
+        if (localWeapon == null)
+            localWeapon = GetComponentInChildren<BaseWeapon>(true);
+        if (localWeapon == null)
+            localWeapon = GetComponentInParent<BaseWeapon>();
+
+        return localWeapon != null ? localWeapon.gameObject : weaponPrefab;
     }
 }

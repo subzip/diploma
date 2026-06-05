@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 651690be1732b9340a1ab9ab913a2fb6, type: 3}
+  m_Name: FractureLoop_Default
+  m_EditorClassIdentifier: 
+  variantCount: 3
+  entropyCap: 100
+  deathPenalty: 20
+  repeatZoneDeathPenalty: 25
+  suicidePenalty: 30
+  majorProgressReward: 10
+  enableRecovery: 1
+  stuckDeathsRequired: 2
+  stuckWindowSeconds: 240
+  recoveryWindowSeconds: 12
+  recoveryDamageMultiplier: 0.85
+  enableRunCollapse: 0
+  runCollapseThreshold: 95
+  reserveAmmoCarryPercent: 0.75
+  medkitCarryPercent: 0.5
+  tier1MaxEntropy: 24
+  tier2MaxEntropy: 49
+  tier3MaxEntropy: 74

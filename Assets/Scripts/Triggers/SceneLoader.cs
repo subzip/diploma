@@ -1,22 +1,24 @@
-// SceneLoader.cs
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using System.Collections;
 
 public class SceneLoader : MonoBehaviour
 {
     [Header("Settings")]
     [SerializeField] private string targetSceneName = "Level-1";
     [SerializeField] private QuestSystem questSystem;
+    [SerializeField] private string requiredQuestTitle = "\u0410\u043a\u0442\u0438\u0432\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0434\u0432\u0435\u0440\u044c";
     [SerializeField] private Vector3 spawnPosition = new Vector3(27.331f, 7.086f, -23.299f);
-    //27.331 7.086 -23.299
+    [SerializeField] private Vector3 spawnRotationEuler = Vector3.zero;
+    [SerializeField] private bool registerEntryCheckpoint = true;
+    [SerializeField] private string entryCheckpointId = "scene_entry";
+
     [Header("Transition")]
     [SerializeField] private Image fadeImage;
     [SerializeField] private float fadeDuration = 1f;
-   
 
-    private bool isTransitioning = false;
+    private bool isTransitioning;
 
     private void Start()
     {
@@ -27,20 +29,26 @@ public class SceneLoader : MonoBehaviour
     }
 
     private void OnTriggerEnter(Collider other)
-{
-    if (other.CompareTag("Player"))
     {
-        QuestItem current = questSystem.GetCurrentQuest();
-        if (current != null && current.title == "Активировать дверь")
+        if (isTransitioning) return;
+        if (!ComponentSearch.IsPlayer(other)) return;
+        if (questSystem == null)
+            questSystem = FindObjectOfType<QuestSystem>(true);
+        if (questSystem == null) return;
+
+        bool canOpenByCurrentQuest =
+            questSystem.GetCurrentQuest() != null &&
+            string.Equals(questSystem.GetCurrentQuest().title, requiredQuestTitle, System.StringComparison.Ordinal);
+        bool canOpenByCompleted = questSystem.IsQuestCompletedByTitle(requiredQuestTitle);
+
+        if (canOpenByCurrentQuest || canOpenByCompleted)
         {
             StartCoroutine(LoadSceneWithFade());
         }
         else
         {
-            Debug.Log("Card!");
         }
     }
-}
 
     private IEnumerator LoadSceneWithFade()
     {
@@ -52,15 +60,22 @@ public class SceneLoader : MonoBehaviour
             yield return new WaitForSeconds(fadeDuration * 0.5f);
         }
 
+        Quaternion spawnRotation = Quaternion.Euler(spawnRotationEuler);
+        SceneEntrySpawnState.SetPending(
+            targetSceneName,
+            spawnPosition,
+            spawnRotation,
+            registerEntryCheckpoint,
+            entryCheckpointId
+        );
+
         AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(targetSceneName);
         asyncLoad.allowSceneActivation = true;
         yield return asyncLoad;
 
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
-        if (player != null)
-        {
-            player.transform.position = spawnPosition;
-        }
+        yield return null;
+        yield return new WaitForEndOfFrame();
+        ApplySpawnAndCheckpoint();
 
         if (fadeImage != null)
         {
@@ -69,5 +84,31 @@ public class SceneLoader : MonoBehaviour
         }
 
         isTransitioning = false;
+    }
+
+    private void ApplySpawnAndCheckpoint()
+    {
+        Transform player = PlayerLocator.GetPlayerTransform(forceRefresh: true);
+        if (player == null) return;
+
+        Quaternion spawnRotation = Quaternion.Euler(spawnRotationEuler);
+        string activeScene = SceneManager.GetActiveScene().name;
+
+        PlayerMovement movement = player.GetComponent<PlayerMovement>();
+        if (movement != null)
+            movement.ResetForRespawnAt(spawnPosition, spawnRotation, resetStaminaToMax: false);
+        else
+            player.SetPositionAndRotation(spawnPosition, spawnRotation);
+
+        if (registerEntryCheckpoint)
+        {
+            RespawnCheckpointState.SetCheckpoint(
+                activeScene,
+                spawnPosition,
+                spawnRotation,
+                string.IsNullOrWhiteSpace(entryCheckpointId) ? "scene_entry" : entryCheckpointId
+            );
+        }
+
     }
 }

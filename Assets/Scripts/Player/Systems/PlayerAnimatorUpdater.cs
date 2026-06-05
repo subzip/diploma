@@ -1,4 +1,4 @@
-// PlayerAnimatorUpdater.cs
+
 using UnityEngine;
 
 public class PlayerAnimatorUpdater : MonoBehaviour

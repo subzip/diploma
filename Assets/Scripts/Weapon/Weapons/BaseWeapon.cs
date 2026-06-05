@@ -1,16 +1,27 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
+using UnityEngine.SceneManagement;
 
 public abstract class BaseWeapon : MonoBehaviour
 {
+    public static event System.Action<BaseWeapon> OnAnyShotFired;
+
     [SerializeField] public WeaponStats stats;
 
     [Header("UI")]
     [SerializeField] private TMP_Text ammoText;
+    [SerializeField] private string ammoTextObjectName = "Bullets";
+    [SerializeField] private TMP_Text ammoCurrentText;
+    [SerializeField] private string ammoCurrentObjectName = "BulletsCurrent";
+    [SerializeField] private TMP_Text ammoReserveText;
+    [SerializeField] private string ammoReserveObjectName = "BulletsReserve";
+    [SerializeField] private bool stylizedAmmoHud = true;
+    [SerializeField, Range(80, 220)] private int currentAmmoPercent = 150;
+    [SerializeField, Range(40, 140)] private int reserveAmmoPercent = 70;
 
     [Header("Effects")]
-    [SerializeField] private float tracerDuration = 1f;
+    [SerializeField] private float tracerFadeOut = 0.04f;
     [SerializeField] private GameObject bulletHolePrefab;
     [SerializeField] private Transform casingEjectPoint;
     [SerializeField] private bool useDecalProjector = true;
@@ -23,39 +34,52 @@ public abstract class BaseWeapon : MonoBehaviour
     [SerializeField] private bool decalUseNormalForward = true;
     [SerializeField] private bool decalParentToHit = false;
     [SerializeField] private Transform decalParentOverride;
-    [Header("Decal Debug")]
-    [SerializeField] private bool debugDecals = false;
-    [SerializeField] private bool debugDecalsVerbose = false;
-    [SerializeField] private Vector2 debugDecalSize = new Vector2(0.5f, 0.5f);
-    [SerializeField] private float debugDecalDepth = 0.5f;
-    [SerializeField] private Color debugDecalColor = new Color(1f, 0f, 0f, 1f);
-
     [Header("Muzzle Flash")]
     [SerializeField] private Transform muzzlePoint;
 
+    [Header("Audio Cues")]
+    [SerializeField] private AudioCue shootCue;
+    [SerializeField] private AudioCue reloadCue;
+    [SerializeField] private AudioCue emptyCue;
+
     protected int currentAmmo;
+    protected int reserveAmmo;
     protected float nextFireTime;
     protected bool isReloading;
     protected Vector3 recoilOffset = Vector3.zero;
 
     private Vector2 recoilCurrent = Vector2.zero;
     private Vector2 recoilVelocity = Vector2.zero;
+    private Vector2 pendingLookRecoil = Vector2.zero;
+    private int shotChainCount;
+    private float lastShotTime;
     private float currentBloom;
 
     private AudioSource audioSource;
     private PlayerMovement movement;
     private AimController aimController;
     private Material runtimeDecalMaterial;
+    private float nextAmmoUiResolveTime;
+    private Camera cachedPlayerCamera;
+    private float nextCameraResolveTime;
+    private int lastAmmoUiCurrent = int.MinValue;
+    private int lastAmmoUiReserve = int.MinValue;
+    private bool lastAmmoUiStylized;
 
     public bool CanShoot => !isReloading && currentAmmo > 0 && Time.time >= nextFireTime;
     public bool IsReloading => isReloading;
     public int CurrentAmmo => currentAmmo;
+    public int ReserveAmmo => reserveAmmo;
     protected virtual float SpreadMultiplier => 1f;
 
     public virtual void Initialize()
     {
         currentAmmo = stats != null ? stats.magazineSize : 0;
+        reserveAmmo = stats != null ? Mathf.Max(0, stats.startReserveAmmo) : 0;
+        if (stats != null && stats.maxReserveAmmo > 0)
+            reserveAmmo = Mathf.Min(reserveAmmo, stats.maxReserveAmmo);
         currentBloom = 0f;
+        MarkAmmoUiDirty();
     }
 
     private void Awake()
@@ -67,11 +91,36 @@ public abstract class BaseWeapon : MonoBehaviour
 
         movement = GetComponentInParent<PlayerMovement>();
         aimController = GetComponentInParent<AimController>();
+        ResolvePlayerCamera(force: true);
+        ResolveAmmoTextIfNeeded(force: true);
+    }
+
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+        ResolveAmmoTextIfNeeded();
+        MarkAmmoUiDirty();
+        UpdateAmmoUi(force: true);
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        ResolvePlayerCamera(force: true);
+        ResolveAmmoTextIfNeeded(force: true);
     }
 
     private void Update()
     {
-        if (ammoText != null) ammoText.text = currentAmmo.ToString();
+        ResolvePlayerCamera();
+        if (NeedsAmmoUiResolve())
+            ResolveAmmoTextIfNeeded();
+
+        UpdateAmmoUi(force: false);
         RecoverBloom(Time.deltaTime);
     }
 
@@ -85,14 +134,21 @@ public abstract class BaseWeapon : MonoBehaviour
 
     public virtual void Shoot()
     {
+        if (DeathScreen.GlobalDeathActive || CycleTransitionScreen.IsTransitionActive) return;
         if (!CanShoot || stats == null) return;
 
         currentAmmo--;
         nextFireTime = Time.time + stats.fireRate;
+        OnAnyShotFired?.Invoke(this);
+        CombatStimulusHub.RegisterGunshot(
+            transform.position,
+            Mathf.Clamp(stats.range * 0.3f, 8f, 30f)
+        );
 
-        if (stats.shootSound != null) audioSource.PlayOneShot(stats.shootSound);
+        PlayShootAudio();
+        MarkAmmoUiDirty();
 
-        Camera playerCamera = Camera.main;
+        Camera playerCamera = cachedPlayerCamera;
         if (playerCamera == null) return;
 
         Ray centerRay = playerCamera.ViewportPointToRay(Vector2.one * 0.5f);
@@ -101,19 +157,10 @@ public abstract class BaseWeapon : MonoBehaviour
         bool hit = Physics.Raycast(centerRay.origin, shotDirection, out RaycastHit hitInfo, stats.range, stats.hitLayers, QueryTriggerInteraction.Ignore);
         Vector3 tracerEnd = hit ? hitInfo.point : centerRay.origin + shotDirection * stats.range;
 
-        if (stats.tracerEffectPrefab != null)
-        {
-            Transform origin = muzzlePoint != null ? muzzlePoint : transform;
-            GameObject tracer = Instantiate(stats.tracerEffectPrefab, origin.position, Quaternion.LookRotation(tracerEnd - origin.position));
-            Destroy(tracer, tracerDuration);
-        }
+        SpawnTracer(tracerEnd);
 
         if (hit)
         {
-            if (debugDecalsVerbose)
-            {
-                Debug.Log($"[DecalDebug] HIT {hitInfo.collider.name} layer {hitInfo.collider.gameObject.layer} point {hitInfo.point} normal {hitInfo.normal}");
-            }
             SpawnImpact(hitInfo);
             TrySpawnBulletHole(hitInfo);
             TryApplyPhysicsImpact(hitInfo, shotDirection);
@@ -123,24 +170,16 @@ public abstract class BaseWeapon : MonoBehaviour
                 target.TakeDamage(stats.damage, hitInfo.point);
             }
         }
-        else if (debugDecalsVerbose)
-        {
-            Debug.Log("[DecalDebug] Raycast MISS");
-        }
-
-        if (muzzlePoint != null && stats.muzzlePrefab != null)
-        {
-            GameObject flash = Instantiate(stats.muzzlePrefab, muzzlePoint.position, muzzlePoint.rotation);
-            Destroy(flash, 2f);
-        }
+        SpawnMuzzleFlash();
 
         if (currentAmmo == 0)
         {
-            if (stats.emptyClipSound != null) audioSource.PlayOneShot(stats.emptyClipSound);
+            PlayEmptyAudio();
             Reload();
         }
 
         currentBloom = Mathf.Min(currentBloom + stats.bloomPerShot, stats.maxBloom);
+        UpdateShotChain();
         ApplyRecoil();
         EjectCasing();
     }
@@ -149,13 +188,42 @@ public abstract class BaseWeapon : MonoBehaviour
     {
         float kick = Random.Range(stats.recoilKickMin, stats.recoilKickMax);
         float horiz = Random.Range(-stats.recoilHorizontal, stats.recoilHorizontal);
-        recoilCurrent += new Vector2(horiz, -kick);
+        float chainFactor = 1f + Mathf.Min(shotChainCount * 0.08f, 0.65f);
+        kick *= chainFactor;
+        horiz *= Mathf.Lerp(1f, 1.3f, Mathf.Clamp01(shotChainCount / 10f));
+
+        bool aimingRifleStyle = aimController != null && aimController.IsAiming && stats != null && stats.useAimOverlay;
+        bool rifleHipfireStyle = stats != null && stats.useAimOverlay && !aimingRifleStyle;
+        if (aimingRifleStyle)
+        {
+            horiz = 0f;
+            kick *= 0.55f;
+        }
+        else if (rifleHipfireStyle)
+        {
+            horiz = 0f;
+        }
+
+        float modelHoriz = aimingRifleStyle ? 0f : horiz;
+        float modelKick = aimingRifleStyle ? 0f : kick;
+        recoilCurrent += new Vector2(modelHoriz * 0.55f, -modelKick * 0.6f);
         recoilOffset = new Vector3(recoilCurrent.x, recoilCurrent.y, 0f);
+
+        
+        float cameraKick = kick * (aimingRifleStyle ? 1.22f : 1.45f);
+        float cameraYaw = aimingRifleStyle ? 0f : horiz * (rifleHipfireStyle ? 0f : 0.2f);
+        pendingLookRecoil += new Vector2(cameraYaw, cameraKick);
     }
 
     public virtual void UpdateRecoil(float deltaTime)
     {
         if (stats == null) return;
+
+        float chainResetDelay = Mathf.Max(0.06f, stats.fireRate * 2.2f);
+        if (Time.time - lastShotTime > chainResetDelay)
+        {
+            shotChainCount = 0;
+        }
 
         recoilCurrent = Vector2.SmoothDamp(
             recoilCurrent,
@@ -172,9 +240,10 @@ public abstract class BaseWeapon : MonoBehaviour
     {
         if (stats == null) return;
         if (isReloading || currentAmmo >= stats.magazineSize) return;
+        if (reserveAmmo <= 0) return;
         isReloading = true;
 
-        if (stats.reloadSound != null) audioSource.PlayOneShot(stats.reloadSound);
+        PlayReloadAudio();
 
         Invoke(nameof(FinishReload), stats.reloadTime);
     }
@@ -187,8 +256,12 @@ public abstract class BaseWeapon : MonoBehaviour
             return;
         }
 
-        currentAmmo = stats.magazineSize;
+        int needed = Mathf.Max(0, stats.magazineSize - currentAmmo);
+        int toLoad = Mathf.Min(needed, reserveAmmo);
+        currentAmmo += toLoad;
+        reserveAmmo -= toLoad;
         isReloading = false;
+        MarkAmmoUiDirty();
     }
 
     public virtual void CancelReload()
@@ -199,6 +272,48 @@ public abstract class BaseWeapon : MonoBehaviour
     }
 
     public Vector3 GetRecoilOffset() => recoilOffset;
+
+    public Vector2 ConsumeLookRecoil()
+    {
+        Vector2 kick = pendingLookRecoil;
+        pendingLookRecoil = Vector2.zero;
+        return kick;
+    }
+
+    public void ResetForRespawn(bool refillAmmoToDefaults)
+    {
+        CancelReload();
+        nextFireTime = 0f;
+        recoilOffset = Vector3.zero;
+        recoilCurrent = Vector2.zero;
+        recoilVelocity = Vector2.zero;
+        pendingLookRecoil = Vector2.zero;
+        shotChainCount = 0;
+        lastShotTime = 0f;
+        currentBloom = 0f;
+
+        if (refillAmmoToDefaults)
+        {
+            Initialize();
+        }
+
+        MarkAmmoUiDirty();
+        RefreshAmmoUiBindingAndValue();
+    }
+
+    public int AddReserveAmmo(int amount)
+    {
+        if (stats == null || amount <= 0) return 0;
+
+        int maxReserve = Mathf.Max(0, stats.maxReserveAmmo);
+        if (maxReserve == 0) return 0;
+
+        int before = reserveAmmo;
+        reserveAmmo = Mathf.Clamp(reserveAmmo + amount, 0, maxReserve);
+        int added = reserveAmmo - before;
+        if (added > 0) MarkAmmoUiDirty();
+        return added;
+    }
 
     private Vector3 ApplySpread(Vector3 forward, Transform cameraTransform)
     {
@@ -279,13 +394,12 @@ public abstract class BaseWeapon : MonoBehaviour
         Vector3 normal = hitInfo.normal;
         Vector3 forward = decalUseNormalForward ? normal : -normal;
 
-        Vector2 size = debugDecals ? debugDecalSize : decalSize;
-        float depth = debugDecals ? debugDecalDepth : decalDepth;
+        Vector2 size = decalSize;
+        float depth = decalDepth;
         float halfDepth = Mathf.Max(0.001f, depth) * 0.5f;
 
         Vector3 position = hitInfo.point + forward * (decalPush + halfDepth);
 
-        // Stabilize orientation around the normal.
         Vector3 up = Vector3.up;
         if (Mathf.Abs(Vector3.Dot(up, forward)) > 0.98f)
             up = Vector3.right;
@@ -311,22 +425,6 @@ public abstract class BaseWeapon : MonoBehaviour
         projector.drawDistance = 50f;
         projector.startAngleFade = 180f;
         projector.endAngleFade = 180f;
-
-        if (debugDecals && decalMaterial != null)
-        {
-            Material debugMat = new Material(decalMaterial);
-            ApplyDecalTextureScale(debugMat);
-            if (debugMat.HasProperty("_BaseColor")) debugMat.SetColor("_BaseColor", debugDecalColor);
-            if (debugMat.HasProperty("_Color")) debugMat.SetColor("_Color", debugDecalColor);
-            projector.material = debugMat;
-        }
-
-        if (debugDecals)
-        {
-            Debug.Log($"[DecalDebug] Spawned at {hitInfo.point}, normal {hitInfo.normal}, layer {hitInfo.collider.gameObject.layer}");
-            Debug.DrawRay(hitInfo.point, hitInfo.normal * 0.3f, Color.red, 2f);
-            Debug.DrawRay(hitInfo.point, forward * 0.3f, Color.green, 2f);
-        }
 
         Destroy(decalObj, decalLifetime);
     }
@@ -392,5 +490,278 @@ public abstract class BaseWeapon : MonoBehaviour
 
         GameObject impact = Instantiate(prefab, hitInfo.point, Quaternion.LookRotation(hitInfo.normal));
         Destroy(impact, 5f);
+    }
+
+    private void UpdateShotChain()
+    {
+        float chainResetDelay = Mathf.Max(0.06f, stats.fireRate * 2.2f);
+        if (Time.time - lastShotTime > chainResetDelay)
+            shotChainCount = 0;
+
+        shotChainCount = Mathf.Min(shotChainCount + 1, 24);
+        lastShotTime = Time.time;
+    }
+
+    private void SpawnMuzzleFlash()
+    {
+        if (stats == null || stats.muzzlePrefab == null) return;
+        Transform origin = muzzlePoint != null ? muzzlePoint : transform;
+
+        GameObject flash = Instantiate(stats.muzzlePrefab, origin.position, origin.rotation, origin);
+        MuzzleFlashOneShot oneShot = flash.GetComponent<MuzzleFlashOneShot>();
+        if (oneShot == null) oneShot = flash.AddComponent<MuzzleFlashOneShot>();
+        oneShot.PlayAndAutoDestroy(stats.muzzleLifetime);
+    }
+
+    private void SpawnTracer(Vector3 tracerEnd)
+    {
+        if (stats == null) return;
+
+        Transform origin = muzzlePoint != null ? muzzlePoint : transform;
+        GameObject tracerObj = stats.tracerEffectPrefab != null
+            ? Instantiate(stats.tracerEffectPrefab, origin.position, Quaternion.identity)
+            : new GameObject("BulletTracer");
+
+        TracerVFX tracer = tracerObj.GetComponent<TracerVFX>();
+        if (tracer == null) tracer = tracerObj.AddComponent<TracerVFX>();
+
+        tracer.Initialize(
+            origin.position,
+            tracerEnd,
+            stats.tracerSpeed,
+            stats.tracerWidth,
+            stats.tracerLength,
+            stats.tracerColor,
+            stats.tracerMaterial,
+            tracerFadeOut
+        );
+    }
+
+    private void UpdateAmmoUi(bool force)
+    {
+        if (!force && !NeedsAmmoUiRefresh()) return;
+
+        
+        if (ammoCurrentText != null || ammoReserveText != null)
+        {
+            if (ammoCurrentText != null)
+                ammoCurrentText.text = currentAmmo.ToString();
+            if (ammoReserveText != null)
+                ammoReserveText.text = reserveAmmo.ToString();
+            CacheAmmoUiState();
+            return;
+        }
+
+        if (ammoText == null) return;
+
+        if (!stylizedAmmoHud)
+        {
+            ammoText.text = $"{currentAmmo} / {reserveAmmo}";
+            CacheAmmoUiState();
+            return;
+        }
+
+        ammoText.text = $"<size={currentAmmoPercent}%>{currentAmmo}</size> <size={reserveAmmoPercent}%>{reserveAmmo}</size>";
+        CacheAmmoUiState();
+    }
+
+    public void RefreshAmmoUiBindingAndValue()
+    {
+        ResolveAmmoTextIfNeeded(force: true);
+        UpdateAmmoUi(force: true);
+    }
+
+    private void ResolveAmmoTextIfNeeded(bool force = false)
+    {
+        if (!force && Time.unscaledTime < nextAmmoUiResolveTime) return;
+
+        if (!force && ammoText != null && ammoCurrentText != null && ammoReserveText != null) return;
+
+        if (force || ammoCurrentText == null)
+        {
+            ammoCurrentText = ResolveTextByName(ammoCurrentObjectName);
+        }
+
+        if (force || ammoReserveText == null)
+        {
+            ammoReserveText = ResolveTextByName(ammoReserveObjectName);
+        }
+
+        if (!force && ammoText != null) return;
+
+        TMP_Text[] allTexts = FindObjectsOfType<TMP_Text>(true);
+        TMP_Text exactActiveDd = null;
+        TMP_Text exactActive = null;
+        TMP_Text exactAnyDd = null;
+        TMP_Text exactAny = null;
+        TMP_Text ammoActive = null;
+        TMP_Text bulletActive = null;
+        TMP_Text fallback = null;
+
+        for (int i = 0; i < allTexts.Length; i++)
+        {
+            TMP_Text text = allTexts[i];
+            if (text == null) continue;
+
+            string lower = text.name.ToLowerInvariant();
+            bool active = text.gameObject.activeInHierarchy;
+            bool inDdol = text.gameObject.scene.IsValid() && text.gameObject.scene.name == "DontDestroyOnLoad";
+
+            if (lower == "bullets")
+            {
+                if (active && inDdol && exactActiveDd == null) exactActiveDd = text;
+                if (active && exactActive == null) exactActive = text;
+                if (inDdol && exactAnyDd == null) exactAnyDd = text;
+                if (exactAny == null) exactAny = text;
+                continue;
+            }
+
+            if (lower.Contains("ammo"))
+            {
+                if (active && ammoActive == null) ammoActive = text;
+                if (fallback == null) fallback = text;
+                continue;
+            }
+
+            if (lower.Contains("bullet"))
+            {
+                if (active && bulletActive == null) bulletActive = text;
+                if (fallback == null) fallback = text;
+            }
+        }
+
+        if (exactActiveDd != null)
+        {
+            ammoText = exactActiveDd;
+            return;
+        }
+
+        if (exactActive != null)
+        {
+            ammoText = exactActive;
+            return;
+        }
+
+        if (exactAnyDd != null)
+        {
+            ammoText = exactAnyDd;
+            return;
+        }
+
+        if (exactAny != null)
+        {
+            ammoText = exactAny;
+            return;
+        }
+
+        if (ammoActive != null)
+        {
+            ammoText = ammoActive;
+            return;
+        }
+
+        if (bulletActive != null)
+        {
+            ammoText = bulletActive;
+            return;
+        }
+
+        if (fallback != null)
+        {
+            ammoText = fallback;
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(ammoTextObjectName))
+        {
+            GameObject named = GameObject.Find(ammoTextObjectName);
+            if (named != null)
+            {
+                ammoText = named.GetComponent<TMP_Text>();
+            }
+        }
+
+        if (NeedsAmmoUiResolve())
+        {
+            nextAmmoUiResolveTime = Time.unscaledTime + 0.5f;
+        }
+    }
+
+    private TMP_Text ResolveTextByName(string objectName)
+    {
+        if (string.IsNullOrWhiteSpace(objectName)) return null;
+        GameObject named = GameObject.Find(objectName);
+        if (named == null) return null;
+        return named.GetComponent<TMP_Text>();
+    }
+
+    private bool NeedsAmmoUiResolve()
+    {
+        bool splitModeDetected = ammoCurrentText != null || ammoReserveText != null;
+        if (splitModeDetected)
+            return ammoCurrentText == null || ammoReserveText == null;
+
+        return ammoText == null;
+    }
+
+    private bool NeedsAmmoUiRefresh()
+    {
+        if (lastAmmoUiCurrent != currentAmmo) return true;
+        if (lastAmmoUiReserve != reserveAmmo) return true;
+        if (lastAmmoUiStylized != stylizedAmmoHud) return true;
+        return false;
+    }
+
+    private void CacheAmmoUiState()
+    {
+        lastAmmoUiCurrent = currentAmmo;
+        lastAmmoUiReserve = reserveAmmo;
+        lastAmmoUiStylized = stylizedAmmoHud;
+    }
+
+    private void MarkAmmoUiDirty()
+    {
+        lastAmmoUiCurrent = int.MinValue;
+        lastAmmoUiReserve = int.MinValue;
+    }
+
+    private void ResolvePlayerCamera(bool force = false)
+    {
+        if (!force && cachedPlayerCamera != null) return;
+        if (!force && Time.unscaledTime < nextCameraResolveTime) return;
+
+        cachedPlayerCamera = Camera.main;
+        if (cachedPlayerCamera == null)
+            nextCameraResolveTime = Time.unscaledTime + 0.5f;
+    }
+
+    private void PlayShootAudio()
+    {
+        if (shootCue != null && shootCue.IsValid)
+        {
+            AudioService.PlayAt(shootCue, transform.position, 1f);
+            return;
+        }
+        if (stats.shootSound != null) audioSource.PlayOneShot(stats.shootSound);
+    }
+
+    private void PlayReloadAudio()
+    {
+        if (reloadCue != null && reloadCue.IsValid)
+        {
+            AudioService.PlayAt(reloadCue, transform.position, 1f);
+            return;
+        }
+        if (stats.reloadSound != null) audioSource.PlayOneShot(stats.reloadSound);
+    }
+
+    private void PlayEmptyAudio()
+    {
+        if (emptyCue != null && emptyCue.IsValid)
+        {
+            AudioService.PlayAt(emptyCue, transform.position, 1f);
+            return;
+        }
+        if (stats.emptyClipSound != null) audioSource.PlayOneShot(stats.emptyClipSound);
     }
 }

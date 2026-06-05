@@ -1,0 +1,76 @@
+﻿@startuml
+left to right direction
+skinparam monochrome true
+skinparam shadowing false
+skinparam linetype polyline
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam classFontSize 11
+skinparam ArrowThickness 1.3
+skinparam dpi 150
+skinparam nodesep 8
+skinparam ranksep 10
+hide empty members
+scale 1.15
+
+package "Подсистема оружия" {
+  abstract class BaseWeapon {
+    +stats: WeaponStats
+    +CurrentAmmo: int
+    +ReserveAmmo: int
+    +Shoot()
+    +Reload()
+    +AddReserveAmmo(amount: int): int
+    +GetRecoilOffset(): Vector3
+    +ConsumeLookRecoil(): Vector2
+  }
+
+  class AssaultRifle {
+    +Initialize()
+    +Shoot()
+  }
+
+  class Pistol {
+    +Initialize()
+    +Shoot()
+  }
+
+  class WeaponStats {
+    +weaponName: string
+    +damage: int
+    +fireRate: float
+    +range: float
+    +magazineSize: int
+    +startReserveAmmo: int
+    +maxReserveAmmo: int
+    +hipSpread: float
+    +aimSpread: float
+  }
+
+  class WeaponManager {
+    +CurrentWeapon: BaseWeapon
+    +SwitchWeapon(index: int)
+    +PickupWeapon(prefab: GameObject): bool
+    +AddAmmo(type: AmmoType, amount: int): bool
+    +ResetForRespawn(refill: bool)
+  }
+
+  class WeaponPickup {
+    +TryPickup()
+  }
+
+  class TracerVFX {
+    +Initialize(from: Vector3, to: Vector3, ...)
+  }
+}
+
+BaseWeapon <|-- AssaultRifle
+BaseWeapon <|-- Pistol
+WeaponManager *-- BaseWeapon : управляет
+BaseWeapon --> WeaponStats : использует
+WeaponPickup --> WeaponManager : подбор
+BaseWeapon --> TracerVFX : визуал
+
+@enduml

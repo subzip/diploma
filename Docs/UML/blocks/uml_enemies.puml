@@ -1,0 +1,58 @@
+﻿@startuml
+left to right direction
+skinparam monochrome true
+skinparam shadowing false
+skinparam linetype polyline
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam classFontSize 11
+skinparam ArrowThickness 1.3
+skinparam dpi 150
+skinparam nodesep 8
+skinparam ranksep 10
+hide empty members
+scale 1.15
+
+package "Подсистема противников" {
+  interface IDamageable {
+    +TakeDamage(damage: float, hitPoint: Vector3)
+  }
+
+  class EnemyStateMachine {
+    +CurrentState: IAIState
+    +ChangeState(state: IAIState)
+    +Tick(deltaTime: float)
+  }
+
+  class CombatDifficultyProfile {
+    +HealthMultiplier: float
+    +DamageMultiplier: float
+    +FireIntervalMultiplier: float
+    +ReactionDelayMultiplier: float
+    +AimSpreadMultiplier: float
+  }
+
+  class GroundShooterAI {
+    +TakeDamage(d: float, hit: Vector3)
+    +CanSeePlayer(): bool
+    +TryShootAtPlayer()
+  }
+
+  class DroneShooterAI {
+    +TakeDamage(d: float, hit: Vector3)
+    +CanSeePlayer(): bool
+    +TryShootPlayer()
+    +BuildPathToCurrentPatrolPoint(): bool
+  }
+}
+
+GroundShooterAI ..|> IDamageable
+DroneShooterAI ..|> IDamageable
+GroundShooterAI *-- EnemyStateMachine : состояния
+DroneShooterAI *-- EnemyStateMachine : состояния
+GroundShooterAI --> CombatDifficultyProfile : баланс
+DroneShooterAI --> CombatDifficultyProfile : баланс
+
+@enduml

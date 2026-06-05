@@ -1,6 +1,7 @@
-// DroneCombat.cs
+
 using UnityEngine;
 
+[System.Obsolete("Legacy drone combat. Use FlyingDrone instead.")]
 public class DroneCombat : EnemyCombat
 {
     [Header("Drone Specific")]
@@ -18,6 +19,9 @@ public class DroneCombat : EnemyCombat
 
     public override void Attack()
     {
+        if (DeathScreen.GlobalDeathActive) return;
+        ResolvePlayerRef();
+
         if (Time.time >= lastAttackTime + attackCooldown)
         {
             lastAttackTime = Time.time;
@@ -36,6 +40,7 @@ public class DroneCombat : EnemyCombat
 
     public override bool IsInAttackRange()
     {
+        ResolvePlayerRef();
         if (player == null) return false;
         return Vector3.Distance(transform.position, player.position) <= laserRange;
     }

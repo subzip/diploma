@@ -10,7 +10,8 @@ GameObject:
   m_Component:
   - component: {fileID: 3076625009304661422}
   - component: {fileID: 3082254454413961722}
-  - component: {fileID: 5334368850428645028}
+  - component: {fileID: 7439474730531253794}
+  - component: {fileID: 2195106420421955414}
   m_Layer: 0
   m_Name: EnemyPatrol
   m_TagString: Untagged
@@ -55,7 +56,7 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 1.2
   m_Center: {x: 0, y: 0.3, z: 0}
---- !u!114 &5334368850428645028
+--- !u!114 &7439474730531253794
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -64,22 +65,92 @@ MonoBehaviour:
   m_GameObject: {fileID: 4257164606897095943}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 102a159518ed71e419d9095e2bc502dc, type: 3}
+  m_Script: {fileID: 11500000, guid: 1dd973d3200f5564d92775c030778635, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  patrolPoints: []
-  patrolSpeed: 2
-  waitTime: 2
-  detectionRange: 20
-  fieldOfView: 90
-  attackRange: 15
-  fireRate: 1
-  damage: 10
-  playerLayer:
+  eyePoint: {fileID: 3237894686209998883}
+  firePoint: {fileID: 3237894686209998883}
+  animator: {fileID: 2195106420421955414}
+  hitCollider: {fileID: 3082254454413961722}
+  rb: {fileID: 0}
+  visualRoot: {fileID: 3237894686209998883}
+  maxHealth: 55
+  fovDegrees: 165
+  visionRange: 26
+  obstacleMask:
     serializedVersion: 2
-    m_Bits: 0
-  laserVFX: {fileID: 0}
-  maxHealth: 50
+    m_Bits: 2015
+  patrolPoints: []
+  idleMinSeconds: 1
+  idleMaxSeconds: 2
+  patrolWaitSeconds: 1.1
+  patrolReachDistance: 0.7
+  attackRange: 17
+  searchDurationSeconds: 8.5
+  reactionDelaySeconds: 0.32
+  fireInterval: 0.42
+  baseDamage: 7
+  aimSpreadDegrees: 2.6
+  muzzlePrefab: {fileID: 0}
+  muzzleLifetime: 0.15
+  tracerEffectPrefab: {fileID: 0}
+  tracerSpeed: 240
+  tracerWidth: 0.014
+  tracerLength: 0.28
+  tracerColor: {r: 1, g: 0.2, b: 0.2, a: 0.95}
+  tracerMaterial: {fileID: 2100000, guid: 5b58690ba587f044e82f74c76da4d479, type: 2}
+  tracerFadeOut: 0.06
+  shootCue: {fileID: 0}
+  moveSpeed: 3.9
+  rotateSpeed: 8
+  lookYawOffset: 0
+  desiredHeightOffset: 1.6
+  minAttackDistance: 4
+  weaveAmplitude: 0.55
+  weaveFrequency: 1.45
+  minFacingDotToFire: 0.58
+  navMeshSampleDistance: 5
+  pathRebuildInterval: 0.75
+  cornerReachDistance: 0.85
+  pointTimeoutSeconds: 5
+  usePatrolPointYAsCruiseHeight: 1
+  fallbackCruiseHeightOffset: 1.6
+  stuckDistanceEpsilon: 0.12
+  stuckTimeoutSeconds: 1.5
+  useEntropyScaling: 1
+  tier2DamageMult: 1.07
+  tier3DamageMult: 1.14
+  tier4DamageMult: 1.22
+  tier2FireRateMult: 0.95
+  tier3FireRateMult: 0.9
+  tier4FireRateMult: 0.85
+  debugState: 0
+  difficultyProfile: {fileID: 0}
+  settleOnGroundAfterDeath: 1
+  deathSettleSpeed: 6
+  deathGroundOffset: 0.08
+--- !u!95 &2195106420421955414
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4257164606897095943}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 0}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1001 &1774593615699626390
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -140,6 +211,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -7002264515098492394, guid: bd3ba8acde8798d49976ef4e875dd2db, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: bd3ba8acde8798d49976ef4e875dd2db, type: 3}
       propertyPath: m_Name
       value: enemy_patrol
@@ -154,5 +229,10 @@ PrefabInstance:
 --- !u!4 &2245649148773576317 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: bd3ba8acde8798d49976ef4e875dd2db, type: 3}
+  m_PrefabInstance: {fileID: 1774593615699626390}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &3237894686209998883 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -5453912534721508939, guid: bd3ba8acde8798d49976ef4e875dd2db, type: 3}
   m_PrefabInstance: {fileID: 1774593615699626390}
   m_PrefabAsset: {fileID: 0}

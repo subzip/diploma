@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
@@ -10,7 +11,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float crouchSpeed = 2f;
     [SerializeField] private float jumpHeight = 2f;
 
-    [Header("Source-Lite Movement")]
+    [Header("Movement")]
     [SerializeField] private float groundAcceleration = 14f;
     [SerializeField] private float airAcceleration = 22f;
     [SerializeField] private float airMaxWishSpeed = 3.2f;
@@ -58,6 +59,13 @@ public class PlayerMovement : MonoBehaviour
         controller = GetComponent<CharacterController>();
         crouch = GetComponent<PlayerCrouch>();
         DontDestroyOnLoad(gameObject);
+    }
+
+    private void Start()
+    {
+        string scene = SceneManager.GetActiveScene().name;
+        RespawnCheckpointState.RegisterSceneStartIfMissing(scene, transform.position, transform.rotation);
+        ResetForRespawnAtSceneCheckpoint(scene, resetStaminaToMax: true);
     }
 
     private void OnEnable()
@@ -203,6 +211,41 @@ public class PlayerMovement : MonoBehaviour
     public float GetMoveSpeed()
     {
         return horizontalVelocity.magnitude;
+    }
+
+    public void ResetForRespawnAtSceneCheckpoint(string sceneName, bool resetStaminaToMax = true)
+    {
+        if (RespawnCheckpointState.TryGetCheckpoint(sceneName, out Vector3 checkpointPos, out Quaternion checkpointRot))
+        {
+            ResetForRespawnAt(checkpointPos, checkpointRot, resetStaminaToMax);
+            return;
+        }
+
+        ResetForRespawnAt(transform.position, transform.rotation, resetStaminaToMax);
+    }
+
+    public void ResetForRespawnAt(Vector3 worldPosition, Quaternion worldRotation, bool resetStaminaToMax = true)
+    {
+        bool previousControllerState = controller != null && controller.enabled;
+        if (controller != null) controller.enabled = false;
+
+        transform.SetPositionAndRotation(worldPosition, worldRotation);
+
+        if (controller != null) controller.enabled = previousControllerState;
+
+        horizontalVelocity = Vector3.zero;
+        yVelocity = -2f;
+        moveInput = Vector2.zero;
+        sprintHeld = false;
+        canRegenStamina = true;
+        lastSprintTime = Time.time;
+        coyoteCounter = 0f;
+        jumpBufferCounter = 0f;
+
+        if (resetStaminaToMax)
+        {
+            currentStamina = staminaMax;
+        }
     }
 
     public void SetAimMultiplier(float multiplier) => aimMultiplier = Mathf.Max(0.1f, multiplier);

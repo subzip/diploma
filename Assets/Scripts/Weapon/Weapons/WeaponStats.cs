@@ -1,9 +1,14 @@
-// Assets/Scripts/Weapons/WeaponStats.cs
+
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "WeaponStats", menuName = "Weapons/Weapon Stats", order = 1)]
 public class WeaponStats : ScriptableObject
 {
+    [Header("Ammo")]
+    public AmmoType ammoType = AmmoType.Rifle;
+    [Min(0)] public int startReserveAmmo = 90;
+    [Min(0)] public int maxReserveAmmo = 180;
+
     [Header("General")]
     public string weaponName = "Assault Rifle";
     public float damage = 25f;
@@ -31,12 +36,18 @@ public class WeaponStats : ScriptableObject
     public float recoilKickMin = 0.35f;
     public float recoilKickMax = 0.6f;
     public float recoilHorizontal = 0.25f;
-    public float recoilRecoverySpeed = 6f;    // чем выше — быстрее возврат
-    public float recoilSnap = 10f;            // чем выше — резче дергает камеру
+    public float recoilRecoverySpeed = 6f;    
+    public float recoilSnap = 10f;            
 
     [Header("Effects")]
     public GameObject muzzlePrefab;
     public GameObject tracerEffectPrefab;
+    [Min(0.01f)] public float muzzleLifetime = 0.08f;
+    [Min(1f)] public float tracerSpeed = 260f;
+    [Min(0.001f)] public float tracerWidth = 0.02f;
+    [Min(0.01f)] public float tracerLength = 0.35f;
+    public Color tracerColor = new Color(1f, 0.95f, 0.75f, 0.95f);
+    public Material tracerMaterial;
     public GameObject impactDefaultPrefab;
     public GameObject impactFleshPrefab;
     public GameObject casingPrefab;
@@ -62,4 +73,10 @@ public enum FireMode
 {
     SemiAuto,
     Auto
+}
+
+public enum AmmoType
+{
+    Pistol,
+    Rifle
 }

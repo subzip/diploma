@@ -26,13 +26,14 @@ Transform:
   m_GameObject: {fileID: 1033652179220117663}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -217.03574, y: 1, z: 13.52826}
+  m_LocalPosition: {x: 0, y: 1, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4488715337057244587}
   - {fileID: 7291776401589305973}
   - {fileID: 1469775573431572255}
+  - {fileID: 4448936230008601304}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &5298935489969760445
@@ -49,7 +50,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   stats: {fileID: 0}
   ammoText: {fileID: 0}
-  tracerDuration: 0.1
+  tracerFadeOut: 0.04
   bulletHolePrefab: {fileID: 0}
   casingEjectPoint: {fileID: 0}
   useDecalProjector: 1
@@ -67,7 +68,7 @@ MonoBehaviour:
   debugDecalSize: {x: 0.5, y: 0.5}
   debugDecalDepth: 0.5
   debugDecalColor: {r: 1, g: 0, b: 0, a: 1}
-  muzzlePoint: {fileID: 0}
+  muzzlePoint: {fileID: 4448936230008601304}
 --- !u!1 &3885933479138177098
 GameObject:
   m_ObjectHideFlags: 0
@@ -126,6 +127,37 @@ Transform:
   m_LocalRotation: {x: -1, y: -0, z: -0, w: 0}
   m_LocalPosition: {x: 0, y: 0.031000018, z: -0.030899346}
   m_LocalScale: {x: 10, y: 10, z: 10}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5314458921093421676}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &8853396615271029111
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4448936230008601304}
+  m_Layer: 0
+  m_Name: MuzzleP
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4448936230008601304
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8853396615271029111}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.0609, z: -0.0578}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5314458921093421676}

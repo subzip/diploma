@@ -1,0 +1,79 @@
+﻿@startuml
+left to right direction
+skinparam monochrome true
+skinparam shadowing false
+skinparam linetype polyline
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam classFontSize 11
+skinparam ArrowThickness 1.3
+skinparam dpi 150
+skinparam nodesep 8
+skinparam ranksep 10
+hide empty members
+scale 1.15
+
+package "Подсистема интерфейса" {
+  class QuestItem {
+    +title: string
+    +description: string
+    +isCompleted: bool
+    +Complete()
+  }
+
+  class QuestSystem {
+    +CompleteCurrentQuest()
+    +SetSingleActiveQuest(title: string, description: string)
+    +UpdateUI()
+  }
+
+  class QuestUI {
+    +ShowInitialHint()
+    +ShowHint(text: string)
+    +ShowCompleted()
+    +UpdateQuestDisplay(quest: QuestItem)
+  }
+
+  class GuideManager {
+    +ShowGuide(id: string)
+    +ShowCustomHint(id: string, text: string, icons: Sprite[])
+    +HideGuide(id: string)
+  }
+
+  class GuideHintWidget {
+    +SetContent(text: string, icons: Sprite[])
+  }
+
+  class PauseManager {
+    +IsPaused: bool
+    +TogglePause()
+  }
+
+  class DeathScreen {
+    +GlobalDeathActive: bool
+    +ShowDeathUI()
+  }
+
+  class CycleTransitionScreen {
+    +IsTransitionActive: bool
+    +PlayNarrativeOnly(...)
+  }
+
+  class PlayerVitalsHud {
+    +BindToPlayer()
+    +Refresh()
+  }
+}
+
+QuestSystem --> QuestItem : текущий квест
+QuestSystem --> QuestUI : вывод
+QuestUI --> GuideManager : подсказки
+GuideManager *-- GuideHintWidget : элемент
+PauseManager --> QuestUI : пауза UI
+DeathScreen --> QuestUI : экран смерти
+PlayerVitalsHud --> QuestUI : HUD
+CycleTransitionScreen --> QuestUI : переход
+
+@enduml
